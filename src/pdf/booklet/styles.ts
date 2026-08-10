@@ -19,8 +19,8 @@ export const bookletStyles = StyleSheet.create({
     color: "#111111",
   },
   coverPage: {
-    paddingTop: 28,
-    paddingBottom: 88,
+    paddingTop: 24,
+    paddingBottom: 24,
     paddingHorizontal: 32,
     fontFamily: "Helvetica",
     fontSize: 9,
@@ -52,8 +52,8 @@ export const bookletStyles = StyleSheet.create({
   },
   coverHero: {
     alignItems: "center",
-    marginBottom: 24,
-    paddingBottom: 18,
+    marginBottom: 16,
+    paddingBottom: 14,
     borderBottom: "1px solid #ececec",
   },
   coverEyebrow: {
@@ -81,7 +81,8 @@ export const bookletStyles = StyleSheet.create({
     color: BNI_GREY,
   },
   coverChapterQrBadge: {
-    marginTop: 12,
+    marginTop: 10,
+    marginBottom: 14,
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
@@ -118,19 +119,19 @@ export const bookletStyles = StyleSheet.create({
     gap: 16,
     border: "1px solid #e2e2e2",
     borderRadius: 6,
-    padding: 14,
-    marginBottom: 22,
+    padding: 12,
+    marginBottom: 16,
     backgroundColor: "#fafafa",
   },
   coverVenuePhoto: {
-    width: 150,
-    height: 110,
+    width: 130,
+    height: 96,
     borderRadius: 4,
     objectFit: "cover",
   },
   coverVenuePhotoPlaceholder: {
-    width: 150,
-    height: 110,
+    width: 130,
+    height: 96,
     borderRadius: 4,
     backgroundColor: "#efefef",
     border: "1px dashed #d0d0d0",
@@ -172,7 +173,7 @@ export const bookletStyles = StyleSheet.create({
     flex: 1,
   },
   coverCoreValuesSection: {
-    marginBottom: 16,
+    marginBottom: 12,
   },
   coverSectionTitle: {
     fontSize: 11,
@@ -188,12 +189,12 @@ export const bookletStyles = StyleSheet.create({
     gap: 8,
   },
   coreValueCard: {
-    width: "23%",
+    width: "31%",
     border: "1px solid #e8e8e8",
     borderRadius: 4,
-    padding: 8,
+    padding: 7,
     backgroundColor: "#ffffff",
-    minHeight: 68,
+    minHeight: 62,
   },
   coreValueIconWrap: {
     width: 18,
@@ -214,28 +215,23 @@ export const bookletStyles = StyleSheet.create({
     lineHeight: 1.2,
   },
   coreValueDescription: {
-    fontSize: 6.8,
+    fontSize: 6.5,
     color: BNI_GREY,
-    lineHeight: 1.35,
+    lineHeight: 1.3,
   },
   feedbackBadge: {
-    position: "absolute",
-    bottom: 24,
-    left: 32,
-    right: 32,
-  },
-  feedbackBadgeInner: {
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
     backgroundColor: BNI_RED,
     borderRadius: 8,
-    paddingVertical: 12,
-    paddingHorizontal: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
+    marginTop: 4,
   },
   feedbackQr: {
-    width: 52,
-    height: 52,
+    width: 46,
+    height: 46,
     backgroundColor: "#ffffff",
     padding: 4,
     borderRadius: 4,
@@ -333,13 +329,11 @@ export const bookletStyles = StyleSheet.create({
   },
   leaderTierRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
     justifyContent: "center",
     gap: 4,
+    marginBottom: 4,
   },
   leaderNode: {
-    width: "24%",
-    minWidth: 72,
     alignItems: "center",
     paddingHorizontal: 2,
     paddingVertical: 2,
@@ -375,26 +369,16 @@ export const bookletStyles = StyleSheet.create({
   charitySectionRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 12,
-    alignItems: "stretch",
+    alignItems: "flex-start",
   },
   charityBadgeColumn: {
-    minHeight: 0,
-  },
-  charityBadgeColumnSplit: {
-    width: "60%",
-  },
-  charityBadgeColumnFull: {
-    width: "100%",
+    flex: 3,
   },
   charityBankColumn: {
-    minHeight: 0,
+    flex: 2,
   },
-  charityBankColumnSplit: {
-    width: "40%",
-  },
-  charityBankColumnFull: {
-    width: "100%",
+  charityColumnFull: {
+    flex: 1,
   },
   charityBadge: {
     position: "relative",
@@ -405,7 +389,6 @@ export const bookletStyles = StyleSheet.create({
     paddingTop: 10,
     paddingBottom: 10,
     paddingHorizontal: 12,
-    height: "100%",
   },
   charityBadgeSideAccent: {
     position: "absolute",
@@ -482,8 +465,8 @@ export const bookletStyles = StyleSheet.create({
     marginBottom: 5,
   },
   charityQrImage: {
-    width: 50,
-    height: 50,
+    width: 58,
+    height: 58,
   },
   charityQrLabel: {
     fontSize: 7,
@@ -497,7 +480,6 @@ export const bookletStyles = StyleSheet.create({
     border: "1px solid #d8d8d8",
     borderRadius: 8,
     padding: 10,
-    height: "100%",
   },
   charityBankBoxTitle: {
     fontSize: 8,

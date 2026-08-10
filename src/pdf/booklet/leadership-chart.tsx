@@ -13,6 +13,8 @@ type LeadershipChartProps = {
   committee: Member[];
 };
 
+const MEMBERS_PER_ROW = 5;
+
 function getRoleSortIndex(roles: string[]) {
   for (let index = 0; index < CHAPTER_ROLES.length; index += 1) {
     if (roles.includes(CHAPTER_ROLES[index])) return index;
@@ -29,15 +31,30 @@ function sortByRolePriority(members: Member[]) {
   });
 }
 
+function chunkMembers<T>(items: T[], size: number) {
+  const rows: T[][] = [];
+  for (let index = 0; index < items.length; index += size) {
+    rows.push(items.slice(index, index + size));
+  }
+  return rows;
+}
+
 function getInitials(member: Pick<Member, "firstName" | "lastName">) {
   return `${member.firstName.charAt(0)}${member.lastName.charAt(0)}`.toUpperCase();
 }
 
-function LeadershipNode({ member }: { member: Member }) {
-  const avatarSize = 28;
+function LeadershipNode({
+  member,
+  rowSize,
+}: {
+  member: Member;
+  rowSize: number;
+}) {
+  const avatarSize = 24;
+  const nodeWidth = `${100 / rowSize}%`;
 
   return (
-    <View style={styles.leaderNode} wrap={false}>
+    <View style={[styles.leaderNode, { width: nodeWidth }]} wrap={false}>
       {member.headshotUrl ? (
         <Image
           src={member.headshotUrl}
@@ -84,16 +101,25 @@ function LeadershipTier({
 }) {
   if (!members.length) return null;
 
+  const sortedMembers = sortByRolePriority(members);
+  const rows = chunkMembers(sortedMembers, MEMBERS_PER_ROW);
+
   return (
     <View wrap={false}>
       {showConnector ? <View style={styles.leaderConnector} /> : null}
       <View style={styles.leaderTier}>
         <Text style={styles.leaderTierLabel}>{title}</Text>
-        <View style={styles.leaderTierRow}>
-          {sortByRolePriority(members).map((member) => (
-            <LeadershipNode key={member.id} member={member} />
-          ))}
-        </View>
+        {rows.map((row, rowIndex) => (
+          <View key={`${title}-row-${rowIndex}`} style={styles.leaderTierRow}>
+            {row.map((member) => (
+              <LeadershipNode
+                key={member.id}
+                member={member}
+                rowSize={row.length}
+              />
+            ))}
+          </View>
+        ))}
       </View>
     </View>
   );

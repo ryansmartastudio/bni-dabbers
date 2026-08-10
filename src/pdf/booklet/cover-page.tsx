@@ -84,23 +84,19 @@ export function CoverPage({
           <GlobeIcon size={10} />
           <Text style={styles.coverWebsite}>{settings.websiteUrl}</Text>
         </View>
-        {chapterQrLink ? (
-          <View style={styles.coverChapterQrBadge}>
-            <Image
-              src={chapterQrLink.qrDataUrl}
-              style={styles.coverChapterQr}
-            />
-            <View style={styles.coverChapterQrCopy}>
-              <Text style={styles.coverChapterQrTitle}>
-                {chapterQrLink.label}
-              </Text>
-              <Text style={styles.coverChapterQrSubtitle}>
-                Scan to visit the BNI Dabbers chapter page
-              </Text>
-            </View>
-          </View>
-        ) : null}
       </View>
+
+      {chapterQrLink ? (
+        <View style={styles.coverChapterQrBadge}>
+          <Image src={chapterQrLink.qrDataUrl} style={styles.coverChapterQr} />
+          <View style={styles.coverChapterQrCopy}>
+            <Text style={styles.coverChapterQrTitle}>{chapterQrLink.label}</Text>
+            <Text style={styles.coverChapterQrSubtitle}>
+              Scan to visit the BNI Dabbers chapter page
+            </Text>
+          </View>
+        </View>
+      ) : null}
 
       <View style={styles.coverVenueCard}>
         {settings.venuePhotoUrl ? (
@@ -139,17 +135,15 @@ export function CoverPage({
 
       {feedbackQrDataUrl ? (
         <View style={styles.feedbackBadge}>
-          <View style={styles.feedbackBadgeInner}>
-            <Image src={feedbackQrDataUrl} style={styles.feedbackQr} />
-            <View style={styles.feedbackCopy}>
-              <View style={styles.feedbackTitleRow}>
-                <MessageIcon size={11} />
-                <Text style={styles.feedbackTitle}>{feedbackLabel}</Text>
-              </View>
-              <Text style={styles.feedbackSubtitle}>
-                Scan to share your meeting feedback with the chapter
-              </Text>
+          <Image src={feedbackQrDataUrl} style={styles.feedbackQr} />
+          <View style={styles.feedbackCopy}>
+            <View style={styles.feedbackTitleRow}>
+              <MessageIcon size={11} />
+              <Text style={styles.feedbackTitle}>{feedbackLabel}</Text>
             </View>
+            <Text style={styles.feedbackSubtitle}>
+              Scan to share your meeting feedback with the chapter
+            </Text>
           </View>
         </View>
       ) : null}

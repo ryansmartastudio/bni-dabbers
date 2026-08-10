@@ -34,13 +34,14 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
   }
 
   return (
-    <View style={styles.charitySectionRow} wrap={false}>
+    <View style={styles.charitySectionRow}>
       {hasCharityContent ? (
         <View
-          style={[
-            styles.charityBadgeColumn,
-            hasBankDetails ? styles.charityBadgeColumnSplit : styles.charityBadgeColumnFull,
-          ]}
+          style={
+            hasBankDetails
+              ? styles.charityBadgeColumn
+              : [styles.charityBadgeColumn, styles.charityColumnFull]
+          }
         >
           <View style={styles.charityBadge}>
             <View style={styles.charityBadgeHeader}>
@@ -92,10 +93,11 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
 
       {hasBankDetails ? (
         <View
-          style={[
-            styles.charityBankColumn,
-            hasCharityContent ? styles.charityBankColumnSplit : styles.charityBankColumnFull,
-          ]}
+          style={
+            hasCharityContent
+              ? styles.charityBankColumn
+              : [styles.charityBankColumn, styles.charityColumnFull]
+          }
         >
           <View style={styles.charityBankBox}>
             <Text style={styles.charityBankBoxTitle}>Bank details</Text>

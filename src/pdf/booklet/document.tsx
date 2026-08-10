@@ -59,7 +59,9 @@ export function BookletDocument({
           support={roleGroups.support}
           committee={roleGroups.committee}
         />
+      </Page>
 
+      <Page size="A4" style={styles.page}>
         <CharitySection settings={settings} links={charitySectionLinks} />
       </Page>
 
