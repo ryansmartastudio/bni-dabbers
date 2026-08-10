@@ -1,13 +1,15 @@
 "use client";
 
-import { Input } from "@/components/ui/form-fields";
+import { Input, Select } from "@/components/ui/form-fields";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { CHARITY_LINK_PLACEMENTS } from "@/lib/charity-links";
 
 export type CharityLinkDraft = {
   id?: string;
   label: string;
   url: string;
   sortOrder: number;
+  placement: "charity" | "cover";
 };
 
 type CharityLinksFieldsProps = {
@@ -31,7 +33,7 @@ export function CharityLinksFields({ links, onChange }: CharityLinksFieldsProps)
   function addLink() {
     onChange([
       ...links,
-      { label: "", url: "", sortOrder: links.length },
+      { label: "", url: "", sortOrder: links.length, placement: "charity" },
     ]);
   }
 
@@ -46,14 +48,14 @@ export function CharityLinksFields({ links, onChange }: CharityLinksFieldsProps)
   return (
     <SettingsSection
       title="Charity QR links"
-      description="QR codes on page 2 of the meeting sheet booklet. Labels appear under each code. Saved with the button below."
+      description="Genie's Wish links print in the charity badge on page 2. Set a link to Front cover for the chapter page QR."
     >
       {links.length > 0 ? (
         <div className="space-y-4">
           {links.map((link, index) => (
             <div
               key={link.id ?? `new-${index}`}
-              className="grid gap-3 rounded-lg border border-border p-4 sm:grid-cols-[1fr_2fr_auto_auto] sm:items-end"
+              className="grid gap-3 rounded-lg border border-border p-4 lg:grid-cols-[1fr_2fr_1fr_auto_auto] lg:items-end"
             >
               <Input
                 label="Label"
@@ -69,6 +71,22 @@ export function CharityLinksFields({ links, onChange }: CharityLinksFieldsProps)
                 value={link.url}
                 onChange={(e) => updateLink(index, "url", e.target.value)}
                 placeholder="https://..."
+              />
+              <Select
+                label="Print on"
+                name={`charityLink-${index}-placement`}
+                value={link.placement}
+                onChange={(e) =>
+                  updateLink(
+                    index,
+                    "placement",
+                    e.target.value as CharityLinkDraft["placement"],
+                  )
+                }
+                options={CHARITY_LINK_PLACEMENTS.map((option) => ({
+                  value: option.value,
+                  label: option.label,
+                }))}
               />
               <Input
                 label="Order"

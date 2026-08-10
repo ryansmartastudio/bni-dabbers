@@ -91,6 +91,7 @@ export const charityLinks = pgTable("charity_links", {
   label: text("label").notNull(),
   url: text("url").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
+  placement: text("placement").$type<"charity" | "cover">().default("charity").notNull(),
 });
 
 export type Member = typeof members.$inferSelect;

@@ -19,16 +19,25 @@ async function seed() {
         label: "Genie's Wish website",
         url: "https://www.geneswish.org.uk",
         sortOrder: 0,
+        placement: "charity",
       },
       {
         label: "Donate to Genie's Wish",
         url: "https://www.geneswish.org.uk/donate",
         sortOrder: 1,
+        placement: "charity",
+      },
+      {
+        label: "Easy Fundraising Sign Up",
+        url: "https://www.easyfundraising.org.uk/",
+        sortOrder: 2,
+        placement: "charity",
       },
       {
         label: "BNI Dabbers chapter page",
         url: "https://www.bni-ce.co.uk/cheshire-east-dabbers",
-        sortOrder: 2,
+        sortOrder: 3,
+        placement: "cover",
       },
     ]);
   }

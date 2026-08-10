@@ -1,6 +1,7 @@
 import { Image, Page, Text, View } from "@react-pdf/renderer";
 import type { ReactNode } from "react";
 import type { ChapterSettings, CoreValue } from "@/db/schema";
+import type { CharityLinkWithQr } from "@/lib/charity-links";
 import { normalizeCoreValues } from "@/lib/core-values";
 import {
   CalendarIcon,
@@ -16,6 +17,7 @@ type CoverPageProps = {
   settings: ChapterSettings;
   coreValues: CoreValue[];
   feedbackQrDataUrl?: string;
+  chapterQrLink?: CharityLinkWithQr;
 };
 
 function DetailRow({
@@ -53,6 +55,7 @@ export function CoverPage({
   settings,
   coreValues,
   feedbackQrDataUrl,
+  chapterQrLink,
 }: CoverPageProps) {
   const values = normalizeCoreValues(coreValues);
   const feedbackLabel = settings.feedbackQrLabel?.trim() || "Feedback";
@@ -81,6 +84,22 @@ export function CoverPage({
           <GlobeIcon size={10} />
           <Text style={styles.coverWebsite}>{settings.websiteUrl}</Text>
         </View>
+        {chapterQrLink ? (
+          <View style={styles.coverChapterQrBadge}>
+            <Image
+              src={chapterQrLink.qrDataUrl}
+              style={styles.coverChapterQr}
+            />
+            <View style={styles.coverChapterQrCopy}>
+              <Text style={styles.coverChapterQrTitle}>
+                {chapterQrLink.label}
+              </Text>
+              <Text style={styles.coverChapterQrSubtitle}>
+                Scan to visit the BNI Dabbers chapter page
+              </Text>
+            </View>
+          </View>
+        ) : null}
       </View>
 
       <View style={styles.coverVenueCard}>

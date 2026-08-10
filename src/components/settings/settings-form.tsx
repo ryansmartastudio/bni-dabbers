@@ -16,6 +16,7 @@ import {
 } from "@/components/settings/core-values-fields";
 import { SettingsSection } from "@/components/settings/settings-section";
 import { normalizeCoreValues } from "@/lib/core-values";
+import { resolveCharityLinkPlacement } from "@/lib/charity-links";
 
 type SettingsFormProps = {
   settings: ChapterSettings;
@@ -23,11 +24,12 @@ type SettingsFormProps = {
 };
 
 function toLinkDrafts(links: CharityLink[]): CharityLinkDraft[] {
-  return links.map(({ id, label, url, sortOrder }) => ({
+  return links.map(({ id, label, url, sortOrder, placement }) => ({
     id,
     label,
     url,
     sortOrder,
+    placement: resolveCharityLinkPlacement({ label, placement }),
   }));
 }
 
@@ -109,6 +111,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             label: link.label.trim(),
             url: link.url.trim(),
             sortOrder: link.sortOrder,
+            placement: link.placement,
           })),
         });
         setSaved(true);

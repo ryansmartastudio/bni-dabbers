@@ -77,6 +77,7 @@ export const charityLinkSchema = z.object({
   label: z.string().min(1),
   url: z.string().url(),
   sortOrder: z.coerce.number().int().min(0),
+  placement: z.enum(["charity", "cover"]).default("charity"),
 });
 
 export const saveAllSettingsSchema = z.object({

@@ -55,6 +55,7 @@ export async function saveAllSettings(data: SaveAllSettingsValues) {
       label: link.label,
       url: link.url,
       sortOrder: link.sortOrder,
+      placement: link.placement,
     };
 
     if (link.id) {

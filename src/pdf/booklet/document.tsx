@@ -1,15 +1,19 @@
 import {
   Document,
-  Image,
   Page,
   Text,
   View,
 } from "@react-pdf/renderer";
-import type { ChapterSettings, CharityLink } from "@/db/schema";
+import type { ChapterSettings } from "@/db/schema";
+import {
+  splitCharityLinksForBooklet,
+  type CharityLinkWithQr,
+} from "@/lib/charity-links";
 import {
   getMembersByRoleGroup,
   sortMembersForBooklet,
 } from "@/lib/members";
+import { CharitySection } from "@/pdf/booklet/charity-section";
 import { CoverPage } from "@/pdf/booklet/cover-page";
 import { LeadershipChart } from "@/pdf/booklet/leadership-chart";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
@@ -19,8 +23,6 @@ import {
   MemberTable,
   type BookletMember,
 } from "@/pdf/booklet/member-table";
-
-type CharityLinkWithQr = CharityLink & { qrDataUrl: string };
 
 type BookletDocumentProps = {
   settings: ChapterSettings;
@@ -38,6 +40,8 @@ export function BookletDocument({
   const roleGroups = getMembersByRoleGroup(members);
   const sortedMembers = sortMembersForBooklet(members);
   const guestPageCount = Math.max(settings.guestPageCount, 1);
+  const { coverLinks, charityLinks: charitySectionLinks } =
+    splitCharityLinksForBooklet(charityLinks);
 
   return (
     <Document title={`${settings.chapterName} Meeting Sheet`}>
@@ -45,6 +49,7 @@ export function BookletDocument({
         settings={settings}
         coreValues={settings.coreValues}
         feedbackQrDataUrl={feedbackQrDataUrl}
+        chapterQrLink={coverLinks[0]}
       />
 
       <Page size="A4" style={styles.page}>
@@ -55,37 +60,7 @@ export function BookletDocument({
           committee={roleGroups.committee}
         />
 
-        <Text style={[styles.sectionHeading, { marginTop: 16 }]}>
-          {settings.charityName}
-        </Text>
-        {settings.charityLogoUrl ? (
-          <Image src={settings.charityLogoUrl} style={{ width: 60, height: 60, marginBottom: 8 }} />
-        ) : null}
-        {settings.charityParagraph ? (
-          <Text style={styles.body}>{settings.charityParagraph}</Text>
-        ) : null}
-
-        <View style={styles.qrRow}>
-          {charityLinks.map((link) => (
-            <View key={link.id} style={styles.qrItem}>
-              <Image src={link.qrDataUrl} style={styles.qrImage} />
-              <Text style={styles.qrLabel}>{link.label}</Text>
-            </View>
-          ))}
-        </View>
-
-        {settings.bniDabbersBankDetails ? (
-          <>
-            <Text style={styles.subHeading}>BNI Dabbers bank details</Text>
-            <Text style={styles.body}>{settings.bniDabbersBankDetails}</Text>
-          </>
-        ) : null}
-        {settings.bniGlobalBankDetails ? (
-          <>
-            <Text style={styles.subHeading}>BNI Global bank details</Text>
-            <Text style={styles.body}>{settings.bniGlobalBankDetails}</Text>
-          </>
-        ) : null}
+        <CharitySection settings={settings} links={charitySectionLinks} />
       </Page>
 
       <Page size="A4" style={styles.page}>
