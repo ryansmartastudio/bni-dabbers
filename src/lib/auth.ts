@@ -10,6 +10,13 @@ export function getRoleFromClaims(
   return metadata?.role === "admin" ? "admin" : "member";
 }
 
+export function getRoleFromPublicMetadata(
+  publicMetadata: Record<string, unknown> | null | undefined,
+): UserRole {
+  const role = publicMetadata?.role;
+  return role === "admin" ? "admin" : "member";
+}
+
 export async function getAuthContext() {
   const { userId, sessionClaims } = await auth();
   const role = getRoleFromClaims(sessionClaims as Record<string, unknown>);
@@ -21,7 +28,7 @@ export async function requireAuth() {
   if (!context.userId) {
     redirect("/sign-in");
   }
-  return context;
+  return { ...context, userId: context.userId };
 }
 
 export async function requireAdmin() {

@@ -1,6 +1,11 @@
 import { requireAdmin } from "@/lib/auth";
 import { getChapterSettings, getCharityLinks } from "@/lib/settings";
+import {
+  listAdminUsers,
+  listPendingAdminInvites,
+} from "@/lib/clerk-admins";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { AdminAccessPanel } from "@/components/settings/admin-access-panel";
 import { DatabaseSetupError } from "@/components/setup/database-error";
 import {
   getDatabaseSetupMessage,
@@ -10,15 +15,19 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
-  await requireAdmin();
+  const { userId } = await requireAdmin();
 
   let settings;
   let charityLinks;
+  let admins;
+  let pendingInvites;
 
   try {
-    [settings, charityLinks] = await Promise.all([
+    [settings, charityLinks, admins, pendingInvites] = await Promise.all([
       getChapterSettings(),
       getCharityLinks(),
+      listAdminUsers(),
+      listPendingAdminInvites(),
     ]);
   } catch (error) {
     if (isDatabaseSetupError(error)) {
@@ -39,7 +48,14 @@ export default async function SettingsPage() {
           Changes apply the next time you generate a PDF.
         </p>
       </div>
-      <SettingsForm settings={settings} charityLinks={charityLinks} />
+      <div className="space-y-6">
+        <AdminAccessPanel
+          admins={admins}
+          pendingInvites={pendingInvites}
+          currentUserId={userId}
+        />
+        <SettingsForm settings={settings} charityLinks={charityLinks} />
+      </div>
     </div>
   );
 }
