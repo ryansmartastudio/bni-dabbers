@@ -62,21 +62,23 @@ export function BookletDocument({
         <CharitySection settings={settings} links={charitySectionLinks} />
       </Page>
 
-      <Page size="A4" style={styles.page}>
+      <Page size="A4" style={[styles.page, styles.weekPage]}>
         <Text style={styles.sectionHeading}>This week</Text>
-        <View style={styles.slotBox}>
-          <Text style={styles.slotTitle}>10-minute presentation</Text>
-          <Text style={styles.body}>
-            {settings.presentationSlot || " "}
-          </Text>
-        </View>
-        <View style={styles.slotBox}>
-          <Text style={styles.slotTitle}>Education slot</Text>
-          <Text style={styles.body}>{settings.educationSlot || " "}</Text>
-        </View>
-        <View style={styles.slotBox}>
-          <Text style={styles.slotTitle}>Training & events</Text>
-          <Text style={styles.body}>{settings.trainingEvents || " "}</Text>
+        <View style={styles.slotsColumn}>
+          <View style={styles.slotBox}>
+            <Text style={styles.slotTitle}>10-minute presentation</Text>
+            <Text style={styles.slotBody}>
+              {settings.presentationSlot || " "}
+            </Text>
+          </View>
+          <View style={styles.slotBox}>
+            <Text style={styles.slotTitle}>Education slot</Text>
+            <Text style={styles.slotBody}>{settings.educationSlot || " "}</Text>
+          </View>
+          <View style={styles.slotBox}>
+            <Text style={styles.slotTitle}>Training & events</Text>
+            <Text style={styles.slotBody}>{settings.trainingEvents || " "}</Text>
+          </View>
         </View>
       </Page>
 

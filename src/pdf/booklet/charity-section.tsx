@@ -20,6 +20,34 @@ function CharityQrCard({ link }: { link: CharityLinkWithQr }) {
   );
 }
 
+function BankDetailsBlock({
+  title,
+  details,
+  showDivider,
+}: {
+  title: string;
+  details: string;
+  showDivider?: boolean;
+}) {
+  const lines = details
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  return (
+    <View
+      style={showDivider ? styles.charityBankBlock : styles.charityBankBlockLast}
+    >
+      <Text style={styles.charityBankTitle}>{title}</Text>
+      {lines.map((line, index) => (
+        <Text key={`${title}-${index}`} style={styles.charityBankText}>
+          {line}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 export function CharitySection({ settings, links }: CharitySectionProps) {
   const hasCharityContent =
     links.length > 0 ||
@@ -103,20 +131,17 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
             <Text style={styles.charityBankBoxTitle}>Bank details</Text>
             <View style={styles.charityBankPanel}>
               {settings.bniDabbersBankDetails ? (
-                <View style={styles.charityBankBlock}>
-                  <Text style={styles.charityBankTitle}>BNI Dabbers</Text>
-                  <Text style={styles.charityBankText}>
-                    {settings.bniDabbersBankDetails}
-                  </Text>
-                </View>
+                <BankDetailsBlock
+                  title="BNI Dabbers"
+                  details={settings.bniDabbersBankDetails}
+                  showDivider={Boolean(settings.bniGlobalBankDetails)}
+                />
               ) : null}
               {settings.bniGlobalBankDetails ? (
-                <View style={styles.charityBankBlock}>
-                  <Text style={styles.charityBankTitle}>BNI Global</Text>
-                  <Text style={styles.charityBankText}>
-                    {settings.bniGlobalBankDetails}
-                  </Text>
-                </View>
+                <BankDetailsBlock
+                  title="BNI Global"
+                  details={settings.bniGlobalBankDetails}
+                />
               ) : null}
             </View>
           </View>

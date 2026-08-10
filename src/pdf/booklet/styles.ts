@@ -481,22 +481,27 @@ export const bookletStyles = StyleSheet.create({
   },
   charityBankPanel: {
     flexDirection: "column",
-    gap: 10,
-    flex: 1,
   },
   charityBankBlock: {
-    gap: 4,
+    marginBottom: 10,
+    paddingBottom: 10,
+    borderBottom: "1px solid #d0d0d0",
+  },
+  charityBankBlockLast: {
+    marginBottom: 0,
+    paddingBottom: 0,
   },
   charityBankTitle: {
     fontSize: 7.5,
     fontWeight: "bold",
     color: "#333333",
-    marginBottom: 3,
+    marginBottom: 5,
   },
   charityBankText: {
     fontSize: 7.5,
     color: BNI_GREY,
-    lineHeight: 1.35,
+    lineHeight: 1.55,
+    marginBottom: 3,
   },
   qrRow: {
     flexDirection: "row",
@@ -517,17 +522,31 @@ export const bookletStyles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
+  weekPage: {
+    flexDirection: "column",
+  },
+  slotsColumn: {
+    flexDirection: "column",
+    flexGrow: 1,
+    height: 730,
+    gap: 10,
+  },
   slotBox: {
     border: "1px solid #d9d9d9",
-    padding: 10,
-    minHeight: 80,
-    marginBottom: 12,
+    borderRadius: 4,
+    padding: 12,
+    flex: 1,
   },
   slotTitle: {
     fontSize: 10,
     fontWeight: "bold",
     color: BNI_RED,
-    marginBottom: 6,
+    marginBottom: 8,
+  },
+  slotBody: {
+    fontSize: 9,
+    color: BNI_GREY,
+    lineHeight: 1.45,
   },
   pageTitle: {
     fontSize: 15,
