@@ -15,12 +15,15 @@ import {
   type CoreValueDraft,
 } from "@/components/settings/core-values-fields";
 import { SettingsSection } from "@/components/settings/settings-section";
+import type { SettingsTabId } from "@/components/settings/settings-tabs";
 import { normalizeCoreValues } from "@/lib/core-values";
 import { resolveCharityLinkPlacement } from "@/lib/charity-links";
+import { cn } from "@/lib/utils";
 
 type SettingsFormProps = {
   settings: ChapterSettings;
   charityLinks: CharityLink[];
+  activeTab: Exclude<SettingsTabId, "admins">;
 };
 
 function toLinkDrafts(links: CharityLink[]): CharityLinkDraft[] {
@@ -33,7 +36,27 @@ function toLinkDrafts(links: CharityLink[]): CharityLinkDraft[] {
   }));
 }
 
-export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
+function TabPanel({
+  tab,
+  activeTab,
+  children,
+}: {
+  tab: SettingsFormProps["activeTab"];
+  activeTab: SettingsFormProps["activeTab"];
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("space-y-6", activeTab !== tab && "hidden")} role="tabpanel">
+      {children}
+    </div>
+  );
+}
+
+export function SettingsForm({
+  settings,
+  charityLinks,
+  activeTab,
+}: SettingsFormProps) {
   const [isPending, startTransition] = useTransition();
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -136,202 +159,214 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
         </p>
       ) : null}
 
-      <SettingsSection
-        title="Chapter identity"
-        description="Name, website and logo used on the meeting sheet cover and header."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Chapter name"
-            name="chapterName"
-            defaultValue={settings.chapterName}
-            required
-          />
-          <Input
-            label="Website URL"
-            name="websiteUrl"
-            defaultValue={settings.websiteUrl}
-            placeholder="www.bni-ce.co.uk/cheshire-east-dabbers"
-          />
-        </div>
-        <ImageUpload
-          label="Chapter logo"
-          description="Shown on the booklet cover. PNG or SVG with transparent background works best."
-          value={chapterLogoUrl}
-          onChange={setChapterLogoUrl}
-          folder="logos/chapter"
-          aspect="square"
-        />
-      </SettingsSection>
-
-      <SettingsSection
-        title="Meeting & venue"
-        description="Printed on the meeting sheet cover with venue branding and a venue photo."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Venue name"
-            name="venueName"
-            defaultValue={settings.venueName}
-          />
-          <Input
-            label="Venue address"
-            name="venueAddress"
-            defaultValue={settings.venueAddress}
-          />
-          <Input
-            label="Meeting day"
-            name="meetingDay"
-            defaultValue={settings.meetingDay}
-          />
-          <div className="grid grid-cols-2 gap-3">
+      <TabPanel tab="chapter" activeTab={activeTab}>
+        <SettingsSection
+          title="Chapter identity"
+          description="Name, website and logo used on the meeting sheet cover and header."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
             <Input
-              label="Start time"
-              name="meetingStart"
-              defaultValue={settings.meetingStart}
-              placeholder="06:45"
+              label="Chapter name"
+              name="chapterName"
+              defaultValue={settings.chapterName}
+              required
             />
             <Input
-              label="End time"
-              name="meetingEnd"
-              defaultValue={settings.meetingEnd}
-              placeholder="08:30"
+              label="Website URL"
+              name="websiteUrl"
+              defaultValue={settings.websiteUrl}
+              placeholder="www.bni-ce.co.uk/cheshire-east-dabbers"
             />
           </div>
-        </div>
-        <div className="grid gap-6 md:grid-cols-2">
           <ImageUpload
-            label="Venue logo"
-            description="Wychwood Park logo for the meeting sheet cover."
-            value={venueLogoUrl}
-            onChange={setVenueLogoUrl}
-            folder="logos/venue"
+            label="Chapter logo"
+            description="Shown on the booklet cover. PNG or SVG with transparent background works best."
+            value={chapterLogoUrl}
+            onChange={setChapterLogoUrl}
+            folder="logos/chapter"
+            aspect="square"
+          />
+        </SettingsSection>
+
+        <SettingsSection
+          title="Meeting & venue"
+          description="Printed on the meeting sheet cover with venue branding and a venue photo."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Venue name"
+              name="venueName"
+              defaultValue={settings.venueName}
+            />
+            <Input
+              label="Venue address"
+              name="venueAddress"
+              defaultValue={settings.venueAddress}
+            />
+            <Input
+              label="Meeting day"
+              name="meetingDay"
+              defaultValue={settings.meetingDay}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Start time"
+                name="meetingStart"
+                defaultValue={settings.meetingStart}
+                placeholder="06:45"
+              />
+              <Input
+                label="End time"
+                name="meetingEnd"
+                defaultValue={settings.meetingEnd}
+                placeholder="08:30"
+              />
+            </div>
+          </div>
+          <div className="grid gap-6 md:grid-cols-2">
+            <ImageUpload
+              label="Venue logo"
+              description="Wychwood Park logo for the meeting sheet cover."
+              value={venueLogoUrl}
+              onChange={setVenueLogoUrl}
+              folder="logos/venue"
+              aspect="wide"
+            />
+            <ImageUpload
+              label="Venue photo"
+              description="A photo of the venue shown alongside the address and meeting times."
+              value={venuePhotoUrl}
+              onChange={setVenuePhotoUrl}
+              folder="venue/photos"
+              aspect="wide"
+            />
+          </div>
+        </SettingsSection>
+      </TabPanel>
+
+      <TabPanel tab="cover" activeTab={activeTab}>
+        <SettingsSection
+          title="Meeting sheet cover"
+          description="Core values, feedback QR badge and cover-only content for page 1 of the booklet."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Feedback QR URL"
+              name="feedbackQrUrl"
+              type="url"
+              defaultValue={settings.feedbackQrUrl ?? ""}
+              placeholder="https://forms.example.com/feedback"
+            />
+            <Input
+              label="Feedback badge label"
+              name="feedbackQrLabel"
+              defaultValue={settings.feedbackQrLabel ?? "Feedback"}
+              placeholder="Feedback"
+            />
+          </div>
+          <CoreValuesFields values={coreValues} onChange={setCoreValues} />
+        </SettingsSection>
+      </TabPanel>
+
+      <TabPanel tab="charity" activeTab={activeTab}>
+        <SettingsSection
+          title="Charity — Genie's Wish"
+          description="Page 2 of the booklet: logo, paragraph and bank details alongside the QR codes."
+        >
+          <Input
+            label="Charity name"
+            name="charityName"
+            defaultValue={settings.charityName}
+          />
+          <ImageUpload
+            label="Charity logo"
+            description="Genie's Wish logo for the charity block on page 2."
+            value={charityLogoUrl}
+            onChange={setCharityLogoUrl}
+            folder="logos/charity"
             aspect="wide"
           />
-          <ImageUpload
-            label="Venue photo"
-            description="A photo of the venue shown alongside the address and meeting times."
-            value={venuePhotoUrl}
-            onChange={setVenuePhotoUrl}
-            folder="venue/photos"
-            aspect="wide"
-          />
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title="Meeting sheet cover"
-        description="Core values, feedback QR badge and cover-only content for page 1 of the booklet."
-      >
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input
-            label="Feedback QR URL"
-            name="feedbackQrUrl"
-            type="url"
-            defaultValue={settings.feedbackQrUrl ?? ""}
-            placeholder="https://forms.example.com/feedback"
-          />
-          <Input
-            label="Feedback badge label"
-            name="feedbackQrLabel"
-            defaultValue={settings.feedbackQrLabel ?? "Feedback"}
-            placeholder="Feedback"
-          />
-        </div>
-        <CoreValuesFields values={coreValues} onChange={setCoreValues} />
-      </SettingsSection>
-
-      <SettingsSection
-        title="This week"
-        description="Page 3 of the meeting sheet. Leave blank to print ruled boxes for handwriting."
-      >
-        <Textarea
-          label="10-minute presentation"
-          name="presentationSlot"
-          defaultValue={settings.presentationSlot ?? ""}
-          placeholder="Speaker name and topic for this week..."
-        />
-        <Textarea
-          label="Education slot"
-          name="educationSlot"
-          defaultValue={settings.educationSlot ?? ""}
-        />
-        <Textarea
-          label="Training & events"
-          name="trainingEvents"
-          defaultValue={settings.trainingEvents ?? ""}
-        />
-      </SettingsSection>
-
-      <SettingsSection
-        title="Charity — Genie's Wish"
-        description="Page 2 of the booklet: logo, paragraph and bank details alongside the QR codes."
-      >
-        <Input
-          label="Charity name"
-          name="charityName"
-          defaultValue={settings.charityName}
-        />
-        <ImageUpload
-          label="Charity logo"
-          description="Genie's Wish logo for the charity block on page 2."
-          value={charityLogoUrl}
-          onChange={setCharityLogoUrl}
-          folder="logos/charity"
-          aspect="wide"
-        />
-        <Textarea
-          label="Charity paragraph"
-          name="charityParagraph"
-          defaultValue={settings.charityParagraph ?? ""}
-          placeholder="Brief description of Genie's Wish and why BNI Dabbers supports it..."
-        />
-        <Textarea
-          label="Charity footnote"
-          name="charityFootnote"
-          defaultValue={settings.charityFootnote ?? ""}
-          placeholder="Additional charity information shown in small text below the badge on page 2. Use blank lines between paragraphs. Keep concise so it stays on the page."
-        />
-        <div className="grid gap-4 lg:grid-cols-2">
           <Textarea
-            label="BNI Dabbers bank details"
-            name="bniDabbersBankDetails"
-            defaultValue={settings.bniDabbersBankDetails ?? ""}
-            placeholder="Sort code, account number, account name..."
+            label="Charity paragraph"
+            name="charityParagraph"
+            defaultValue={settings.charityParagraph ?? ""}
+            placeholder="Brief description of Genie's Wish and why BNI Dabbers supports it..."
           />
           <Textarea
-            label="BNI Global bank details"
-            name="bniGlobalBankDetails"
-            defaultValue={settings.bniGlobalBankDetails ?? ""}
-            placeholder="Sort code, account number, account name..."
+            label="Charity footnote"
+            name="charityFootnote"
+            defaultValue={settings.charityFootnote ?? ""}
+            placeholder="Additional charity information shown in small text below the badge on page 2. Use blank lines between paragraphs. Keep concise so it stays on the page."
           />
-        </div>
-      </SettingsSection>
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Textarea
+              label="BNI Dabbers bank details"
+              name="bniDabbersBankDetails"
+              defaultValue={settings.bniDabbersBankDetails ?? ""}
+              placeholder="Sort code, account number, account name..."
+            />
+            <Textarea
+              label="BNI Global bank details"
+              name="bniGlobalBankDetails"
+              defaultValue={settings.bniGlobalBankDetails ?? ""}
+              placeholder="Sort code, account number, account name..."
+            />
+          </div>
+        </SettingsSection>
 
-      <SettingsSection
-        title="Booklet options"
-        description="Controls how many blank guest pages are appended to the meeting sheet PDF."
-      >
-        <Input
-          label="Guest & visitor pages"
-          name="guestPageCount"
-          type="number"
-          min={1}
-          max={10}
-          defaultValue={settings.guestPageCount}
-          className="max-w-xs"
-        />
-      </SettingsSection>
+        <CharityLinksFields links={links} onChange={setLinks} />
+      </TabPanel>
 
-      <CharityLinksFields links={links} onChange={setLinks} />
+      <TabPanel tab="weekly" activeTab={activeTab}>
+        <SettingsSection
+          title="This week"
+          description="Printed on the weekly sheet page. Leave blank to print ruled boxes for handwriting."
+        >
+          <Textarea
+            label="10-minute presentation"
+            name="presentationSlot"
+            defaultValue={settings.presentationSlot ?? ""}
+            placeholder="Speaker name and topic for this week..."
+          />
+          <Textarea
+            label="Education slot"
+            name="educationSlot"
+            defaultValue={settings.educationSlot ?? ""}
+          />
+          <Textarea
+            label="Training & events"
+            name="trainingEvents"
+            defaultValue={settings.trainingEvents ?? ""}
+          />
+        </SettingsSection>
 
-      <div className="sticky bottom-4 z-10 flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white px-5 py-4 shadow-sm sm:px-6">
+        <SettingsSection
+          title="Booklet options"
+          description="Controls how many blank guest pages are appended to the meeting sheet PDF."
+        >
+          <Input
+            label="Guest & visitor pages"
+            name="guestPageCount"
+            type="number"
+            min={1}
+            max={10}
+            defaultValue={settings.guestPageCount}
+            className="max-w-xs"
+          />
+        </SettingsSection>
+      </TabPanel>
+
+      <div className="flex flex-wrap items-center gap-3 border-t border-border pt-5">
         <Button type="submit" disabled={isPending}>
           {isPending ? "Saving..." : "Save all changes"}
         </Button>
         {saved ? (
           <span className="text-sm text-muted">All settings saved.</span>
-        ) : null}
+        ) : (
+          <span className="text-sm text-muted">
+            Saves every tab at once — switch tabs freely before saving.
+          </span>
+        )}
       </div>
     </form>
   );

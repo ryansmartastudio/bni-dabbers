@@ -8,7 +8,6 @@ import {
 } from "@/actions/admin-invites";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-fields";
-import { SettingsSection } from "@/components/settings/settings-section";
 import type {
   AdminUserSummary,
   PendingInviteSummary,
@@ -91,10 +90,14 @@ export function AdminAccessPanel({
   }
 
   return (
-    <SettingsSection
-      title="Admin access"
-      description="Invite chapter admins who can manage members, settings and meeting sheet exports."
-    >
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-base font-semibold text-foreground">Admin access</h2>
+        <p className="mt-1 text-sm text-muted">
+          Invite chapter admins who can manage members, settings and meeting sheet exports.
+        </p>
+      </div>
+
       <form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row sm:items-end">
         <div className="flex-1">
           <Input
@@ -202,6 +205,6 @@ export function AdminAccessPanel({
         Invited admins receive a Clerk email to sign in. They can manage members,
         chapter settings and generate meeting sheets once they accept.
       </p>
-    </SettingsSection>
+    </div>
   );
 }

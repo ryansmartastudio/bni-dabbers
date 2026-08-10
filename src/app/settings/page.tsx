@@ -4,8 +4,7 @@ import {
   listAdminUsers,
   listPendingAdminInvites,
 } from "@/lib/clerk-admins";
-import { SettingsForm } from "@/components/settings/settings-form";
-import { AdminAccessPanel } from "@/components/settings/admin-access-panel";
+import { SettingsPageClient } from "@/components/settings/settings-page-client";
 import { DatabaseSetupError } from "@/components/setup/database-error";
 import {
   getDatabaseSetupMessage,
@@ -48,14 +47,13 @@ export default async function SettingsPage() {
           Changes apply the next time you generate a PDF.
         </p>
       </div>
-      <div className="space-y-6">
-        <AdminAccessPanel
-          admins={admins}
-          pendingInvites={pendingInvites}
-          currentUserId={userId}
-        />
-        <SettingsForm settings={settings} charityLinks={charityLinks} />
-      </div>
+      <SettingsPageClient
+        settings={settings}
+        charityLinks={charityLinks}
+        admins={admins}
+        pendingInvites={pendingInvites}
+        currentUserId={userId}
+      />
     </div>
   );
 }
