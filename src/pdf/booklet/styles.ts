@@ -10,6 +10,14 @@ export const bookletStyles = StyleSheet.create({
     fontSize: 8.5,
     color: "#111111",
   },
+  guestPage: {
+    paddingTop: 24,
+    paddingBottom: 24,
+    paddingHorizontal: 28,
+    fontFamily: "Helvetica",
+    fontSize: 8.5,
+    color: "#111111",
+  },
   coverPage: {
     paddingTop: 28,
     paddingBottom: 88,
@@ -263,6 +271,74 @@ export const bookletStyles = StyleSheet.create({
   roleName: {
     width: "55%",
   },
+  leadershipChart: {
+    marginBottom: 10,
+  },
+  leaderTier: {
+    border: "1px solid #e2e2e2",
+    borderRadius: 6,
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    backgroundColor: "#fafafa",
+    marginBottom: 6,
+  },
+  leaderConnector: {
+    alignSelf: "center",
+    width: 1,
+    height: 8,
+    backgroundColor: "#d0d0d0",
+    marginBottom: 2,
+  },
+  leaderTierLabel: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: BNI_RED,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  leaderTierRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 4,
+  },
+  leaderNode: {
+    width: "24%",
+    minWidth: 72,
+    alignItems: "center",
+    paddingHorizontal: 2,
+    paddingVertical: 2,
+  },
+  leaderAvatar: {
+    marginBottom: 3,
+    objectFit: "cover",
+  },
+  leaderAvatarPlaceholder: {
+    backgroundColor: "#ececec",
+    border: "1px solid #d6d6d6",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  leaderInitials: {
+    fontSize: 8,
+    fontWeight: "bold",
+    color: BNI_GREY,
+  },
+  leaderName: {
+    fontSize: 7,
+    fontWeight: "bold",
+    textAlign: "center",
+    lineHeight: 1.2,
+    marginBottom: 2,
+  },
+  leaderRole: {
+    fontSize: 6,
+    color: BNI_GREY,
+    textAlign: "center",
+    lineHeight: 1.25,
+  },
   qrRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -339,8 +415,20 @@ export const bookletStyles = StyleSheet.create({
   guestBodyRow: {
     flexDirection: "row",
     borderBottom: "1px solid #e4e4e4",
-    minHeight: 44,
+    minHeight: 34,
     alignItems: "stretch",
+  },
+  guestTableCell: {
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    borderRight: "1px solid #e4e4e4",
+    justifyContent: "center",
+  },
+  guestNotesCell: {
+    borderRight: "none",
+    paddingVertical: 5,
+    paddingHorizontal: 8,
+    justifyContent: "center",
   },
   tableCell: {
     paddingVertical: 8,
@@ -449,7 +537,14 @@ export const bookletStyles = StyleSheet.create({
   },
   guestWriteLine: {
     borderBottom: "1px solid #cccccc",
-    height: 14,
-    marginTop: 8,
+    height: 12,
+    marginTop: 2,
+  },
+  guestNoteLines: {
+    gap: 4,
+  },
+  guestNoteLine: {
+    borderBottom: "1px solid #cccccc",
+    height: 10,
   },
 });

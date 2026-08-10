@@ -70,11 +70,13 @@ function ContactRow({
 
 function TableHeader({
   columns,
+  fixed = true,
 }: {
   columns: readonly { label: string; width: string }[];
+  fixed?: boolean;
 }) {
   return (
-    <View style={styles.tableHeaderRow} fixed>
+    <View style={styles.tableHeaderRow} {...(fixed ? { fixed: true } : {})}>
       {columns.map((column) => (
         <View
           key={column.label}
@@ -154,14 +156,16 @@ function MemberTableRow({ member }: { member: BookletMember }) {
 function GuestTableRow() {
   return (
     <View style={styles.guestBodyRow} wrap={false}>
-      <View style={[styles.tableCell, { width: GUEST_COLUMNS[0].width }]}>
+      <View style={[styles.guestTableCell, { width: GUEST_COLUMNS[0].width }]}>
         <View style={styles.guestWriteLine} />
       </View>
-      <View style={[styles.tableCell, { width: GUEST_COLUMNS[1].width }]}>
+      <View style={[styles.guestTableCell, { width: GUEST_COLUMNS[1].width }]}>
         <View style={styles.guestWriteLine} />
       </View>
-      <View style={[styles.tableCell, styles.notesCell, { width: GUEST_COLUMNS[2].width }]}>
-        <NotesLines count={2} />
+      <View style={[styles.guestNotesCell, { width: GUEST_COLUMNS[2].width }]}>
+        <View style={styles.guestNoteLines}>
+          <View style={styles.guestNoteLine} />
+        </View>
       </View>
     </View>
   );
@@ -180,8 +184,8 @@ export function MemberTable({ members }: { members: BookletMember[] }) {
 
 export function GuestTable({ rowCount }: { rowCount: number }) {
   return (
-    <View style={styles.table} wrap>
-      <TableHeader columns={GUEST_COLUMNS} />
+    <View style={styles.table}>
+      <TableHeader columns={GUEST_COLUMNS} fixed={false} />
       {Array.from({ length: rowCount }, (_, index) => (
         <GuestTableRow key={`guest-row-${index}`} />
       ))}

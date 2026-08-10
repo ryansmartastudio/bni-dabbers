@@ -5,14 +5,13 @@ import {
   Text,
   View,
 } from "@react-pdf/renderer";
-import type { ChapterSettings, CharityLink, Member } from "@/db/schema";
+import type { ChapterSettings, CharityLink } from "@/db/schema";
 import {
-  formatChapterRoles,
-  getMemberDisplayName,
   getMembersByRoleGroup,
   sortMembersForBooklet,
 } from "@/lib/members";
 import { CoverPage } from "@/pdf/booklet/cover-page";
+import { LeadershipChart } from "@/pdf/booklet/leadership-chart";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
   GUEST_ROWS_PER_PAGE,
@@ -30,29 +29,6 @@ type BookletDocumentProps = {
   feedbackQrDataUrl?: string;
 };
 
-function RoleSection({
-  title,
-  rows,
-}: {
-  title: string;
-  rows: Member[];
-}) {
-  if (!rows.length) return null;
-  return (
-    <View>
-      <Text style={styles.subHeading}>{title}</Text>
-      {rows.map((member) => (
-        <View key={member.id} style={styles.roleRow}>
-          <Text style={styles.roleTitle}>
-            {formatChapterRoles(member.chapterRoles)}
-          </Text>
-          <Text style={styles.roleName}>{getMemberDisplayName(member)}</Text>
-        </View>
-      ))}
-    </View>
-  );
-}
-
 export function BookletDocument({
   settings,
   members,
@@ -61,8 +37,7 @@ export function BookletDocument({
 }: BookletDocumentProps) {
   const roleGroups = getMembersByRoleGroup(members);
   const sortedMembers = sortMembersForBooklet(members);
-  const guestRowCount =
-    Math.max(settings.guestPageCount, 1) * GUEST_ROWS_PER_PAGE;
+  const guestPageCount = Math.max(settings.guestPageCount, 1);
 
   return (
     <Document title={`${settings.chapterName} Meeting Sheet`}>
@@ -74,9 +49,11 @@ export function BookletDocument({
 
       <Page size="A4" style={styles.page}>
         <Text style={styles.sectionHeading}>Leadership & Committee</Text>
-        <RoleSection title="Leadership Team" rows={roleGroups.leadership} />
-        <RoleSection title="Supporting Roles" rows={roleGroups.support} />
-        <RoleSection title="Committee Members" rows={roleGroups.committee} />
+        <LeadershipChart
+          leadership={roleGroups.leadership}
+          support={roleGroups.support}
+          committee={roleGroups.committee}
+        />
 
         <Text style={[styles.sectionHeading, { marginTop: 16 }]}>
           {settings.charityName}
@@ -137,13 +114,19 @@ export function BookletDocument({
         <MemberTable members={sortedMembers} />
       </Page>
 
-      <Page size="A4" style={styles.page} wrap>
-        <Text style={styles.pageTitle}>Guests & Visitors</Text>
-        <Text style={styles.pageSubtitle}>
-          Record guest details during the meeting
-        </Text>
-        <GuestTable rowCount={guestRowCount} />
-      </Page>
+      {Array.from({ length: guestPageCount }, (_, index) => (
+        <Page key={`guests-${index}`} size="A4" style={styles.guestPage} wrap={false}>
+          <Text style={[styles.pageTitle, { marginBottom: 6 }]}>
+            Guests & Visitors
+          </Text>
+          <Text style={[styles.pageSubtitle, { marginBottom: 8 }]}>
+            {guestPageCount > 1
+              ? `Page ${index + 1} of ${guestPageCount}`
+              : "Record guest details during the meeting"}
+          </Text>
+          <GuestTable rowCount={GUEST_ROWS_PER_PAGE} />
+        </Page>
+      ))}
     </Document>
   );
 }
