@@ -8,7 +8,6 @@ import {
   updateMember,
   deleteMember,
 } from "@/actions/members";
-import { uploadHeadshot } from "@/actions/uploads";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/form-fields";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -182,7 +181,7 @@ export function MemberForm({ member }: MemberFormProps) {
         description="Used on the member directory, roster and meeting sheet booklet."
         value={headshotUrl}
         onChange={setHeadshotUrl}
-        onUpload={uploadHeadshot}
+        folder="headshots"
         aspect="square"
       />
 

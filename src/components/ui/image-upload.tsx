@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import { useRef, useState, useTransition } from "react";
+import { uploadImage } from "@/lib/client-upload";
+import type { UploadFolder } from "@/lib/upload-folders";
 import { cn } from "@/lib/utils";
 
 const DEFAULT_MAX_SIZE_MB = 8;
@@ -11,7 +13,7 @@ type ImageUploadProps = {
   description?: string;
   value: string;
   onChange: (url: string) => void;
-  onUpload: (formData: FormData) => Promise<{ url: string }>;
+  folder: UploadFolder;
   aspect?: "square" | "wide";
   maxSizeMB?: number;
   className?: string;
@@ -22,7 +24,7 @@ export function ImageUpload({
   description,
   value,
   onChange,
-  onUpload,
+  folder,
   aspect = "square",
   maxSizeMB = DEFAULT_MAX_SIZE_MB,
   className,
@@ -51,9 +53,7 @@ export function ImageUpload({
 
     startTransition(async () => {
       try {
-        const formData = new FormData();
-        formData.append("file", file);
-        const result = await onUpload(formData);
+        const result = await uploadImage(file, folder);
         onChange(result.url);
       } catch (e) {
         setError(

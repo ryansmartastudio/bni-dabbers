@@ -3,10 +3,6 @@
 import { useState, useTransition } from "react";
 import type { ChapterSettings, CharityLink } from "@/db/schema";
 import { updateSettings } from "@/actions/settings";
-import {
-  uploadChapterLogo,
-  uploadCharityLogo,
-} from "@/actions/uploads";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form-fields";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -86,7 +82,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             description="Shown on the booklet cover. PNG or SVG with transparent background works best."
             value={chapterLogoUrl}
             onChange={setChapterLogoUrl}
-            onUpload={uploadChapterLogo}
+            folder="logos/chapter"
             aspect="square"
           />
         </SettingsSection>
@@ -164,7 +160,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             description="Genie's Wish logo for the charity block on page 2."
             value={charityLogoUrl}
             onChange={setCharityLogoUrl}
-            onUpload={uploadCharityLogo}
+            folder="logos/charity"
             aspect="wide"
           />
           <Textarea
