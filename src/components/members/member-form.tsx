@@ -12,7 +12,9 @@ import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/form-fields";
 import { ImageUpload } from "@/components/ui/image-upload";
 import {
+  CHAPTER_ROLE_OTHER,
   CHAPTER_ROLES,
+  getChapterRoleFormState,
   MEMBER_STATUSES,
   ROLE_GROUPS,
 } from "@/lib/constants";
@@ -26,9 +28,22 @@ export function MemberForm({ member }: MemberFormProps) {
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [headshotUrl, setHeadshotUrl] = useState(member?.headshotUrl ?? "");
+  const initialRole = getChapterRoleFormState(member?.chapterRole);
+  const [chapterRoleChoice, setChapterRoleChoice] = useState(initialRole.choice);
+  const [chapterRoleOther, setChapterRoleOther] = useState(initialRole.other);
 
   async function handleSubmit(formData: FormData) {
     setError(null);
+
+    let chapterRole = chapterRoleChoice;
+    if (chapterRoleChoice === CHAPTER_ROLE_OTHER) {
+      chapterRole = chapterRoleOther.trim();
+      if (!chapterRole) {
+        setError("Enter a chapter role, or choose None.");
+        return;
+      }
+    }
+
     const payload = {
       firstName: String(formData.get("firstName") ?? ""),
       lastName: String(formData.get("lastName") ?? ""),
@@ -39,7 +54,7 @@ export function MemberForm({ member }: MemberFormProps) {
       linkedinUrl: String(formData.get("linkedinUrl") ?? ""),
       websiteUrl: String(formData.get("websiteUrl") ?? ""),
       headshotUrl,
-      chapterRole: String(formData.get("chapterRole") ?? ""),
+      chapterRole,
       roleGroup: String(formData.get("roleGroup") ?? "none") as
         | "leadership"
         | "support"
@@ -153,13 +168,25 @@ export function MemberForm({ member }: MemberFormProps) {
         />
         <Select
           label="Chapter role"
-          name="chapterRole"
-          defaultValue={member?.chapterRole ?? ""}
+          name="chapterRoleChoice"
+          value={chapterRoleChoice}
+          onChange={(e) => setChapterRoleChoice(e.target.value)}
           options={[
             { value: "", label: "None" },
             ...CHAPTER_ROLES.map((role) => ({ value: role, label: role })),
+            { value: CHAPTER_ROLE_OTHER, label: "Other" },
           ]}
         />
+        {chapterRoleChoice === CHAPTER_ROLE_OTHER ? (
+          <Input
+            label="Other chapter role"
+            name="chapterRoleOther"
+            value={chapterRoleOther}
+            onChange={(e) => setChapterRoleOther(e.target.value)}
+            placeholder="Enter chapter role..."
+            required
+          />
+        ) : null}
         <Select
           label="Role group"
           name="roleGroup"

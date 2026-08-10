@@ -14,6 +14,24 @@ export const CHAPTER_ROLES = [
   "Communications Coordinator",
 ] as const;
 
+export const CHAPTER_ROLE_OTHER = "__other__";
+
+export function isPresetChapterRole(
+  role: string,
+): role is (typeof CHAPTER_ROLES)[number] {
+  return (CHAPTER_ROLES as readonly string[]).includes(role);
+}
+
+export function getChapterRoleFormState(chapterRole?: string | null) {
+  if (!chapterRole) {
+    return { choice: "", other: "" };
+  }
+  if (isPresetChapterRole(chapterRole)) {
+    return { choice: chapterRole, other: "" };
+  }
+  return { choice: CHAPTER_ROLE_OTHER, other: chapterRole };
+}
+
 export const ROLE_GROUPS = [
   { value: "leadership", label: "Leadership Team" },
   { value: "support", label: "Supporting Roles" },
