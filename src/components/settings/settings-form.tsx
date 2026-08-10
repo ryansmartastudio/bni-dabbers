@@ -1,14 +1,17 @@
 "use client";
 
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
 import type { ChapterSettings, CharityLink } from "@/db/schema";
+import { updateSettings } from "@/actions/settings";
 import {
-  updateSettings,
-  upsertCharityLink,
-  deleteCharityLink,
-} from "@/actions/settings";
+  uploadChapterLogo,
+  uploadCharityLogo,
+} from "@/actions/uploads";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form-fields";
+import { ImageUpload } from "@/components/ui/image-upload";
+import { CharityLinksSection } from "@/components/settings/charity-links-section";
+import { SettingsSection } from "@/components/settings/settings-section";
 
 type SettingsFormProps = {
   settings: ChapterSettings;
@@ -17,8 +20,16 @@ type SettingsFormProps = {
 
 export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
   const [isPending, startTransition] = useTransition();
+  const [saved, setSaved] = useState(false);
+  const [chapterLogoUrl, setChapterLogoUrl] = useState(
+    settings.chapterLogoUrl ?? "",
+  );
+  const [charityLogoUrl, setCharityLogoUrl] = useState(
+    settings.charityLogoUrl ?? "",
+  );
 
   function handleSettingsSubmit(formData: FormData) {
+    setSaved(false);
     startTransition(async () => {
       await updateSettings({
         chapterName: String(formData.get("chapterName") ?? ""),
@@ -33,116 +44,177 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
         trainingEvents: String(formData.get("trainingEvents") ?? ""),
         charityName: String(formData.get("charityName") ?? ""),
         charityParagraph: String(formData.get("charityParagraph") ?? ""),
-        charityLogoUrl: String(formData.get("charityLogoUrl") ?? ""),
+        charityLogoUrl,
         bniDabbersBankDetails: String(formData.get("bniDabbersBankDetails") ?? ""),
         bniGlobalBankDetails: String(formData.get("bniGlobalBankDetails") ?? ""),
         guestPageCount: Number(formData.get("guestPageCount") ?? 2),
-        chapterLogoUrl: String(formData.get("chapterLogoUrl") ?? ""),
+        chapterLogoUrl,
       });
-    });
-  }
-
-  function handleLinkSubmit(formData: FormData) {
-    startTransition(async () => {
-      await upsertCharityLink({
-        id: String(formData.get("id") ?? "") || undefined,
-        label: String(formData.get("label") ?? ""),
-        url: String(formData.get("url") ?? ""),
-        sortOrder: Number(formData.get("sortOrder") ?? 0),
-      });
+      setSaved(true);
     });
   }
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <form
         onSubmit={(e) => {
           e.preventDefault();
           handleSettingsSubmit(new FormData(e.currentTarget));
         }}
-        className="space-y-6 rounded-xl border border-border bg-white p-6"
+        className="space-y-6"
       >
-        <h2 className="text-lg font-semibold">Chapter details</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Chapter name" name="chapterName" defaultValue={settings.chapterName} />
-          <Input label="Website URL" name="websiteUrl" defaultValue={settings.websiteUrl} />
-          <Input label="Venue name" name="venueName" defaultValue={settings.venueName} />
-          <Input label="Venue address" name="venueAddress" defaultValue={settings.venueAddress} />
-          <Input label="Meeting day" name="meetingDay" defaultValue={settings.meetingDay} />
-          <Input label="Start time" name="meetingStart" defaultValue={settings.meetingStart} />
-          <Input label="End time" name="meetingEnd" defaultValue={settings.meetingEnd} />
-          <Input label="Guest pages" name="guestPageCount" type="number" min={1} max={10} defaultValue={settings.guestPageCount} />
-          <Input label="Chapter logo URL" name="chapterLogoUrl" defaultValue={settings.chapterLogoUrl ?? ""} />
-        </div>
+        <SettingsSection
+          title="Chapter identity"
+          description="Name, website and logo used on the meeting sheet cover and header."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Chapter name"
+              name="chapterName"
+              defaultValue={settings.chapterName}
+              required
+            />
+            <Input
+              label="Website URL"
+              name="websiteUrl"
+              defaultValue={settings.websiteUrl}
+              placeholder="www.bni-ce.co.uk/cheshire-east-dabbers"
+            />
+          </div>
+          <ImageUpload
+            label="Chapter logo"
+            description="Shown on the booklet cover. PNG or SVG with transparent background works best."
+            value={chapterLogoUrl}
+            onChange={setChapterLogoUrl}
+            onUpload={uploadChapterLogo}
+            aspect="square"
+          />
+        </SettingsSection>
 
-        <h2 className="text-lg font-semibold">This week (page 3)</h2>
-        <div className="grid gap-4">
-          <Textarea label="10-minute presentation" name="presentationSlot" defaultValue={settings.presentationSlot ?? ""} />
-          <Textarea label="Education slot" name="educationSlot" defaultValue={settings.educationSlot ?? ""} />
-          <Textarea label="Training & events" name="trainingEvents" defaultValue={settings.trainingEvents ?? ""} />
-        </div>
+        <SettingsSection
+          title="Meeting & venue"
+          description="Printed on the cover and used across the public directory."
+        >
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="Venue name"
+              name="venueName"
+              defaultValue={settings.venueName}
+            />
+            <Input
+              label="Venue address"
+              name="venueAddress"
+              defaultValue={settings.venueAddress}
+            />
+            <Input
+              label="Meeting day"
+              name="meetingDay"
+              defaultValue={settings.meetingDay}
+            />
+            <div className="grid grid-cols-2 gap-3">
+              <Input
+                label="Start time"
+                name="meetingStart"
+                defaultValue={settings.meetingStart}
+                placeholder="06:45"
+              />
+              <Input
+                label="End time"
+                name="meetingEnd"
+                defaultValue={settings.meetingEnd}
+                placeholder="08:30"
+              />
+            </div>
+          </div>
+        </SettingsSection>
 
-        <h2 className="text-lg font-semibold">Charity block (page 2)</h2>
-        <div className="grid gap-4">
-          <Input label="Charity name" name="charityName" defaultValue={settings.charityName} />
-          <Textarea label="Charity paragraph" name="charityParagraph" defaultValue={settings.charityParagraph ?? ""} />
-          <Input label="Charity logo URL" name="charityLogoUrl" defaultValue={settings.charityLogoUrl ?? ""} />
-          <Textarea label="BNI Dabbers bank details" name="bniDabbersBankDetails" defaultValue={settings.bniDabbersBankDetails ?? ""} />
-          <Textarea label="BNI Global bank details" name="bniGlobalBankDetails" defaultValue={settings.bniGlobalBankDetails ?? ""} />
-        </div>
+        <SettingsSection
+          title="This week"
+          description="Page 3 of the meeting sheet. Leave blank to print ruled boxes for handwriting."
+        >
+          <Textarea
+            label="10-minute presentation"
+            name="presentationSlot"
+            defaultValue={settings.presentationSlot ?? ""}
+            placeholder="Speaker name and topic for this week..."
+          />
+          <Textarea
+            label="Education slot"
+            name="educationSlot"
+            defaultValue={settings.educationSlot ?? ""}
+          />
+          <Textarea
+            label="Training & events"
+            name="trainingEvents"
+            defaultValue={settings.trainingEvents ?? ""}
+          />
+        </SettingsSection>
 
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : "Save settings"}
-        </Button>
+        <SettingsSection
+          title="Charity — Genie's Wish"
+          description="Page 2 of the booklet: logo, paragraph and bank details alongside the QR codes."
+        >
+          <Input
+            label="Charity name"
+            name="charityName"
+            defaultValue={settings.charityName}
+          />
+          <ImageUpload
+            label="Charity logo"
+            description="Genie's Wish logo for the charity block on page 2."
+            value={charityLogoUrl}
+            onChange={setCharityLogoUrl}
+            onUpload={uploadCharityLogo}
+            aspect="wide"
+          />
+          <Textarea
+            label="Charity paragraph"
+            name="charityParagraph"
+            defaultValue={settings.charityParagraph ?? ""}
+            placeholder="Brief description of Genie's Wish and why BNI Dabbers supports it..."
+          />
+          <div className="grid gap-4 lg:grid-cols-2">
+            <Textarea
+              label="BNI Dabbers bank details"
+              name="bniDabbersBankDetails"
+              defaultValue={settings.bniDabbersBankDetails ?? ""}
+              placeholder="Sort code, account number, account name..."
+            />
+            <Textarea
+              label="BNI Global bank details"
+              name="bniGlobalBankDetails"
+              defaultValue={settings.bniGlobalBankDetails ?? ""}
+              placeholder="Sort code, account number, account name..."
+            />
+          </div>
+        </SettingsSection>
+
+        <SettingsSection
+          title="Booklet options"
+          description="Controls how many blank guest pages are appended to the meeting sheet PDF."
+        >
+          <Input
+            label="Guest & visitor pages"
+            name="guestPageCount"
+            type="number"
+            min={1}
+            max={10}
+            defaultValue={settings.guestPageCount}
+            className="max-w-xs"
+          />
+        </SettingsSection>
+
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-border bg-white px-5 py-4 sm:px-6">
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving..." : "Save all settings"}
+          </Button>
+          {saved ? (
+            <span className="text-sm text-muted">Settings saved.</span>
+          ) : null}
+        </div>
       </form>
 
-      <section className="space-y-4 rounded-xl border border-border bg-white p-6">
-        <h2 className="text-lg font-semibold">Charity QR links</h2>
-        {charityLinks.map((link) => (
-          <form
-            key={link.id}
-            onSubmit={(e) => {
-              e.preventDefault();
-              handleLinkSubmit(new FormData(e.currentTarget));
-            }}
-            className="grid gap-3 border-b border-border pb-4 sm:grid-cols-4"
-          >
-            <input type="hidden" name="id" value={link.id} />
-            <Input label="Label" name="label" defaultValue={link.label} />
-            <Input label="URL" name="url" defaultValue={link.url} />
-            <Input label="Sort" name="sortOrder" type="number" defaultValue={link.sortOrder} />
-            <div className="flex items-end gap-2">
-              <Button type="submit" disabled={isPending}>Update</Button>
-              <Button
-                type="button"
-                variant="secondary"
-                disabled={isPending}
-                onClick={() => {
-                  startTransition(async () => {
-                    await deleteCharityLink(link.id);
-                  });
-                }}
-              >
-                Delete
-              </Button>
-            </div>
-          </form>
-        ))}
-        <form
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleLinkSubmit(new FormData(e.currentTarget));
-          }}
-          className="grid gap-3 sm:grid-cols-4"
-        >
-          <Input label="New label" name="label" placeholder="Donate via..." />
-          <Input label="New URL" name="url" placeholder="https://..." />
-          <Input label="Sort" name="sortOrder" type="number" defaultValue={charityLinks.length} />
-          <div className="flex items-end">
-            <Button type="submit" disabled={isPending}>Add link</Button>
-          </div>
-        </form>
-      </section>
+      <CharityLinksSection charityLinks={charityLinks} />
     </div>
   );
 }

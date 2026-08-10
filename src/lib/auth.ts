@@ -31,3 +31,15 @@ export async function requireAdmin() {
   }
   return context;
 }
+
+/** Use in server actions — throws instead of redirecting. */
+export async function assertAdmin() {
+  const context = await getAuthContext();
+  if (!context.userId) {
+    throw new Error("You must be signed in to upload files.");
+  }
+  if (context.role !== "admin") {
+    throw new Error("Admin access is required to upload files.");
+  }
+  return context;
+}

@@ -1,6 +1,5 @@
 "use server";
 
-import { put } from "@vercel/blob";
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
@@ -55,16 +54,4 @@ export async function deleteMember(id: string) {
   await db.delete(members).where(eq(members.id, id));
   revalidateMemberPaths();
   return { success: true };
-}
-
-export async function uploadHeadshot(formData: FormData) {
-  await requireAdmin();
-  const file = formData.get("file") as File | null;
-  if (!file) throw new Error("No file provided");
-
-  const blob = await put(`headshots/${Date.now()}-${file.name}`, file, {
-    access: "public",
-  });
-
-  return { url: blob.url };
 }

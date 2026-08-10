@@ -7,10 +7,11 @@ import {
   createMember,
   updateMember,
   deleteMember,
-  uploadHeadshot,
 } from "@/actions/members";
+import { uploadHeadshot } from "@/actions/uploads";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/form-fields";
+import { ImageUpload } from "@/components/ui/image-upload";
 import {
   CHAPTER_ROLES,
   MEMBER_STATUSES,
@@ -65,18 +66,6 @@ export function MemberForm({ member }: MemberFormProps) {
         setError(e instanceof Error ? e.message : "Something went wrong");
       }
     });
-  }
-
-  async function handleHeadshotChange(file: File | null) {
-    if (!file) return;
-    const formData = new FormData();
-    formData.append("file", file);
-    try {
-      const result = await uploadHeadshot(formData);
-      setHeadshotUrl(result.url);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Upload failed");
-    }
   }
 
   function handleDelete() {
@@ -188,20 +177,14 @@ export function MemberForm({ member }: MemberFormProps) {
         placeholder="Internal notes for admin and exports"
       />
 
-      <label className="block space-y-1.5">
-        <span className="text-sm font-medium">Headshot</span>
-        <input
-          type="file"
-          accept="image/*"
-          onChange={(e) =>
-            handleHeadshotChange(e.target.files?.[0] ?? null)
-          }
-          className="block w-full text-sm"
-        />
-        {headshotUrl ? (
-          <p className="text-xs text-muted">Uploaded: {headshotUrl}</p>
-        ) : null}
-      </label>
+      <ImageUpload
+        label="Headshot"
+        description="Used on the member directory, roster and meeting sheet booklet."
+        value={headshotUrl}
+        onChange={setHeadshotUrl}
+        onUpload={uploadHeadshot}
+        aspect="square"
+      />
 
       <div className="flex flex-wrap gap-3">
         <Button type="submit" disabled={isPending}>
