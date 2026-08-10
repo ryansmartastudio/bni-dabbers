@@ -1,50 +1,31 @@
 "use client";
 
-import { put } from "@vercel/blob/client";
-import {
-  buildUploadPathname,
-  type UploadFolder,
-} from "@/lib/upload-folders";
+import type { UploadFolder } from "@/lib/upload-folders";
 
-async function getClientUploadToken(pathname: string, folder: UploadFolder) {
-  const response = await fetch("/api/upload", {
-    method: "POST",
-    credentials: "same-origin",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      type: "blob.generate-client-token",
-      payload: {
-        pathname,
-        clientPayload: folder,
-        multipart: false,
-      },
-    }),
-  });
+const MAX_FILE_SIZE_BYTES = 4 * 1024 * 1024;
 
-  const data = (await response.json()) as {
-    clientToken?: string;
-    error?: string;
-  };
-
-  if (!response.ok || !data.clientToken) {
+export async function uploadImage(file: File, folder: UploadFolder) {
+  if (file.size > MAX_FILE_SIZE_BYTES) {
     throw new Error(
-      data.error ??
-        "Upload authorization failed. Check that Vercel Blob storage is connected to this project.",
+      `Image is too large (${(file.size / (1024 * 1024)).toFixed(1)} MB). Please use a file under 4 MB.`,
     );
   }
 
-  return data.clientToken;
-}
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("folder", folder);
 
-export async function uploadImage(file: File, folder: UploadFolder) {
-  const pathname = buildUploadPathname(folder, file.name);
-  const clientToken = await getClientUploadToken(pathname, folder);
-
-  const blob = await put(pathname, file, {
-    access: "public",
-    token: clientToken,
-    contentType: file.type || undefined,
+  const response = await fetch("/api/upload/file", {
+    method: "POST",
+    credentials: "same-origin",
+    body: formData,
   });
 
-  return { url: blob.url };
+  const data = (await response.json()) as { url?: string; error?: string };
+
+  if (!response.ok || !data.url) {
+    throw new Error(data.error ?? "Upload failed.");
+  }
+
+  return { url: data.url };
 }

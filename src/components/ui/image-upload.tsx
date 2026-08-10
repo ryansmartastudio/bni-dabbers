@@ -6,7 +6,7 @@ import { uploadImage } from "@/lib/client-upload";
 import type { UploadFolder } from "@/lib/upload-folders";
 import { cn } from "@/lib/utils";
 
-const DEFAULT_MAX_SIZE_MB = 8;
+const DEFAULT_MAX_SIZE_MB = 4;
 
 type ImageUploadProps = {
   label: string;

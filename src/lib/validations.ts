@@ -41,11 +41,18 @@ export const settingsSchema = z.object({
 });
 
 export const charityLinkSchema = z.object({
+  id: z.string().uuid().optional(),
   label: z.string().min(1),
   url: z.string().url(),
   sortOrder: z.coerce.number().int().min(0),
 });
 
+export const saveAllSettingsSchema = z.object({
+  settings: settingsSchema,
+  charityLinks: z.array(charityLinkSchema),
+});
+
 export type MemberFormValues = z.infer<typeof memberSchema>;
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 export type CharityLinkFormValues = z.infer<typeof charityLinkSchema>;
+export type SaveAllSettingsValues = z.infer<typeof saveAllSettingsSchema>;
