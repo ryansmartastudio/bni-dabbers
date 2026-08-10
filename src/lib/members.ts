@@ -2,7 +2,7 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { members, type Member } from "@/db/schema";
 
-const memberNameOrder = [asc(members.lastName), asc(members.firstName)];
+const memberNameOrder = [asc(members.firstName), asc(members.lastName)];
 
 export async function getAllMembers(): Promise<Member[]> {
   return db.query.members.findMany({
