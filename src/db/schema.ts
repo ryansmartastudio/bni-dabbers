@@ -69,6 +69,7 @@ export const chapterSettings = pgTable("chapter_settings", {
   trainingEvents: text("training_events"),
   charityName: text("charity_name").default("Genie's Wish").notNull(),
   charityParagraph: text("charity_paragraph"),
+  charityFootnote: text("charity_footnote"),
   charityLogoUrl: text("charity_logo_url"),
   bniDabbersBankDetails: text("bni_dabbers_bank_details"),
   bniGlobalBankDetails: text("bni_global_bank_details"),

@@ -24,6 +24,7 @@ export async function saveAllSettings(data: SaveAllSettingsValues) {
       educationSlot: parsed.settings.educationSlot || null,
       trainingEvents: parsed.settings.trainingEvents || null,
       charityParagraph: parsed.settings.charityParagraph || null,
+      charityFootnote: parsed.settings.charityFootnote || null,
       charityLogoUrl: parsed.settings.charityLogoUrl || null,
       bniDabbersBankDetails: parsed.settings.bniDabbersBankDetails || null,
       bniGlobalBankDetails: parsed.settings.bniGlobalBankDetails || null,

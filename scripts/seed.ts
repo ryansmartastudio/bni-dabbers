@@ -7,6 +7,8 @@ async function seed() {
     await db.insert(chapterSettings).values({
       charityParagraph:
         "Genie's Wish supports children and young people facing life-threatening conditions. BNI Dabbers is proud to support this chosen charity.",
+      charityFootnote:
+        "The Genie's Wish is a UK-registered charity, operating since 2021.\n\nOur purpose is to enhance the lives of people aged between Birth to 40 years of age who are living with a terminal or serious illness or life-limiting condition.\n\nWe also grant wishes for Young Carers aged between 5 and 18, including experiences, special events and group activities, in recognition of their bravery, kindness and selflessness in caring for a family member. Through life-changing wishes, ongoing opportunities and unforgettable experiences, we bring joy, hope and meaningful moments to our beneficiaries and their families.",
       bniDabbersBankDetails: "BNI Dabbers — sort code and account to be added",
       bniGlobalBankDetails: "BNI Global — sort code and account to be added",
     });

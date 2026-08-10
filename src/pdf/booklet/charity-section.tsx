@@ -20,6 +20,30 @@ function CharityQrCard({ link }: { link: CharityLinkWithQr }) {
   );
 }
 
+function CharityFootnote({ text }: { text: string }) {
+  const paragraphs = text
+    .split(/\n\s*\n/)
+    .map((paragraph) => paragraph.trim())
+    .filter(Boolean);
+
+  return (
+    <View style={styles.charityFootnote} wrap={false}>
+      {paragraphs.map((paragraph, index) => (
+        <Text
+          key={`charity-footnote-${index}`}
+          style={
+            index < paragraphs.length - 1
+              ? [styles.charityFootnoteParagraph, styles.charityFootnoteGap]
+              : styles.charityFootnoteParagraph
+          }
+        >
+          {paragraph}
+        </Text>
+      ))}
+    </View>
+  );
+}
+
 function BankDetailsBlock({
   title,
   details,
@@ -52,6 +76,7 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
   const hasCharityContent =
     links.length > 0 ||
     Boolean(settings.charityParagraph) ||
+    Boolean(settings.charityFootnote) ||
     Boolean(settings.charityLogoUrl);
   const hasBankDetails =
     Boolean(settings.bniDabbersBankDetails) ||
@@ -116,6 +141,9 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
               ]}
             />
           </View>
+          {settings.charityFootnote ? (
+            <CharityFootnote text={settings.charityFootnote} />
+          ) : null}
         </View>
       ) : null}
 

@@ -370,6 +370,19 @@ export const bookletStyles = StyleSheet.create({
   charityColumnFull: {
     flex: 1,
   },
+  charityFootnote: {
+    marginTop: 5,
+    paddingHorizontal: 2,
+  },
+  charityFootnoteParagraph: {
+    fontSize: 5.5,
+    color: "#8a8a8a",
+    lineHeight: 1.3,
+    textAlign: "center",
+  },
+  charityFootnoteGap: {
+    marginBottom: 4,
+  },
   charityBadge: {
     position: "relative",
     border: "1px solid #64b4f5",

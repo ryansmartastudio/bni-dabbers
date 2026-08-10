@@ -3,6 +3,7 @@ import { renderToBuffer } from "@react-pdf/renderer";
 import { NextResponse } from "next/server";
 import { getBookletData } from "@/lib/settings";
 import { generateQrDataUrl } from "@/lib/qr";
+import "@/pdf/hyphenation";
 import { BookletDocument } from "@/pdf/booklet/document";
 
 export async function GET(request: Request) {

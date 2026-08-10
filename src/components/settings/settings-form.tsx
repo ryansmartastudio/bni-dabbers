@@ -85,6 +85,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             trainingEvents: String(formData.get("trainingEvents") ?? ""),
             charityName: String(formData.get("charityName") ?? ""),
             charityParagraph: String(formData.get("charityParagraph") ?? ""),
+            charityFootnote: String(formData.get("charityFootnote") ?? ""),
             charityLogoUrl,
             bniDabbersBankDetails: String(
               formData.get("bniDabbersBankDetails") ?? "",
@@ -284,6 +285,12 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
           name="charityParagraph"
           defaultValue={settings.charityParagraph ?? ""}
           placeholder="Brief description of Genie's Wish and why BNI Dabbers supports it..."
+        />
+        <Textarea
+          label="Charity footnote"
+          name="charityFootnote"
+          defaultValue={settings.charityFootnote ?? ""}
+          placeholder="Additional charity information shown in small text below the badge on page 2. Use blank lines between paragraphs. Keep concise so it stays on the page."
         />
         <div className="grid gap-4 lg:grid-cols-2">
           <Textarea

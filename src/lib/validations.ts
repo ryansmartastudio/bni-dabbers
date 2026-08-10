@@ -56,6 +56,7 @@ export const settingsSchema = z.object({
   trainingEvents: z.string().optional(),
   charityName: z.string().min(1),
   charityParagraph: z.string().optional(),
+  charityFootnote: z.string().optional(),
   charityLogoUrl: z.string().optional(),
   bniDabbersBankDetails: z.string().optional(),
   bniGlobalBankDetails: z.string().optional(),
