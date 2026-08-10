@@ -21,7 +21,7 @@ export async function createMember(data: MemberFormValues) {
     ...parsed,
     linkedinUrl: parsed.linkedinUrl || null,
     websiteUrl: parsed.websiteUrl || null,
-    chapterRole: parsed.chapterRole || null,
+    chapterRoles: parsed.chapterRoles,
     notes: parsed.notes || null,
     headshotUrl: parsed.headshotUrl || null,
   });
@@ -40,7 +40,7 @@ export async function updateMember(id: string, data: MemberFormValues) {
       ...parsed,
       linkedinUrl: parsed.linkedinUrl || null,
       websiteUrl: parsed.websiteUrl || null,
-      chapterRole: parsed.chapterRole || null,
+      chapterRoles: parsed.chapterRoles,
       notes: parsed.notes || null,
       headshotUrl: parsed.headshotUrl || null,
       updatedAt: new Date(),

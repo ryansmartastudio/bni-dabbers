@@ -36,16 +36,25 @@ export function formatWebsiteLabel(url: string) {
   return url.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
 }
 
+export function formatChapterRoles(roles: string[] | null | undefined) {
+  if (!roles?.length) return "";
+  return roles.join(" · ");
+}
+
+export function hasChapterRoles(roles: string[] | null | undefined) {
+  return Boolean(roles?.length);
+}
+
 export function getMembersByRoleGroup(membersList: Member[]) {
   return {
     leadership: membersList.filter(
-      (m) => m.roleGroup === "leadership" && m.chapterRole,
+      (m) => m.roleGroup === "leadership" && hasChapterRoles(m.chapterRoles),
     ),
     support: membersList.filter(
-      (m) => m.roleGroup === "support" && m.chapterRole,
+      (m) => m.roleGroup === "support" && hasChapterRoles(m.chapterRoles),
     ),
     committee: membersList.filter(
-      (m) => m.roleGroup === "committee" && m.chapterRole,
+      (m) => m.roleGroup === "committee" && hasChapterRoles(m.chapterRoles),
     ),
   };
 }

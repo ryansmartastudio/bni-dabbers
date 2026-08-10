@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import type { Member } from "@/db/schema";
-import { getMemberDisplayName } from "@/lib/members";
+import { getMemberDisplayName, formatChapterRoles, hasChapterRoles } from "@/lib/members";
 import { LinkedInQr } from "@/components/qr/linkedin-qr";
 import { MemberWebsiteLink } from "@/components/members/member-website-link";
 
@@ -38,8 +38,10 @@ export function MemberCard({ member, showContact = false, showEdit = false }: Me
           <p className="mt-1 text-xs font-medium uppercase tracking-wide text-bni">
             {member.bniSeat}
           </p>
-          {member.chapterRole ? (
-            <p className="text-xs text-muted">{member.chapterRole}</p>
+          {hasChapterRoles(member.chapterRoles) ? (
+            <p className="text-xs text-muted">
+              {formatChapterRoles(member.chapterRoles)}
+            </p>
           ) : null}
           {member.websiteUrl ? (
             <MemberWebsiteLink

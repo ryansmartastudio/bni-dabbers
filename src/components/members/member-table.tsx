@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Member } from "@/db/schema";
-import { getMemberDisplayName } from "@/lib/members";
+import { formatChapterRoles, getMemberDisplayName, hasChapterRoles } from "@/lib/members";
 import { LinkedInQr } from "@/components/qr/linkedin-qr";
 import { MemberWebsiteLink } from "@/components/members/member-website-link";
 
@@ -35,7 +35,11 @@ export function MemberTable({ members, isAdmin = false }: MemberTableProps) {
               </td>
               <td className="px-4 py-3">{member.company}</td>
               <td className="px-4 py-3">{member.bniSeat}</td>
-              <td className="px-4 py-3">{member.chapterRole ?? "—"}</td>
+              <td className="px-4 py-3">
+                {hasChapterRoles(member.chapterRoles)
+                  ? formatChapterRoles(member.chapterRoles)
+                  : "—"}
+              </td>
               <td className="px-4 py-3">{member.email}</td>
               <td className="px-4 py-3 whitespace-nowrap">{member.phone}</td>
               <td className="px-4 py-3">

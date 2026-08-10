@@ -15,6 +15,13 @@
       "when": 1786382372149,
       "tag": "0001_flat_captain_flint",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1786385000000,
+      "tag": "0002_chapter_roles_array",
+      "breakpoints": true
     }
   ]
 }

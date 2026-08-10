@@ -6,7 +6,11 @@ import {
   View,
 } from "@react-pdf/renderer";
 import type { ChapterSettings, CharityLink, Member } from "@/db/schema";
-import { getMemberDisplayName, getMembersByRoleGroup } from "@/lib/members";
+import {
+  formatChapterRoles,
+  getMemberDisplayName,
+  getMembersByRoleGroup,
+} from "@/lib/members";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
   BOXES_PER_PAGE,
@@ -36,7 +40,9 @@ function RoleSection({
       <Text style={styles.subHeading}>{title}</Text>
       {rows.map((member) => (
         <View key={member.id} style={styles.roleRow}>
-          <Text style={styles.roleTitle}>{member.chapterRole}</Text>
+          <Text style={styles.roleTitle}>
+            {formatChapterRoles(member.chapterRoles)}
+          </Text>
           <Text style={styles.roleName}>{getMemberDisplayName(member)}</Text>
         </View>
       ))}

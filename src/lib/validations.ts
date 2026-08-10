@@ -27,7 +27,7 @@ export const memberSchema = z.object({
       }
     }, "Enter a valid website URL"),
   headshotUrl: z.string().optional(),
-  chapterRole: z.string().optional(),
+  chapterRoles: z.array(z.string().trim().min(1)).default([]),
   roleGroup: z.enum(["leadership", "support", "committee", "none"]),
   notes: z.string().optional(),
   status: z.enum(["active", "on_leave", "former"]),

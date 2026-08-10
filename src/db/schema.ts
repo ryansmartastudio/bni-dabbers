@@ -32,7 +32,7 @@ export const members = pgTable("members", {
   linkedinUrl: text("linkedin_url"),
   websiteUrl: text("website_url"),
   headshotUrl: text("headshot_url"),
-  chapterRole: text("chapter_role"),
+  chapterRoles: text("chapter_roles").array().notNull().default([]),
   roleGroup: roleGroupEnum("role_group").default("none").notNull(),
   notes: text("notes"),
   status: memberStatusEnum("status").default("active").notNull(),

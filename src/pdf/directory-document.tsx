@@ -9,8 +9,10 @@ import {
 import type { Member } from "@/db/schema";
 import type { ChapterSettings } from "@/db/schema";
 import {
+  formatChapterRoles,
   formatWebsiteLabel,
   getMemberDisplayName,
+  hasChapterRoles,
   normalizeWebsiteUrl,
 } from "@/lib/members";
 import { pdfStyles as styles } from "@/pdf/styles";
@@ -47,6 +49,11 @@ export function DirectoryDocument({
               </Text>
               <Text style={styles.muted}>{member.company}</Text>
               <Text style={styles.muted}>{member.bniSeat}</Text>
+              {hasChapterRoles(member.chapterRoles) ? (
+                <Text style={styles.muted}>
+                  {formatChapterRoles(member.chapterRoles)}
+                </Text>
+              ) : null}
             </View>
             <View style={styles.cell}>
               <Text>{member.email}</Text>

@@ -1,8 +1,10 @@
 import { Image, Link, Text, View } from "@react-pdf/renderer";
 import type { Member } from "@/db/schema";
 import {
+  formatChapterRoles,
   formatWebsiteLabel,
   getMemberDisplayName,
+  hasChapterRoles,
   normalizeWebsiteUrl,
 } from "@/lib/members";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
@@ -41,8 +43,10 @@ export function MemberBox({ member, blank = false }: MemberBoxProps) {
               </Text>
               <Text style={styles.memberCompany}>{member.company}</Text>
               <Text style={styles.memberSeat}>{member.bniSeat}</Text>
-              {member.chapterRole ? (
-                <Text style={styles.memberCompany}>{member.chapterRole}</Text>
+              {hasChapterRoles(member.chapterRoles) ? (
+                <Text style={styles.memberCompany}>
+                  {formatChapterRoles(member.chapterRoles)}
+                </Text>
               ) : null}
             </View>
             {member.qrDataUrl ? (
