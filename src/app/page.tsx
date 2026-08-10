@@ -2,6 +2,10 @@ import { getActiveMembers } from "@/lib/members";
 import { getChapterSettings } from "@/lib/settings";
 import { MemberCard } from "@/components/members/member-card";
 import { DatabaseSetupError } from "@/components/setup/database-error";
+import {
+  getDatabaseSetupMessage,
+  isDatabaseSetupError,
+} from "@/lib/db-errors";
 
 export const dynamic = "force-dynamic";
 
@@ -15,11 +19,10 @@ export default async function HomePage() {
       getChapterSettings(),
     ]);
   } catch (error) {
-    const message =
-      error instanceof Error ? error.message : "Could not connect to the database.";
-
-    if (message.includes("DATABASE_URL") || message.includes("connection string")) {
-      return <DatabaseSetupError message={message} />;
+    if (isDatabaseSetupError(error)) {
+      return (
+        <DatabaseSetupError message={getDatabaseSetupMessage(error)} />
+      );
     }
 
     throw error;
