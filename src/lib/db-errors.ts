@@ -35,6 +35,10 @@ export function getDatabaseSetupMessage(error: unknown): string {
   }
 
   if (message.toLowerCase().includes("does not exist")) {
+    if (message.toLowerCase().includes("column")) {
+      return "The database schema is out of date. Run npm run db:push against production to apply the latest migrations.";
+    }
+
     return "Database tables have not been created yet. Run npm run db:push against production, then npm run db:seed.";
   }
 

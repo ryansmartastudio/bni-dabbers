@@ -1,15 +1,34 @@
 import { requireAdmin } from "@/lib/auth";
 import { getChapterSettings, getCharityLinks } from "@/lib/settings";
 import { SettingsForm } from "@/components/settings/settings-form";
+import { DatabaseSetupError } from "@/components/setup/database-error";
+import {
+  getDatabaseSetupMessage,
+  isDatabaseSetupError,
+} from "@/lib/db-errors";
 
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   await requireAdmin();
-  const [settings, charityLinks] = await Promise.all([
-    getChapterSettings(),
-    getCharityLinks(),
-  ]);
+
+  let settings;
+  let charityLinks;
+
+  try {
+    [settings, charityLinks] = await Promise.all([
+      getChapterSettings(),
+      getCharityLinks(),
+    ]);
+  } catch (error) {
+    if (isDatabaseSetupError(error)) {
+      return (
+        <DatabaseSetupError message={getDatabaseSetupMessage(error)} />
+      );
+    }
+
+    throw error;
+  }
 
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
