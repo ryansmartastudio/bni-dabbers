@@ -5,12 +5,13 @@ import { getBookletData } from "@/lib/settings";
 import { generateQrDataUrl } from "@/lib/qr";
 import { BookletDocument } from "@/pdf/booklet/document";
 
-export async function GET() {
+export async function GET(request: Request) {
   const { userId } = await auth();
   if (!userId) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
+  const preview = new URL(request.url).searchParams.get("preview") === "1";
   const { settings, links, members } = await getBookletData();
 
   const [membersWithQr, charityLinksWithQr, feedbackQrDataUrl] =
@@ -43,10 +44,14 @@ export async function GET() {
     />,
   );
 
+  const filename = `${settings.chapterName.replace(/\s+/g, "-")}-meeting-sheet.pdf`;
+
   return new NextResponse(new Uint8Array(buffer), {
     headers: {
       "Content-Type": "application/pdf",
-      "Content-Disposition": `attachment; filename="${settings.chapterName.replace(/\s+/g, "-")}-meeting-sheet.pdf"`,
+      "Content-Disposition": preview
+        ? `inline; filename="${filename}"`
+        : `attachment; filename="${filename}"`,
     },
   });
 }
