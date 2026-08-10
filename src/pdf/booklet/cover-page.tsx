@@ -80,23 +80,18 @@ export function CoverPage({
         <Text style={styles.coverTitle}>
           Welcome to {settings.chapterName}
         </Text>
-        <View style={styles.coverWebsiteRow}>
-          <GlobeIcon size={10} />
-          <Text style={styles.coverWebsite}>{settings.websiteUrl}</Text>
-        </View>
-      </View>
-
-      {chapterQrLink ? (
-        <View style={styles.coverChapterQrBadge}>
-          <Image src={chapterQrLink.qrDataUrl} style={styles.coverChapterQr} />
-          <View style={styles.coverChapterQrCopy}>
+        {chapterQrLink ? (
+          <View style={styles.coverChapterQrBadge}>
+            <Image src={chapterQrLink.qrDataUrl} style={styles.coverChapterQr} />
             <Text style={styles.coverChapterQrTitle}>{chapterQrLink.label}</Text>
-            <Text style={styles.coverChapterQrSubtitle}>
-              Scan to visit the BNI Dabbers chapter page
-            </Text>
           </View>
-        </View>
-      ) : null}
+        ) : (
+          <View style={styles.coverWebsiteRow}>
+            <GlobeIcon size={10} />
+            <Text style={styles.coverWebsite}>{settings.websiteUrl}</Text>
+          </View>
+        )}
+      </View>
 
       <View style={styles.coverVenueCard}>
         {settings.venuePhotoUrl ? (

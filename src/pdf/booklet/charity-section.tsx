@@ -34,7 +34,7 @@ export function CharitySection({ settings, links }: CharitySectionProps) {
   }
 
   return (
-    <View style={styles.charitySectionRow}>
+    <View style={styles.charitySectionRow} wrap={false}>
       {hasCharityContent ? (
         <View
           style={
