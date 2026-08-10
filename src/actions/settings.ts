@@ -28,6 +28,11 @@ export async function saveAllSettings(data: SaveAllSettingsValues) {
       bniDabbersBankDetails: parsed.settings.bniDabbersBankDetails || null,
       bniGlobalBankDetails: parsed.settings.bniGlobalBankDetails || null,
       chapterLogoUrl: parsed.settings.chapterLogoUrl || null,
+      venueLogoUrl: parsed.settings.venueLogoUrl || null,
+      venuePhotoUrl: parsed.settings.venuePhotoUrl || null,
+      feedbackQrUrl: parsed.settings.feedbackQrUrl || null,
+      feedbackQrLabel: parsed.settings.feedbackQrLabel?.trim() || "Feedback",
+      coreValues: parsed.settings.coreValues,
       updatedAt: new Date(),
     })
     .where(eq(chapterSettings.id, existing.id));

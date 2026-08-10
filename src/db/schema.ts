@@ -59,6 +59,8 @@ export const chapterSettings = pgTable("chapter_settings", {
   venueAddress: text("venue_address")
     .default("Weston, Crewe. CW2 5GP")
     .notNull(),
+  venueLogoUrl: text("venue_logo_url"),
+  venuePhotoUrl: text("venue_photo_url"),
   meetingDay: text("meeting_day").default("Thursday").notNull(),
   meetingStart: text("meeting_start").default("06:45").notNull(),
   meetingEnd: text("meeting_end").default("08:30").notNull(),
@@ -72,6 +74,12 @@ export const chapterSettings = pgTable("chapter_settings", {
   bniGlobalBankDetails: text("bni_global_bank_details"),
   guestPageCount: integer("guest_page_count").default(2).notNull(),
   chapterLogoUrl: text("chapter_logo_url"),
+  feedbackQrUrl: text("feedback_qr_url"),
+  feedbackQrLabel: text("feedback_qr_label").default("Feedback"),
+  coreValues: jsonb("core_values")
+    .$type<CoreValue[]>()
+    .default([])
+    .notNull(),
   extras: jsonb("extras").$type<Record<string, unknown>>().default({}),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
@@ -89,3 +97,11 @@ export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
 export type ChapterSettings = typeof chapterSettings.$inferSelect;
 export type CharityLink = typeof charityLinks.$inferSelect;
+
+export type CoreValue = {
+  id: string;
+  title: string;
+  description: string;
+  iconKey: string;
+  iconUrl?: string | null;
+};

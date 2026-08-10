@@ -12,6 +12,7 @@ import {
   getMembersByRoleGroup,
   sortMembersForBooklet,
 } from "@/lib/members";
+import { CoverPage } from "@/pdf/booklet/cover-page";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
   GUEST_ROWS_PER_PAGE,
@@ -26,6 +27,7 @@ type BookletDocumentProps = {
   settings: ChapterSettings;
   members: BookletMember[];
   charityLinks: CharityLinkWithQr[];
+  feedbackQrDataUrl?: string;
 };
 
 function RoleSection({
@@ -55,6 +57,7 @@ export function BookletDocument({
   settings,
   members,
   charityLinks,
+  feedbackQrDataUrl,
 }: BookletDocumentProps) {
   const roleGroups = getMembersByRoleGroup(members);
   const sortedMembers = sortMembersForBooklet(members);
@@ -63,22 +66,11 @@ export function BookletDocument({
 
   return (
     <Document title={`${settings.chapterName} Meeting Sheet`}>
-      <Page size="A4" style={styles.page}>
-        {settings.chapterLogoUrl ? (
-          <Image
-            src={settings.chapterLogoUrl}
-            style={{ width: 80, height: 80, alignSelf: "center" }}
-          />
-        ) : null}
-        <Text style={styles.coverTitle}>WELCOME TO {settings.chapterName.toUpperCase()}</Text>
-        <Text style={styles.coverSubtitle}>{settings.websiteUrl}</Text>
-        <Text style={styles.coverSubtitle}>
-          {settings.venueName}, {settings.venueAddress}
-        </Text>
-        <Text style={styles.coverAccent}>
-          {settings.meetingDay}s · {settings.meetingStart} – {settings.meetingEnd}
-        </Text>
-      </Page>
+      <CoverPage
+        settings={settings}
+        coreValues={settings.coreValues}
+        feedbackQrDataUrl={feedbackQrDataUrl}
+      />
 
       <Page size="A4" style={styles.page}>
         <Text style={styles.sectionHeading}>Leadership & Committee</Text>

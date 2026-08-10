@@ -13,28 +13,33 @@ export async function GET() {
 
   const { settings, links, members } = await getBookletData();
 
-  const [membersWithQr, charityLinksWithQr] = await Promise.all([
-    Promise.all(
-      members.map(async (member) => ({
-        ...member,
-        qrDataUrl: member.linkedinUrl
-          ? await generateQrDataUrl(member.linkedinUrl, 120)
-          : undefined,
-      })),
-    ),
-    Promise.all(
-      links.map(async (link) => ({
-        ...link,
-        qrDataUrl: await generateQrDataUrl(link.url, 160),
-      })),
-    ),
-  ]);
+  const [membersWithQr, charityLinksWithQr, feedbackQrDataUrl] =
+    await Promise.all([
+      Promise.all(
+        members.map(async (member) => ({
+          ...member,
+          qrDataUrl: member.linkedinUrl
+            ? await generateQrDataUrl(member.linkedinUrl, 120)
+            : undefined,
+        })),
+      ),
+      Promise.all(
+        links.map(async (link) => ({
+          ...link,
+          qrDataUrl: await generateQrDataUrl(link.url, 160),
+        })),
+      ),
+      settings.feedbackQrUrl
+        ? generateQrDataUrl(settings.feedbackQrUrl, 120)
+        : Promise.resolve(undefined),
+    ]);
 
   const buffer = await renderToBuffer(
     <BookletDocument
       settings={settings}
       members={membersWithQr}
       charityLinks={charityLinksWithQr}
+      feedbackQrDataUrl={feedbackQrDataUrl}
     />,
   );
 

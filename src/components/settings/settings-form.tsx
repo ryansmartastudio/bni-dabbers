@@ -10,7 +10,12 @@ import {
   CharityLinksFields,
   type CharityLinkDraft,
 } from "@/components/settings/charity-links-fields";
+import {
+  CoreValuesFields,
+  type CoreValueDraft,
+} from "@/components/settings/core-values-fields";
 import { SettingsSection } from "@/components/settings/settings-section";
+import { normalizeCoreValues } from "@/lib/core-values";
 
 type SettingsFormProps = {
   settings: ChapterSettings;
@@ -35,6 +40,13 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
   );
   const [charityLogoUrl, setCharityLogoUrl] = useState(
     settings.charityLogoUrl ?? "",
+  );
+  const [venueLogoUrl, setVenueLogoUrl] = useState(settings.venueLogoUrl ?? "");
+  const [venuePhotoUrl, setVenuePhotoUrl] = useState(
+    settings.venuePhotoUrl ?? "",
+  );
+  const [coreValues, setCoreValues] = useState<CoreValueDraft[]>(() =>
+    normalizeCoreValues(settings.coreValues),
   );
   const [links, setLinks] = useState<CharityLinkDraft[]>(() =>
     toLinkDrafts(charityLinks),
@@ -80,6 +92,17 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             ),
             guestPageCount: Number(formData.get("guestPageCount") ?? 2),
             chapterLogoUrl,
+            venueLogoUrl,
+            venuePhotoUrl,
+            feedbackQrUrl: String(formData.get("feedbackQrUrl") ?? ""),
+            feedbackQrLabel: String(formData.get("feedbackQrLabel") ?? "Feedback"),
+            coreValues: coreValues.map((value) => ({
+              id: value.id,
+              title: value.title.trim(),
+              description: value.description.trim(),
+              iconKey: value.iconKey,
+              iconUrl: value.iconUrl || null,
+            })),
           },
           charityLinks: filledLinks.map((link) => ({
             id: link.id,
@@ -139,7 +162,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
 
       <SettingsSection
         title="Meeting & venue"
-        description="Printed on the cover and used across the public directory."
+        description="Printed on the meeting sheet cover with venue branding and a venue photo."
       >
         <div className="grid gap-4 sm:grid-cols-2">
           <Input
@@ -172,6 +195,46 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             />
           </div>
         </div>
+        <div className="grid gap-4 lg:grid-cols-2">
+          <ImageUpload
+            label="Venue logo"
+            description="Wychwood Park logo for the meeting sheet cover."
+            value={venueLogoUrl}
+            onChange={setVenueLogoUrl}
+            folder="logos/venue"
+            aspect="wide"
+          />
+          <ImageUpload
+            label="Venue photo"
+            description="A photo of the venue shown alongside the address and meeting times."
+            value={venuePhotoUrl}
+            onChange={setVenuePhotoUrl}
+            folder="venue/photos"
+            aspect="wide"
+          />
+        </div>
+      </SettingsSection>
+
+      <SettingsSection
+        title="Meeting sheet cover"
+        description="Core values, feedback QR badge and cover-only content for page 1 of the booklet."
+      >
+        <div className="grid gap-4 sm:grid-cols-2">
+          <Input
+            label="Feedback QR URL"
+            name="feedbackQrUrl"
+            type="url"
+            defaultValue={settings.feedbackQrUrl ?? ""}
+            placeholder="https://forms.example.com/feedback"
+          />
+          <Input
+            label="Feedback badge label"
+            name="feedbackQrLabel"
+            defaultValue={settings.feedbackQrLabel ?? "Feedback"}
+            placeholder="Feedback"
+          />
+        </div>
+        <CoreValuesFields values={coreValues} onChange={setCoreValues} />
       </SettingsSection>
 
       <SettingsSection

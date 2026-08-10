@@ -1,6 +1,14 @@
 import { z } from "zod";
 import { normalizeWebsiteUrl } from "@/lib/members";
 
+export const coreValueSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  description: z.string().optional().default(""),
+  iconKey: z.string().min(1),
+  iconUrl: z.string().optional().nullable(),
+});
+
 export const memberSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
   lastName: z.string().min(1, "Last name is required"),
@@ -53,6 +61,15 @@ export const settingsSchema = z.object({
   bniGlobalBankDetails: z.string().optional(),
   guestPageCount: z.coerce.number().int().min(1).max(10),
   chapterLogoUrl: z.string().optional(),
+  venueLogoUrl: z.string().optional(),
+  venuePhotoUrl: z.string().optional(),
+  feedbackQrUrl: z
+    .string()
+    .url("Enter a valid feedback URL")
+    .optional()
+    .or(z.literal("")),
+  feedbackQrLabel: z.string().optional(),
+  coreValues: z.array(coreValueSchema).default([]),
 });
 
 export const charityLinkSchema = z.object({
@@ -67,6 +84,7 @@ export const saveAllSettingsSchema = z.object({
   charityLinks: z.array(charityLinkSchema),
 });
 
+export type CoreValueFormValues = z.infer<typeof coreValueSchema>;
 export type MemberFormValues = z.infer<typeof memberSchema>;
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 export type CharityLinkFormValues = z.infer<typeof charityLinkSchema>;

@@ -2,6 +2,9 @@ export const UPLOAD_FOLDERS = [
   "headshots",
   "logos/chapter",
   "logos/charity",
+  "logos/venue",
+  "venue/photos",
+  "icons/core-values",
 ] as const;
 
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
