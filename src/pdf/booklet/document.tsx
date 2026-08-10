@@ -91,16 +91,23 @@ export function BookletDocument({
       </Page>
 
       {Array.from({ length: guestPageCount }, (_, index) => (
-        <Page key={`guests-${index}`} size="A4" style={styles.guestPage} wrap={false}>
-          <Text style={[styles.pageTitle, { marginBottom: 6 }]}>
+        <Page
+          key={`guests-${index}`}
+          size="A4"
+          style={[styles.guestPage, styles.guestPageLayout]}
+          wrap={false}
+        >
+          <Text style={[styles.pageTitle, styles.guestPageTitle]}>
             Guests & Visitors
           </Text>
-          <Text style={[styles.pageSubtitle, { marginBottom: 8 }]}>
+          <Text style={[styles.pageSubtitle, styles.guestPageSubtitle]}>
             {guestPageCount > 1
               ? `Page ${index + 1} of ${guestPageCount}`
               : "Record guest details during the meeting"}
           </Text>
-          <GuestTable rowCount={GUEST_ROWS_PER_PAGE} />
+          <View style={styles.guestTableColumn}>
+            <GuestTable rowCount={GUEST_ROWS_PER_PAGE} />
+          </View>
         </Page>
       ))}
     </Document>

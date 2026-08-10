@@ -11,12 +11,37 @@ export const bookletStyles = StyleSheet.create({
     color: "#111111",
   },
   guestPage: {
-    paddingTop: 24,
-    paddingBottom: 24,
+    paddingTop: 32,
+    paddingBottom: 32,
     paddingHorizontal: 28,
     fontFamily: "Helvetica",
     fontSize: 8.5,
     color: "#111111",
+  },
+  guestPageLayout: {
+    flexDirection: "column",
+  },
+  guestPageTitle: {
+    marginBottom: 6,
+  },
+  guestPageSubtitle: {
+    marginBottom: 10,
+  },
+  guestTableColumn: {
+    flexGrow: 1,
+    height: 730,
+  },
+  guestTable: {
+    flex: 1,
+    flexDirection: "column",
+    borderLeft: "1px solid #cfcfcf",
+    borderRight: "1px solid #cfcfcf",
+    borderTop: "1px solid #cfcfcf",
+    borderBottom: "1px solid #cfcfcf",
+  },
+  guestTableBody: {
+    flex: 1,
+    flexDirection: "column",
   },
   coverPage: {
     paddingTop: 24,
@@ -606,19 +631,19 @@ export const bookletStyles = StyleSheet.create({
   guestBodyRow: {
     flexDirection: "row",
     borderBottom: "1px solid #e4e4e4",
-    minHeight: 34,
+    flex: 1,
     alignItems: "stretch",
   },
   guestTableCell: {
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     borderRight: "1px solid #e4e4e4",
     justifyContent: "center",
   },
   guestNotesCell: {
     borderRight: "none",
-    paddingVertical: 5,
-    paddingHorizontal: 8,
+    paddingVertical: 8,
+    paddingHorizontal: 10,
     justifyContent: "center",
   },
   tableCell: {
@@ -728,14 +753,16 @@ export const bookletStyles = StyleSheet.create({
   },
   guestWriteLine: {
     borderBottom: "1px solid #cccccc",
-    height: 12,
+    height: 14,
     marginTop: 2,
   },
   guestNoteLines: {
-    gap: 4,
+    gap: 10,
+    justifyContent: "center",
+    flex: 1,
   },
   guestNoteLine: {
     borderBottom: "1px solid #cccccc",
-    height: 10,
+    height: 12,
   },
 });

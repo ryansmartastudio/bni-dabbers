@@ -153,6 +153,17 @@ function MemberTableRow({ member }: { member: BookletMember }) {
   );
 }
 
+export function MemberTable({ members }: { members: BookletMember[] }) {
+  return (
+    <View style={styles.table} wrap>
+      <TableHeader columns={MEMBER_COLUMNS} />
+      {members.map((member) => (
+        <MemberTableRow key={member.id} member={member} />
+      ))}
+    </View>
+  );
+}
+
 function GuestTableRow() {
   return (
     <View style={styles.guestBodyRow} wrap={false}>
@@ -165,30 +176,22 @@ function GuestTableRow() {
       <View style={[styles.guestNotesCell, { width: GUEST_COLUMNS[2].width }]}>
         <View style={styles.guestNoteLines}>
           <View style={styles.guestNoteLine} />
+          <View style={styles.guestNoteLine} />
         </View>
       </View>
     </View>
   );
 }
 
-export function MemberTable({ members }: { members: BookletMember[] }) {
-  return (
-    <View style={styles.table} wrap>
-      <TableHeader columns={MEMBER_COLUMNS} />
-      {members.map((member) => (
-        <MemberTableRow key={member.id} member={member} />
-      ))}
-    </View>
-  );
-}
-
 export function GuestTable({ rowCount }: { rowCount: number }) {
   return (
-    <View style={styles.table}>
+    <View style={styles.guestTable}>
       <TableHeader columns={GUEST_COLUMNS} fixed={false} />
-      {Array.from({ length: rowCount }, (_, index) => (
-        <GuestTableRow key={`guest-row-${index}`} />
-      ))}
+      <View style={styles.guestTableBody}>
+        {Array.from({ length: rowCount }, (_, index) => (
+          <GuestTableRow key={`guest-row-${index}`} />
+        ))}
+      </View>
     </View>
   );
 }
