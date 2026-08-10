@@ -107,9 +107,9 @@ export const bookletStyles = StyleSheet.create({
     marginBottom: 12,
   },
   table: {
-    border: "1px solid #cfcfcf",
-    borderRadius: 2,
-    overflow: "hidden",
+    borderLeft: "1px solid #cfcfcf",
+    borderRight: "1px solid #cfcfcf",
+    borderTop: "1px solid #cfcfcf",
   },
   tableHeaderRow: {
     flexDirection: "row",

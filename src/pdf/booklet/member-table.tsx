@@ -169,7 +169,7 @@ function GuestTableRow() {
 
 export function MemberTable({ members }: { members: BookletMember[] }) {
   return (
-    <View style={styles.table}>
+    <View style={styles.table} wrap>
       <TableHeader columns={MEMBER_COLUMNS} />
       {members.map((member) => (
         <MemberTableRow key={member.id} member={member} />
@@ -180,7 +180,7 @@ export function MemberTable({ members }: { members: BookletMember[] }) {
 
 export function GuestTable({ rowCount }: { rowCount: number }) {
   return (
-    <View style={styles.table}>
+    <View style={styles.table} wrap>
       <TableHeader columns={GUEST_COLUMNS} />
       {Array.from({ length: rowCount }, (_, index) => (
         <GuestTableRow key={`guest-row-${index}`} />
@@ -189,13 +189,4 @@ export function GuestTable({ rowCount }: { rowCount: number }) {
   );
 }
 
-export const MEMBER_ROWS_PER_PAGE = 6;
 export const GUEST_ROWS_PER_PAGE = 14;
-
-export function chunkMembers<T>(items: T[], size: number): T[][] {
-  const chunks: T[][] = [];
-  for (let i = 0; i < items.length; i += size) {
-    chunks.push(items.slice(i, i + size));
-  }
-  return chunks;
-}

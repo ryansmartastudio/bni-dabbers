@@ -16,9 +16,7 @@ import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
   GUEST_ROWS_PER_PAGE,
   GuestTable,
-  MEMBER_ROWS_PER_PAGE,
   MemberTable,
-  chunkMembers,
   type BookletMember,
 } from "@/pdf/booklet/member-table";
 
@@ -59,11 +57,9 @@ export function BookletDocument({
   charityLinks,
 }: BookletDocumentProps) {
   const roleGroups = getMembersByRoleGroup(members);
-  const memberPages = chunkMembers(
-    sortMembersForBooklet(members),
-    MEMBER_ROWS_PER_PAGE,
-  );
-  const guestPageCount = Math.max(settings.guestPageCount, 1);
+  const sortedMembers = sortMembersForBooklet(members);
+  const guestRowCount =
+    Math.max(settings.guestPageCount, 1) * GUEST_ROWS_PER_PAGE;
 
   return (
     <Document title={`${settings.chapterName} Meeting Sheet`}>
@@ -141,29 +137,21 @@ export function BookletDocument({
         </View>
       </Page>
 
-      {memberPages.map((pageMembers, index) => (
-        <Page key={`members-${index}`} size="A4" style={styles.page}>
-          <Text style={styles.pageTitle}>{settings.chapterName} Members</Text>
-          <Text style={styles.pageSubtitle}>
-            {index === 0
-              ? "Scan LinkedIn QR codes to connect · use the notes column for this week"
-              : `Members (continued · page ${index + 1})`}
-          </Text>
-          <MemberTable members={pageMembers} />
-        </Page>
-      ))}
+      <Page size="A4" style={styles.page} wrap>
+        <Text style={styles.pageTitle}>{settings.chapterName} Members</Text>
+        <Text style={styles.pageSubtitle}>
+          Scan LinkedIn QR codes to connect · use the notes column for this week
+        </Text>
+        <MemberTable members={sortedMembers} />
+      </Page>
 
-      {Array.from({ length: guestPageCount }, (_, index) => (
-        <Page key={`guests-${index}`} size="A4" style={styles.page}>
-          <Text style={styles.pageTitle}>Guests & Visitors</Text>
-          <Text style={styles.pageSubtitle}>
-            {guestPageCount > 1
-              ? `Page ${index + 1} of ${guestPageCount}`
-              : "Record guest details during the meeting"}
-          </Text>
-          <GuestTable rowCount={GUEST_ROWS_PER_PAGE} />
-        </Page>
-      ))}
+      <Page size="A4" style={styles.page} wrap>
+        <Text style={styles.pageTitle}>Guests & Visitors</Text>
+        <Text style={styles.pageSubtitle}>
+          Record guest details during the meeting
+        </Text>
+        <GuestTable rowCount={guestRowCount} />
+      </Page>
     </Document>
   );
 }
