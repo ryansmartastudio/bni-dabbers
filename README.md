@@ -25,7 +25,7 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
    ```json
    { "metadata": "{{user.public_metadata}}" }
    ```
-3. Set your first admin in Clerk: Users → Metadata → `publicMetadata`: `{ "role": "admin" }`. Additional admins can be invited from Settings → Admin access.
+3. Set your first admin in Clerk: Users → Metadata → `publicMetadata`: `{ "role": "admin" }`. Additional admins can be invited from Settings → Admins (copy the invite link and send it manually).
 4. Push the database schema:
    ```bash
    npm run db:push

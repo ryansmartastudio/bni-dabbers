@@ -28,6 +28,38 @@ function formatInviteDate(timestamp: number | null) {
   });
 }
 
+function CopyInviteLinkButton({
+  url,
+  disabled,
+}: {
+  url: string;
+  disabled?: boolean;
+}) {
+  const [copied, setCopied] = useState(false);
+
+  async function handleCopy() {
+    try {
+      await navigator.clipboard.writeText(url);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 2000);
+    } catch {
+      window.prompt("Copy this invite link:", url);
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="secondary"
+      className="shrink-0"
+      disabled={disabled}
+      onClick={handleCopy}
+    >
+      {copied ? "Copied" : "Copy link"}
+    </Button>
+  );
+}
+
 export function AdminAccessPanel({
   admins,
   pendingInvites,
@@ -54,7 +86,15 @@ export function AdminAccessPanel({
       if ("type" in result && result.type === "promoted") {
         setMessage(`${result.email} already had an account and is now an admin.`);
       } else if ("type" in result && result.type === "invited") {
-        setMessage(`Invitation sent to ${result.email}.`);
+        if ("invitationUrl" in result && result.invitationUrl) {
+          setMessage(
+            `Invite created for ${result.email}. Copy the link below and send it to them (email, WhatsApp, etc.).`,
+          );
+        } else {
+          setMessage(
+            `Invite created for ${result.email}. Share the pending invite link below.`,
+          );
+        }
       }
 
       setEmail("");
@@ -111,7 +151,7 @@ export function AdminAccessPanel({
           />
         </div>
         <Button type="submit" disabled={isPending || !email.trim()}>
-          Send invite
+          Create invite
         </Button>
       </form>
 
@@ -185,15 +225,19 @@ export function AdminAccessPanel({
                       Sent {formatInviteDate(invite.createdAt)}
                     </p>
                   </div>
-                  <Button
-                    type="button"
-                    variant="secondary"
-                    className="shrink-0"
-                    disabled={isPending}
-                    onClick={() => handleRevokeInvite(invite.id)}
-                  >
-                    Revoke
-                  </Button>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {invite.url ? (
+                      <CopyInviteLinkButton url={invite.url} disabled={isPending} />
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      disabled={isPending}
+                      onClick={() => handleRevokeInvite(invite.id)}
+                    >
+                      Revoke
+                    </Button>
+                  </div>
                 </li>
               ))}
             </ul>
@@ -202,8 +246,9 @@ export function AdminAccessPanel({
       </div>
 
       <p className="text-xs text-muted">
-        Invited admins receive a Clerk email to sign in. They can manage members,
-        chapter settings and generate meeting sheets once they accept.
+        New admins get a one-time invite link — copy it and send it yourself.
+        If they already have an account, entering their email grants admin access
+        immediately. Once signed in, they can manage members, settings and exports.
       </p>
     </div>
   );

@@ -12,6 +12,7 @@ export type PendingInviteSummary = {
   id: string;
   email: string;
   createdAt: number;
+  url: string | null;
 };
 
 function getUserPublicMetadata(
@@ -90,6 +91,7 @@ export async function listPendingAdminInvites(): Promise<PendingInviteSummary[]>
     id: invitation.id,
     email: invitation.emailAddress,
     createdAt: invitation.createdAt,
+    url: invitation.url ?? null,
   }));
 }
 
@@ -120,14 +122,19 @@ export async function inviteAdmin(emailAddress: string) {
     return { type: "promoted" as const, email };
   }
 
-  await client.invitations.createInvitation({
+  const invitation = await client.invitations.createInvitation({
     emailAddress: email,
     redirectUrl: `${getAppOrigin()}/sign-in`,
     publicMetadata: { role: "admin" },
-    notify: true,
+    // Clerk blocks automated invite emails until a custom domain is configured.
+    notify: false,
   });
 
-  return { type: "invited" as const, email };
+  return {
+    type: "invited" as const,
+    email,
+    invitationUrl: invitation.url ?? null,
+  };
 }
 
 export async function revokeAdminInvite(invitationId: string) {
