@@ -20,7 +20,7 @@ export async function GET() {
   const sheet = workbook.addWorksheet("Members");
 
   sheet.addRow([`${settings.chapterName} — Member Roster`]);
-  sheet.mergeCells("A1:L1");
+  sheet.mergeCells("A1:M1");
   sheet.getCell("A1").font = {
     bold: true,
     size: 14,
@@ -36,6 +36,7 @@ export async function GET() {
     "Role Group",
     "Email",
     "Phone",
+    "Website URL",
     "LinkedIn URL",
     "Notes",
     "Status",
@@ -59,6 +60,7 @@ export async function GET() {
     { width: 14 },
     { width: 28 },
     { width: 16 },
+    { width: 28 },
     { width: 32 },
     { width: 30 },
     { width: 12 },
@@ -75,6 +77,7 @@ export async function GET() {
       member.roleGroup,
       member.email,
       member.phone,
+      member.websiteUrl ?? "",
       member.linkedinUrl ?? "",
       member.notes ?? "",
       member.status,

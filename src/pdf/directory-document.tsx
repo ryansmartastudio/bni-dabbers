@@ -1,13 +1,18 @@
 import {
   Document,
   Image,
+  Link,
   Page,
   Text,
   View,
 } from "@react-pdf/renderer";
 import type { Member } from "@/db/schema";
 import type { ChapterSettings } from "@/db/schema";
-import { getMemberDisplayName } from "@/lib/members";
+import {
+  formatWebsiteLabel,
+  getMemberDisplayName,
+  normalizeWebsiteUrl,
+} from "@/lib/members";
 import { pdfStyles as styles } from "@/pdf/styles";
 
 export type DirectoryMember = Member & { qrDataUrl?: string };
@@ -46,6 +51,14 @@ export function DirectoryDocument({
             <View style={styles.cell}>
               <Text>{member.email}</Text>
               <Text>{member.phone}</Text>
+              {member.websiteUrl ? (
+                <Link
+                  src={normalizeWebsiteUrl(member.websiteUrl)}
+                  style={styles.muted}
+                >
+                  {formatWebsiteLabel(member.websiteUrl)}
+                </Link>
+              ) : null}
               {member.notes ? (
                 <Text style={styles.muted}>Notes: {member.notes}</Text>
               ) : null}

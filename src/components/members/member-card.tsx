@@ -3,6 +3,7 @@ import Link from "next/link";
 import type { Member } from "@/db/schema";
 import { getMemberDisplayName } from "@/lib/members";
 import { LinkedInQr } from "@/components/qr/linkedin-qr";
+import { MemberWebsiteLink } from "@/components/members/member-website-link";
 
 type MemberCardProps = {
   member: Member;
@@ -40,6 +41,12 @@ export function MemberCard({ member, showContact = false, showEdit = false }: Me
           {member.chapterRole ? (
             <p className="text-xs text-muted">{member.chapterRole}</p>
           ) : null}
+          {member.websiteUrl ? (
+            <MemberWebsiteLink
+              url={member.websiteUrl}
+              className="mt-1 block truncate text-xs text-bni hover:underline"
+            />
+          ) : null}
         </div>
         {member.linkedinUrl ? (
           <LinkedInQr url={member.linkedinUrl} size={72} />
@@ -49,6 +56,9 @@ export function MemberCard({ member, showContact = false, showEdit = false }: Me
         <div className="border-t border-border bg-surface-muted px-4 py-3 text-sm">
           <p>{member.email}</p>
           <p>{member.phone}</p>
+          {member.websiteUrl ? (
+            <MemberWebsiteLink url={member.websiteUrl} className="mt-1 block" />
+          ) : null}
           {member.notes ? (
             <p className="mt-2 text-xs text-muted">{member.notes}</p>
           ) : null}

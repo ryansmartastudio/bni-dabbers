@@ -30,6 +30,7 @@ export const members = pgTable("members", {
   email: text("email").notNull(),
   phone: text("phone").notNull(),
   linkedinUrl: text("linkedin_url"),
+  websiteUrl: text("website_url"),
   headshotUrl: text("headshot_url"),
   chapterRole: text("chapter_role"),
   roleGroup: roleGroupEnum("role_group").default("none").notNull(),

@@ -37,6 +37,7 @@ export function MemberForm({ member }: MemberFormProps) {
       email: String(formData.get("email") ?? ""),
       phone: String(formData.get("phone") ?? ""),
       linkedinUrl: String(formData.get("linkedinUrl") ?? ""),
+      websiteUrl: String(formData.get("websiteUrl") ?? ""),
       headshotUrl,
       chapterRole: String(formData.get("chapterRole") ?? ""),
       roleGroup: String(formData.get("roleGroup") ?? "none") as
@@ -135,6 +136,13 @@ export function MemberForm({ member }: MemberFormProps) {
           type="url"
           defaultValue={member?.linkedinUrl ?? ""}
           placeholder="https://linkedin.com/in/..."
+        />
+        <Input
+          label="Website URL"
+          name="websiteUrl"
+          type="url"
+          defaultValue={member?.websiteUrl ?? ""}
+          placeholder="https://www.example.com"
         />
         <Input
           label="Sort order"

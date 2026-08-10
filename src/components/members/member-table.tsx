@@ -2,6 +2,7 @@ import Link from "next/link";
 import type { Member } from "@/db/schema";
 import { getMemberDisplayName } from "@/lib/members";
 import { LinkedInQr } from "@/components/qr/linkedin-qr";
+import { MemberWebsiteLink } from "@/components/members/member-website-link";
 
 type MemberTableProps = {
   members: Member[];
@@ -20,6 +21,7 @@ export function MemberTable({ members, isAdmin = false }: MemberTableProps) {
             <th className="px-4 py-3">Role</th>
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Phone</th>
+            <th className="px-4 py-3">Website</th>
             <th className="px-4 py-3">Notes</th>
             <th className="px-4 py-3">LinkedIn</th>
             {isAdmin ? <th className="px-4 py-3">Actions</th> : null}
@@ -36,6 +38,13 @@ export function MemberTable({ members, isAdmin = false }: MemberTableProps) {
               <td className="px-4 py-3">{member.chapterRole ?? "—"}</td>
               <td className="px-4 py-3">{member.email}</td>
               <td className="px-4 py-3 whitespace-nowrap">{member.phone}</td>
+              <td className="px-4 py-3">
+                {member.websiteUrl ? (
+                  <MemberWebsiteLink url={member.websiteUrl} />
+                ) : (
+                  "—"
+                )}
+              </td>
               <td className="max-w-xs px-4 py-3 text-muted">
                 {member.notes ?? "—"}
               </td>

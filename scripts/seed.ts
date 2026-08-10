@@ -44,6 +44,7 @@ async function seed() {
         email: "ryan@example.com",
         phone: "07000 000000",
         linkedinUrl: "https://www.linkedin.com/in/example",
+        websiteUrl: "https://www.smartastudio.co.uk",
         chapterRole: "President",
         roleGroup: "leadership",
         sortOrder: 0,

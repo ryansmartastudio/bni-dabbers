@@ -2,16 +2,18 @@ import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { members, type Member } from "@/db/schema";
 
+const memberNameOrder = [asc(members.lastName), asc(members.firstName)];
+
 export async function getAllMembers(): Promise<Member[]> {
   return db.query.members.findMany({
-    orderBy: [asc(members.sortOrder), asc(members.lastName)],
+    orderBy: memberNameOrder,
   });
 }
 
 export async function getActiveMembers(): Promise<Member[]> {
   return db.query.members.findMany({
     where: eq(members.status, "active"),
-    orderBy: [asc(members.sortOrder), asc(members.lastName)],
+    orderBy: memberNameOrder,
   });
 }
 
@@ -21,6 +23,17 @@ export async function getMemberById(id: string): Promise<Member | undefined> {
 
 export function getMemberDisplayName(member: Pick<Member, "firstName" | "lastName">) {
   return `${member.firstName} ${member.lastName}`;
+}
+
+export function normalizeWebsiteUrl(url: string) {
+  const trimmed = url.trim();
+  if (!trimmed) return "";
+  if (/^https?:\/\//i.test(trimmed)) return trimmed;
+  return `https://${trimmed}`;
+}
+
+export function formatWebsiteLabel(url: string) {
+  return url.trim().replace(/^https?:\/\//i, "").replace(/\/$/, "");
 }
 
 export function getMembersByRoleGroup(membersList: Member[]) {

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { normalizeWebsiteUrl } from "@/lib/members";
 
 export const memberSchema = z.object({
   firstName: z.string().min(1, "First name is required"),
@@ -12,6 +13,19 @@ export const memberSchema = z.object({
     .url("Valid URL required")
     .optional()
     .or(z.literal("")),
+  websiteUrl: z
+    .string()
+    .optional()
+    .or(z.literal(""))
+    .refine((value) => {
+      if (!value?.trim()) return true;
+      try {
+        new URL(normalizeWebsiteUrl(value));
+        return true;
+      } catch {
+        return false;
+      }
+    }, "Enter a valid website URL"),
   headshotUrl: z.string().optional(),
   chapterRole: z.string().optional(),
   roleGroup: z.enum(["leadership", "support", "committee", "none"]),

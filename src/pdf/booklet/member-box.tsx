@@ -1,6 +1,10 @@
-import { Image, Text, View } from "@react-pdf/renderer";
+import { Image, Link, Text, View } from "@react-pdf/renderer";
 import type { Member } from "@/db/schema";
-import { getMemberDisplayName } from "@/lib/members";
+import {
+  formatWebsiteLabel,
+  getMemberDisplayName,
+  normalizeWebsiteUrl,
+} from "@/lib/members";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 
 export type BookletMember = Member & { qrDataUrl?: string };
@@ -47,6 +51,14 @@ export function MemberBox({ member, blank = false }: MemberBoxProps) {
           </View>
           <Text style={styles.contactLine}>{member.email}</Text>
           <Text style={styles.contactLine}>{member.phone}</Text>
+          {member.websiteUrl ? (
+            <Link
+              src={normalizeWebsiteUrl(member.websiteUrl)}
+              style={styles.contactLine}
+            >
+              {formatWebsiteLabel(member.websiteUrl)}
+            </Link>
+          ) : null}
           <View style={styles.notesArea}>
             <Text style={styles.notesLabel}>Notes</Text>
             <View style={styles.ruledLine} />

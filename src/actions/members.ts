@@ -20,6 +20,7 @@ export async function createMember(data: MemberFormValues) {
   await db.insert(members).values({
     ...parsed,
     linkedinUrl: parsed.linkedinUrl || null,
+    websiteUrl: parsed.websiteUrl || null,
     chapterRole: parsed.chapterRole || null,
     notes: parsed.notes || null,
     headshotUrl: parsed.headshotUrl || null,
@@ -38,6 +39,7 @@ export async function updateMember(id: string, data: MemberFormValues) {
     .set({
       ...parsed,
       linkedinUrl: parsed.linkedinUrl || null,
+      websiteUrl: parsed.websiteUrl || null,
       chapterRole: parsed.chapterRole || null,
       notes: parsed.notes || null,
       headshotUrl: parsed.headshotUrl || null,

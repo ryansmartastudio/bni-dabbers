@@ -1,6 +1,7 @@
 import { asc } from "drizzle-orm";
 import { db } from "@/db";
-import { chapterSettings, charityLinks, members } from "@/db/schema";
+import { chapterSettings, charityLinks } from "@/db/schema";
+import { getActiveMembers } from "@/lib/members";
 
 export async function getChapterSettings() {
   const settings = await db.query.chapterSettings.findFirst();
@@ -20,10 +21,7 @@ export async function getBookletData() {
   const [settings, links, activeMembers] = await Promise.all([
     getChapterSettings(),
     getCharityLinks(),
-    db.query.members.findMany({
-      where: (m, { eq }) => eq(m.status, "active"),
-      orderBy: [asc(members.sortOrder), asc(members.lastName)],
-    }),
+    getActiveMembers(),
   ]);
 
   return { settings, links, members: activeMembers };
