@@ -14,36 +14,51 @@ const ALLOWED_CONTENT_TYPES = [
   "image/svg+xml",
 ];
 
+function jsonError(message: string, status: number) {
+  return NextResponse.json({ error: message }, { status });
+}
+
 export async function POST(request: Request) {
-  const body = (await request.json()) as HandleUploadBody;
+  let body: HandleUploadBody;
+
+  try {
+    body = (await request.json()) as HandleUploadBody;
+  } catch {
+    return jsonError("Invalid upload request.", 400);
+  }
+
+  const blobToken = process.env.BLOB_READ_WRITE_TOKEN;
+  if (!blobToken) {
+    return jsonError(
+      "File uploads are not configured. In Vercel, open Storage → Blob, connect a store to this project, and ensure BLOB_READ_WRITE_TOKEN is set for Production.",
+      503,
+    );
+  }
+
+  if (body.type === "blob.generate-client-token") {
+    const { userId, sessionClaims } = await auth();
+    const role = getRoleFromClaims(sessionClaims as Record<string, unknown>);
+
+    if (!userId) {
+      return jsonError("You must be signed in to upload files.", 401);
+    }
+    if (role !== "admin") {
+      return jsonError("Admin access is required to upload files.", 403);
+    }
+  }
 
   try {
     const jsonResponse = await handleUpload({
       body,
       request,
+      token: blobToken,
       onBeforeGenerateToken: async (pathname, clientPayload) => {
-        const { userId, sessionClaims } = await auth();
-        const role = getRoleFromClaims(sessionClaims as Record<string, unknown>);
-
-        if (!userId) {
-          throw new Error("You must be signed in to upload files.");
-        }
-        if (role !== "admin") {
-          throw new Error("Admin access is required to upload files.");
-        }
-
         if (!isUploadFolder(clientPayload)) {
           throw new Error("Invalid upload folder.");
         }
 
         if (!pathname.startsWith(`${clientPayload}/`)) {
           throw new Error("Invalid upload path.");
-        }
-
-        if (!process.env.BLOB_READ_WRITE_TOKEN) {
-          throw new Error(
-            "File uploads are not configured. Add BLOB_READ_WRITE_TOKEN to your environment.",
-          );
         }
 
         return {
@@ -56,9 +71,10 @@ export async function POST(request: Request) {
 
     return NextResponse.json(jsonResponse);
   } catch (error) {
-    return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Upload failed" },
-      { status: 400 },
+    console.error("Blob upload route error:", error);
+    return jsonError(
+      error instanceof Error ? error.message : "Upload failed.",
+      400,
     );
   }
 }
