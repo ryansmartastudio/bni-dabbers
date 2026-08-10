@@ -195,7 +195,7 @@ export function SettingsForm({ settings, charityLinks }: SettingsFormProps) {
             />
           </div>
         </div>
-        <div className="grid gap-4 lg:grid-cols-2">
+        <div className="grid gap-6 md:grid-cols-2">
           <ImageUpload
             label="Venue logo"
             description="Wychwood Park logo for the meeting sheet cover."

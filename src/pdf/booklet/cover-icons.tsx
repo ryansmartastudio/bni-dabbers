@@ -144,6 +144,17 @@ function LightbulbIcon({ size, color }: IconProps) {
   );
 }
 
+function TrophyIcon({ size, color }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24">
+      <Path
+        d="M9 3h6v2.2a3 3 0 01-6 0V3zm-3 2H4v1.5a2.5 2.5 0 002.4 2.5M18 5h2v1.5a2.5 2.5 0 01-2.4 2.5M12 10.7a4.3 4.3 0 003.8-2.2H8.2a4.3 4.3 0 003.8 2.2zM10 14h4v2h1v3H9v-3h1v-2z"
+        fill={color}
+      />
+    </Svg>
+  );
+}
+
 const CORE_VALUE_ICON_MAP: Record<
   CoreValueIconKey,
   (props: IconProps) => ReactElement
@@ -154,6 +165,7 @@ const CORE_VALUE_ICON_MAP: Record<
   "clipboard-check": ClipboardCheckIcon,
   "book-open": BookOpenIcon,
   sun: SunIcon,
+  trophy: TrophyIcon,
   heart: HeartIcon,
   handshake: HandshakeIcon,
   star: StarIcon,

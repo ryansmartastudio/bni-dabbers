@@ -147,7 +147,7 @@ export const bookletStyles = StyleSheet.create({
     gap: 8,
   },
   coreValueCard: {
-    width: "31%",
+    width: "23%",
     border: "1px solid #e8e8e8",
     borderRadius: 4,
     padding: 8,

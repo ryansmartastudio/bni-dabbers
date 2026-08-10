@@ -66,7 +66,7 @@ export function ImageUpload({
   }
 
   return (
-    <div className={cn("space-y-2", className)}>
+    <div className={cn("min-w-0 space-y-2", className)}>
       <div>
         <p className="text-sm font-medium text-foreground">{label}</p>
         {description ? (
@@ -77,13 +77,13 @@ export function ImageUpload({
         </p>
       </div>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-start">
+      <div className="flex flex-col gap-3">
         <div
           className={cn(
             "relative overflow-hidden rounded-lg border border-border bg-surface-muted",
             aspect === "square"
               ? "h-28 w-28 shrink-0"
-              : "h-24 w-full max-w-xs shrink-0",
+              : "h-32 w-full min-w-0",
           )}
         >
           {value ? (
@@ -102,7 +102,7 @@ export function ImageUpload({
           )}
         </div>
 
-        <div className="flex flex-col gap-2">
+        <div className="flex min-w-0 flex-col gap-2">
           <input
             ref={inputRef}
             type="file"
@@ -117,7 +117,7 @@ export function ImageUpload({
             type="button"
             disabled={isUploading}
             onClick={() => inputRef.current?.click()}
-            className="rounded-md border border-border bg-white px-3 py-2 text-sm font-medium transition hover:bg-surface-muted disabled:opacity-50"
+            className="w-full rounded-md border border-border bg-white px-3 py-2 text-sm font-medium transition hover:bg-surface-muted disabled:opacity-50 sm:w-auto sm:self-start"
           >
             {isUploading
               ? "Uploading..."

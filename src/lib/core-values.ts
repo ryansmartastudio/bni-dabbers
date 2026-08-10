@@ -7,6 +7,7 @@ export const CORE_VALUE_ICON_OPTIONS = [
   { key: "clipboard-check", label: "Accountability" },
   { key: "book-open", label: "Learning" },
   { key: "sun", label: "Positive attitude" },
+  { key: "trophy", label: "Trophy" },
   { key: "heart", label: "Heart" },
   { key: "handshake", label: "Handshake" },
   { key: "star", label: "Star" },
@@ -53,20 +54,45 @@ export const DEFAULT_CORE_VALUES: CoreValue[] = [
     description: "A positive mindset creates positive outcomes for everyone.",
     iconKey: "sun",
   },
+  {
+    id: "recognition",
+    title: "Recognition",
+    description:
+      "We celebrate achievements and acknowledge the contributions of our members.",
+    iconKey: "trophy",
+  },
 ];
 
 export function normalizeCoreValues(values?: CoreValue[] | null): CoreValue[] {
   if (!values?.length) return DEFAULT_CORE_VALUES;
-  return values.map((value, index) => ({
-    id: value.id || `core-value-${index}`,
-    title: value.title?.trim() || DEFAULT_CORE_VALUES[index]?.title || "Core value",
-    description:
-      value.description?.trim() ||
-      DEFAULT_CORE_VALUES[index]?.description ||
-      "",
-    iconKey: value.iconKey || DEFAULT_CORE_VALUES[index]?.iconKey || "star",
-    iconUrl: value.iconUrl || null,
-  }));
+
+  const byId = new Map(values.map((value) => [value.id, value]));
+
+  return DEFAULT_CORE_VALUES.map((defaultValue, index) => {
+    const saved = byId.get(defaultValue.id);
+    if (!saved) return { ...defaultValue };
+
+    return {
+      id: saved.id || defaultValue.id,
+      title: saved.title?.trim() || defaultValue.title,
+      description: saved.description?.trim() || defaultValue.description,
+      iconKey: saved.iconKey || defaultValue.iconKey,
+      iconUrl: saved.iconUrl || null,
+    };
+  }).concat(
+    values
+      .filter(
+        (value) =>
+          !DEFAULT_CORE_VALUES.some((defaultValue) => defaultValue.id === value.id),
+      )
+      .map((value, index) => ({
+        id: value.id || `core-value-extra-${index}`,
+        title: value.title?.trim() || "Core value",
+        description: value.description?.trim() || "",
+        iconKey: value.iconKey || "star",
+        iconUrl: value.iconUrl || null,
+      })),
+  );
 }
 
 export function isCoreValueIconKey(value: string): value is CoreValueIconKey {
