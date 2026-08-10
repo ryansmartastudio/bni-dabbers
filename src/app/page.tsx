@@ -1,14 +1,29 @@
 import { getActiveMembers } from "@/lib/members";
 import { getChapterSettings } from "@/lib/settings";
 import { MemberCard } from "@/components/members/member-card";
+import { DatabaseSetupError } from "@/components/setup/database-error";
 
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [members, settings] = await Promise.all([
-    getActiveMembers(),
-    getChapterSettings(),
-  ]);
+  let members;
+  let settings;
+
+  try {
+    [members, settings] = await Promise.all([
+      getActiveMembers(),
+      getChapterSettings(),
+    ]);
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Could not connect to the database.";
+
+    if (message.includes("DATABASE_URL") || message.includes("connection string")) {
+      return <DatabaseSetupError message={message} />;
+    }
+
+    throw error;
+  }
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-12">
@@ -24,8 +39,12 @@ export default async function HomePage() {
           connect with our chapter members.
         </p>
         <div className="mt-6 flex flex-wrap gap-4 text-sm text-muted">
-          <span>{settings.meetingDay}s · {settings.meetingStart}–{settings.meetingEnd}</span>
-          <span>{settings.venueName}, {settings.venueAddress}</span>
+          <span>
+            {settings.meetingDay}s · {settings.meetingStart}–{settings.meetingEnd}
+          </span>
+          <span>
+            {settings.venueName}, {settings.venueAddress}
+          </span>
         </div>
       </section>
 
