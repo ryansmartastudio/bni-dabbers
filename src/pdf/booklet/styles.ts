@@ -3,9 +3,11 @@ import { BNI_GREY, BNI_RED } from "@/lib/constants";
 
 export const bookletStyles = StyleSheet.create({
   page: {
-    padding: 36,
+    paddingTop: 32,
+    paddingBottom: 32,
+    paddingHorizontal: 28,
     fontFamily: "Helvetica",
-    fontSize: 9,
+    fontSize: 8.5,
     color: "#111111",
   },
   coverTitle: {
@@ -78,62 +80,6 @@ export const bookletStyles = StyleSheet.create({
     textAlign: "center",
     marginTop: 4,
   },
-  boxGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10,
-  },
-  memberBox: {
-    width: "48%",
-    border: "1px solid #d9d9d9",
-    padding: 8,
-    minHeight: 180,
-    marginBottom: 4,
-  },
-  memberBoxHeader: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 6,
-  },
-  headshot: {
-    width: 42,
-    height: 42,
-    backgroundColor: "#f5f5f5",
-  },
-  memberName: {
-    fontSize: 10,
-    fontWeight: "bold",
-  },
-  memberCompany: {
-    fontSize: 8,
-    color: BNI_GREY,
-  },
-  memberSeat: {
-    fontSize: 8,
-    color: BNI_RED,
-    fontWeight: "bold",
-    marginTop: 2,
-  },
-  contactLine: {
-    fontSize: 7.5,
-    marginBottom: 2,
-  },
-  notesArea: {
-    marginTop: 6,
-    borderTop: "1px solid #ececec",
-    paddingTop: 4,
-    minHeight: 36,
-  },
-  notesLabel: {
-    fontSize: 7,
-    color: BNI_GREY,
-    marginBottom: 2,
-  },
-  ruledLine: {
-    borderBottom: "1px solid #ececec",
-    height: 10,
-    marginBottom: 2,
-  },
   slotBox: {
     border: "1px solid #d9d9d9",
     padding: 10,
@@ -147,10 +93,161 @@ export const bookletStyles = StyleSheet.create({
     marginBottom: 6,
   },
   pageTitle: {
-    fontSize: 16,
+    fontSize: 15,
     fontWeight: "bold",
     color: BNI_RED,
-    marginBottom: 12,
+    marginBottom: 10,
     textAlign: "center",
+    letterSpacing: 0.3,
+  },
+  pageSubtitle: {
+    fontSize: 8,
+    color: BNI_GREY,
+    textAlign: "center",
+    marginBottom: 12,
+  },
+  table: {
+    border: "1px solid #cfcfcf",
+    borderRadius: 2,
+    overflow: "hidden",
+  },
+  tableHeaderRow: {
+    flexDirection: "row",
+    backgroundColor: "#f3f3f3",
+    borderBottom: "1px solid #cfcfcf",
+  },
+  tableHeaderCell: {
+    paddingVertical: 7,
+    paddingHorizontal: 8,
+    borderRight: "1px solid #dedede",
+  },
+  tableHeaderText: {
+    fontSize: 7.5,
+    fontWeight: "bold",
+    color: BNI_RED,
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  tableBodyRow: {
+    flexDirection: "row",
+    borderBottom: "1px solid #e4e4e4",
+    minHeight: 96,
+    alignItems: "stretch",
+  },
+  guestBodyRow: {
+    flexDirection: "row",
+    borderBottom: "1px solid #e4e4e4",
+    minHeight: 44,
+    alignItems: "stretch",
+  },
+  tableCell: {
+    paddingVertical: 8,
+    paddingHorizontal: 8,
+    borderRight: "1px solid #e4e4e4",
+    justifyContent: "flex-start",
+  },
+  photoColumn: {
+    alignItems: "center",
+    gap: 6,
+  },
+  headshot: {
+    width: 46,
+    height: 46,
+    borderRadius: 2,
+    objectFit: "cover",
+  },
+  headshotPlaceholder: {
+    backgroundColor: "#efefef",
+    border: "1px solid #dddddd",
+  },
+  linkedInBlock: {
+    alignItems: "center",
+    gap: 3,
+  },
+  linkedInQr: {
+    width: 40,
+    height: 40,
+  },
+  linkedInBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  linkedInLabel: {
+    fontSize: 6.5,
+    color: "#0A66C2",
+    fontWeight: "bold",
+  },
+  linkedInMissing: {
+    alignItems: "center",
+    gap: 2,
+    opacity: 0.45,
+  },
+  linkedInMissingText: {
+    fontSize: 6,
+    color: BNI_GREY,
+  },
+  memberName: {
+    fontSize: 10,
+    fontWeight: "bold",
+    marginBottom: 3,
+    lineHeight: 1.25,
+  },
+  memberSeat: {
+    fontSize: 8.5,
+    color: BNI_RED,
+    fontWeight: "bold",
+    marginBottom: 3,
+    lineHeight: 1.25,
+  },
+  memberRoles: {
+    fontSize: 7.5,
+    color: BNI_GREY,
+    lineHeight: 1.35,
+  },
+  companyName: {
+    fontSize: 9,
+    fontWeight: "bold",
+    marginBottom: 5,
+    lineHeight: 1.25,
+  },
+  contactList: {
+    gap: 3,
+  },
+  contactRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  contactIcon: {
+    width: 10,
+    alignItems: "center",
+  },
+  contactText: {
+    fontSize: 7.5,
+    color: "#333333",
+    lineHeight: 1.25,
+    flex: 1,
+  },
+  contactLink: {
+    textDecoration: "none",
+    color: "#333333",
+  },
+  notesCell: {
+    borderRight: "none",
+    paddingVertical: 10,
+  },
+  notesLines: {
+    gap: 7,
+    marginTop: 2,
+  },
+  noteLine: {
+    borderBottom: "1px solid #cccccc",
+    height: 12,
+  },
+  guestWriteLine: {
+    borderBottom: "1px solid #cccccc",
+    height: 14,
+    marginTop: 8,
   },
 });

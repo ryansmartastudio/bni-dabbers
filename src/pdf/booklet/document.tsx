@@ -14,11 +14,13 @@ import {
 } from "@/lib/members";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
-  BOXES_PER_PAGE,
-  MemberBoxGrid,
+  GUEST_ROWS_PER_PAGE,
+  GuestTable,
+  MEMBER_ROWS_PER_PAGE,
+  MemberTable,
   chunkMembers,
   type BookletMember,
-} from "@/pdf/booklet/member-box";
+} from "@/pdf/booklet/member-table";
 
 type CharityLinkWithQr = CharityLink & { qrDataUrl: string };
 
@@ -57,10 +59,11 @@ export function BookletDocument({
   charityLinks,
 }: BookletDocumentProps) {
   const roleGroups = getMembersByRoleGroup(members);
-  const memberPages = chunkMembers(sortMembersForBooklet(members), BOXES_PER_PAGE);
-  const guestPages = Array.from({ length: settings.guestPageCount }, () =>
-    Array.from({ length: BOXES_PER_PAGE }, () => null),
+  const memberPages = chunkMembers(
+    sortMembersForBooklet(members),
+    MEMBER_ROWS_PER_PAGE,
   );
+  const guestPageCount = Math.max(settings.guestPageCount, 1);
 
   return (
     <Document title={`${settings.chapterName} Meeting Sheet`}>
@@ -140,15 +143,25 @@ export function BookletDocument({
 
       {memberPages.map((pageMembers, index) => (
         <Page key={`members-${index}`} size="A4" style={styles.page}>
-          <Text style={styles.pageTitle}>BNI Dabbers Members</Text>
-          <MemberBoxGrid items={pageMembers} />
+          <Text style={styles.pageTitle}>{settings.chapterName} Members</Text>
+          <Text style={styles.pageSubtitle}>
+            {index === 0
+              ? "Scan LinkedIn QR codes to connect · use the notes column for this week"
+              : `Members (continued · page ${index + 1})`}
+          </Text>
+          <MemberTable members={pageMembers} />
         </Page>
       ))}
 
-      {guestPages.map((pageItems, index) => (
+      {Array.from({ length: guestPageCount }, (_, index) => (
         <Page key={`guests-${index}`} size="A4" style={styles.page}>
-          <Text style={styles.pageTitle}>BNI Dabbers Guests & Visitors</Text>
-          <MemberBoxGrid items={pageItems} blank />
+          <Text style={styles.pageTitle}>Guests & Visitors</Text>
+          <Text style={styles.pageSubtitle}>
+            {guestPageCount > 1
+              ? `Page ${index + 1} of ${guestPageCount}`
+              : "Record guest details during the meeting"}
+          </Text>
+          <GuestTable rowCount={GUEST_ROWS_PER_PAGE} />
         </Page>
       ))}
     </Document>
