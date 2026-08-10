@@ -1,0 +1,340 @@
+{
+  "id": "06006562-43e3-44e9-9489-89f73bd3e612",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "version": "7",
+  "dialect": "postgresql",
+  "tables": {
+    "public.chapter_settings": {
+      "name": "chapter_settings",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "chapter_name": {
+          "name": "chapter_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'BNI Dabbers'"
+        },
+        "website_url": {
+          "name": "website_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'www.bni-ce.co.uk/cheshire-east-dabbers'"
+        },
+        "venue_name": {
+          "name": "venue_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Wychwood Park Hotel & Golf Club'"
+        },
+        "venue_address": {
+          "name": "venue_address",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Weston, Crewe. CW2 5GP'"
+        },
+        "meeting_day": {
+          "name": "meeting_day",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Thursday'"
+        },
+        "meeting_start": {
+          "name": "meeting_start",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'06:45'"
+        },
+        "meeting_end": {
+          "name": "meeting_end",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'08:30'"
+        },
+        "presentation_slot": {
+          "name": "presentation_slot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "education_slot": {
+          "name": "education_slot",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "training_events": {
+          "name": "training_events",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "charity_name": {
+          "name": "charity_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'Genie''s Wish'"
+        },
+        "charity_paragraph": {
+          "name": "charity_paragraph",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "charity_logo_url": {
+          "name": "charity_logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bni_dabbers_bank_details": {
+          "name": "bni_dabbers_bank_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "bni_global_bank_details": {
+          "name": "bni_global_bank_details",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "guest_page_count": {
+          "name": "guest_page_count",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 2
+        },
+        "chapter_logo_url": {
+          "name": "chapter_logo_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "extras": {
+          "name": "extras",
+          "type": "jsonb",
+          "primaryKey": false,
+          "notNull": false,
+          "default": "'{}'::jsonb"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.charity_links": {
+      "name": "charity_links",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "label": {
+          "name": "label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "url": {
+          "name": "url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.members": {
+      "name": "members",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "first_name": {
+          "name": "first_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "last_name": {
+          "name": "last_name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "company": {
+          "name": "company",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bni_seat": {
+          "name": "bni_seat",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "email": {
+          "name": "email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "phone": {
+          "name": "phone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "linkedin_url": {
+          "name": "linkedin_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "headshot_url": {
+          "name": "headshot_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "chapter_role": {
+          "name": "chapter_role",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "role_group": {
+          "name": "role_group",
+          "type": "role_group",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'none'"
+        },
+        "notes": {
+          "name": "notes",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "member_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'active'"
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    }
+  },
+  "enums": {
+    "public.member_status": {
+      "name": "member_status",
+      "schema": "public",
+      "values": [
+        "active",
+        "on_leave",
+        "former"
+      ]
+    },
+    "public.role_group": {
+      "name": "role_group",
+      "schema": "public",
+      "values": [
+        "leadership",
+        "support",
+        "committee",
+        "none"
+      ]
+    }
+  },
+  "schemas": {},
+  "sequences": {},
+  "roles": {},
+  "policies": {},
+  "views": {},
+  "_meta": {
+    "columns": {},
+    "schemas": {},
+    "tables": {}
+  }
+}
