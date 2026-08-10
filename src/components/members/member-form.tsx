@@ -63,6 +63,7 @@ export function MemberForm({ member }: MemberFormProps) {
         | "on_leave"
         | "former",
       sortOrder: Number(formData.get("sortOrder") ?? 0),
+      bookletAtBottom: formData.get("bookletAtBottom") === "on",
     };
 
     startTransition(async () => {
@@ -184,6 +185,24 @@ export function MemberForm({ member }: MemberFormProps) {
           onPresetRolesChange={setPresetRoles}
           onOtherRolesChange={setOtherRoles}
         />
+        <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-white px-4 py-3 sm:col-span-2">
+          <input
+            type="checkbox"
+            name="bookletAtBottom"
+            defaultChecked={member?.bookletAtBottom ?? false}
+            className="mt-0.5 accent-bni"
+          />
+          <span className="space-y-0.5">
+            <span className="block text-sm font-medium text-foreground">
+              Pin to bottom of meeting sheet
+            </span>
+            <span className="block text-xs text-muted">
+              Use for Director Consultant, Ambassador and similar roles. They
+              still appear in leadership sections but print after regular members
+              on the member pages.
+            </span>
+          </span>
+        </label>
       </div>
 
       <Textarea

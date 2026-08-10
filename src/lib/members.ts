@@ -45,6 +45,29 @@ export function hasChapterRoles(roles: string[] | null | undefined) {
   return Boolean(roles?.length);
 }
 
+function compareMembersByName(
+  a: Pick<Member, "firstName" | "lastName">,
+  b: Pick<Member, "firstName" | "lastName">,
+) {
+  const byFirst = a.firstName.localeCompare(b.firstName, undefined, {
+    sensitivity: "base",
+  });
+  if (byFirst !== 0) return byFirst;
+  return a.lastName.localeCompare(b.lastName, undefined, {
+    sensitivity: "base",
+  });
+}
+
+/** Meeting sheet member pages: alphabetical, with pinned members last. */
+export function sortMembersForBooklet(membersList: Member[]) {
+  const regular = membersList.filter((member) => !member.bookletAtBottom);
+  const bottom = membersList.filter((member) => member.bookletAtBottom);
+  return [
+    ...regular.sort(compareMembersByName),
+    ...bottom.sort(compareMembersByName),
+  ];
+}
+
 export function getMembersByRoleGroup(membersList: Member[]) {
   return {
     leadership: membersList.filter(

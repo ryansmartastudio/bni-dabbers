@@ -10,6 +10,7 @@ import {
   formatChapterRoles,
   getMemberDisplayName,
   getMembersByRoleGroup,
+  sortMembersForBooklet,
 } from "@/lib/members";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 import {
@@ -56,7 +57,7 @@ export function BookletDocument({
   charityLinks,
 }: BookletDocumentProps) {
   const roleGroups = getMembersByRoleGroup(members);
-  const memberPages = chunkMembers(members, BOXES_PER_PAGE);
+  const memberPages = chunkMembers(sortMembersForBooklet(members), BOXES_PER_PAGE);
   const guestPages = Array.from({ length: settings.guestPageCount }, () =>
     Array.from({ length: BOXES_PER_PAGE }, () => null),
   );

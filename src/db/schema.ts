@@ -1,4 +1,5 @@
 import {
+  boolean,
   integer,
   jsonb,
   pgEnum,
@@ -37,6 +38,7 @@ export const members = pgTable("members", {
   notes: text("notes"),
   status: memberStatusEnum("status").default("active").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
+  bookletAtBottom: boolean("booklet_at_bottom").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

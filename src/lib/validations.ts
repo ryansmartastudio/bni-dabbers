@@ -32,6 +32,7 @@ export const memberSchema = z.object({
   notes: z.string().optional(),
   status: z.enum(["active", "on_leave", "former"]),
   sortOrder: z.coerce.number().int().min(0),
+  bookletAtBottom: z.boolean().default(false),
 });
 
 export const settingsSchema = z.object({
