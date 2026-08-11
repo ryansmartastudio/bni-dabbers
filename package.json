@@ -10,13 +10,16 @@
     "db:generate": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs generate",
     "db:push": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs studio",
-    "db:seed": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/seed.ts"
+    "db:seed": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/seed.ts",
+    "db:backfill-slugs": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/backfill-slugs.ts"
   },
   "dependencies": {
+    "@ai-sdk/openai": "^4.0.37",
     "@clerk/nextjs": "^7.7.1",
     "@neondatabase/serverless": "^1.1.0",
     "@react-pdf/renderer": "^4.6.0",
     "@vercel/blob": "^2.7.0",
+    "ai": "^7.0.59",
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
     "next": "16.3.0",

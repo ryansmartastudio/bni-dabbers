@@ -39,6 +39,14 @@ export const members = pgTable("members", {
   status: memberStatusEnum("status").default("active").notNull(),
   sortOrder: integer("sort_order").default(0).notNull(),
   bookletAtBottom: boolean("booklet_at_bottom").default(false).notNull(),
+  slug: text("slug").unique(),
+  profileHeadline: text("profile_headline"),
+  profileSummary: text("profile_summary"),
+  profileServices: text("profile_services").array().notNull().default([]),
+  profileIdealReferral: text("profile_ideal_referral"),
+  profileSourceUrl: text("profile_source_url"),
+  profileGeneratedAt: timestamp("profile_generated_at", { withTimezone: true }),
+  profilePublished: boolean("profile_published").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -9,6 +9,11 @@ import {
   deleteMember,
 } from "@/actions/members";
 import { ChapterRolesField } from "@/components/members/chapter-roles-field";
+import { MemberProfileFields } from "@/components/members/member-profile-fields";
+import {
+  MemberTabs,
+  type MemberTabId,
+} from "@/components/members/member-tabs";
 import { Button } from "@/components/ui/button";
 import { Input, Select, Textarea } from "@/components/ui/form-fields";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -17,13 +22,31 @@ import {
   MEMBER_STATUSES,
   ROLE_GROUPS,
 } from "@/lib/constants";
+import { cn } from "@/lib/utils";
 
 type MemberFormProps = {
   member?: Member;
 };
 
+function TabPanel({
+  tab,
+  activeTab,
+  children,
+}: {
+  tab: MemberTabId;
+  activeTab: MemberTabId;
+  children: React.ReactNode;
+}) {
+  return (
+    <div className={cn("space-y-6", activeTab !== tab && "hidden")} role="tabpanel">
+      {children}
+    </div>
+  );
+}
+
 export function MemberForm({ member }: MemberFormProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<MemberTabId>("details");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [headshotUrl, setHeadshotUrl] = useState(member?.headshotUrl ?? "");
@@ -32,6 +55,27 @@ export function MemberForm({ member }: MemberFormProps) {
     ...initialRoles.presetRoles,
   ]);
   const [otherRoles, setOtherRoles] = useState(initialRoles.otherRoles);
+  const [profileHeadline, setProfileHeadline] = useState(
+    member?.profileHeadline ?? "",
+  );
+  const [profileSummary, setProfileSummary] = useState(
+    member?.profileSummary ?? "",
+  );
+  const [profileServices, setProfileServices] = useState<string[]>(
+    member?.profileServices ?? [],
+  );
+  const [profileIdealReferral, setProfileIdealReferral] = useState(
+    member?.profileIdealReferral ?? "",
+  );
+  const [profileSourceUrl, setProfileSourceUrl] = useState(
+    member?.profileSourceUrl ?? "",
+  );
+  const [profileGeneratedAt, setProfileGeneratedAt] = useState(
+    member?.profileGeneratedAt?.toISOString() ?? "",
+  );
+  const [profilePublished, setProfilePublished] = useState(
+    member?.profilePublished ?? false,
+  );
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -64,6 +108,14 @@ export function MemberForm({ member }: MemberFormProps) {
         | "former",
       sortOrder: Number(formData.get("sortOrder") ?? 0),
       bookletAtBottom: formData.get("bookletAtBottom") === "on",
+      slug: String(formData.get("slug") ?? ""),
+      profileHeadline,
+      profileSummary,
+      profileServices: profileServices.map((service) => service.trim()).filter(Boolean),
+      profileIdealReferral,
+      profileSourceUrl,
+      profileGeneratedAt: profileGeneratedAt || null,
+      profilePublished,
     };
 
     startTransition(async () => {
@@ -92,152 +144,184 @@ export function MemberForm({ member }: MemberFormProps) {
   }
 
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        void handleSubmit(new FormData(e.currentTarget));
-      }}
-      className="space-y-6"
-    >
-      {error ? (
-        <p className="rounded-md border border-bni/20 bg-red-50 px-4 py-3 text-sm text-bni">
-          {error}
-        </p>
-      ) : null}
+    <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
+      <MemberTabs activeTab={activeTab} onChange={setActiveTab} />
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <Input
-          label="First name"
-          name="firstName"
-          defaultValue={member?.firstName}
-          required
-        />
-        <Input
-          label="Last name"
-          name="lastName"
-          defaultValue={member?.lastName}
-          required
-        />
-        <Input
-          label="Company"
-          name="company"
-          defaultValue={member?.company}
-          required
-        />
-        <Input
-          label="BNI seat"
-          name="bniSeat"
-          defaultValue={member?.bniSeat}
-          required
-        />
-        <Input
-          label="Email"
-          name="email"
-          type="email"
-          defaultValue={member?.email}
-          required
-        />
-        <Input
-          label="Phone"
-          name="phone"
-          defaultValue={member?.phone}
-          required
-        />
-        <Input
-          label="LinkedIn URL"
-          name="linkedinUrl"
-          type="url"
-          defaultValue={member?.linkedinUrl ?? ""}
-          placeholder="https://linkedin.com/in/..."
-        />
-        <Input
-          label="Website URL"
-          name="websiteUrl"
-          type="url"
-          defaultValue={member?.websiteUrl ?? ""}
-          placeholder="https://www.example.com"
-        />
-        <Input
-          label="Sort order"
-          name="sortOrder"
-          type="number"
-          min={0}
-          defaultValue={member?.sortOrder ?? 0}
-        />
-        <Select
-          label="Role group"
-          name="roleGroup"
-          defaultValue={member?.roleGroup ?? "none"}
-          options={ROLE_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
-        />
-        <Select
-          label="Status"
-          name="status"
-          defaultValue={member?.status ?? "active"}
-          options={MEMBER_STATUSES.map((s) => ({
-            value: s.value,
-            label: s.label,
-          }))}
-        />
-        <ChapterRolesField
-          presetRoles={presetRoles}
-          otherRoles={otherRoles}
-          onPresetRolesChange={setPresetRoles}
-          onOtherRolesChange={setOtherRoles}
-        />
-        <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-white px-4 py-3 sm:col-span-2">
-          <input
-            type="checkbox"
-            name="bookletAtBottom"
-            defaultChecked={member?.bookletAtBottom ?? false}
-            className="mt-0.5 accent-bni"
-          />
-          <span className="space-y-0.5">
-            <span className="block text-sm font-medium text-foreground">
-              Pin to bottom of meeting sheet
-            </span>
-            <span className="block text-xs text-muted">
-              Use for Director Consultant, Ambassador and similar roles. They
-              still appear in leadership sections but print after regular members
-              on the member pages.
-            </span>
-          </span>
-        </label>
-      </div>
-
-      <Textarea
-        label="Notes"
-        name="notes"
-        defaultValue={member?.notes ?? ""}
-        placeholder="Internal notes for admin and exports"
-      />
-
-      <ImageUpload
-        label="Headshot"
-        description="Used on the member directory, roster and meeting sheet booklet."
-        value={headshotUrl}
-        onChange={setHeadshotUrl}
-        folder="headshots"
-        aspect="square"
-      />
-
-      <div className="flex flex-wrap gap-3">
-        <Button type="submit" disabled={isPending}>
-          {isPending ? "Saving..." : member ? "Update member" : "Add member"}
-        </Button>
-        <Button
-          type="button"
-          variant="secondary"
-          onClick={() => router.push("/members")}
-        >
-          Cancel
-        </Button>
-        {member ? (
-          <Button type="button" variant="danger" onClick={handleDelete}>
-            Delete
-          </Button>
+      <form
+        onSubmit={(e) => {
+          e.preventDefault();
+          void handleSubmit(new FormData(e.currentTarget));
+        }}
+        className="space-y-6 p-5 sm:p-6"
+      >
+        {error ? (
+          <p className="rounded-md border border-bni/20 bg-red-50 px-4 py-3 text-sm text-bni">
+            {error}
+          </p>
         ) : null}
-      </div>
-    </form>
+
+        <TabPanel tab="details" activeTab={activeTab}>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="First name"
+              name="firstName"
+              defaultValue={member?.firstName}
+              required
+            />
+            <Input
+              label="Last name"
+              name="lastName"
+              defaultValue={member?.lastName}
+              required
+            />
+            <Input
+              label="Company"
+              name="company"
+              defaultValue={member?.company}
+              required
+            />
+            <Input
+              label="BNI seat"
+              name="bniSeat"
+              defaultValue={member?.bniSeat}
+              required
+            />
+            <Input
+              label="Email"
+              name="email"
+              type="email"
+              defaultValue={member?.email}
+              required
+            />
+            <Input
+              label="Phone"
+              name="phone"
+              defaultValue={member?.phone}
+              required
+            />
+            <Input
+              label="LinkedIn URL"
+              name="linkedinUrl"
+              type="url"
+              defaultValue={member?.linkedinUrl ?? ""}
+              placeholder="https://linkedin.com/in/..."
+            />
+            <Input
+              label="Website URL"
+              name="websiteUrl"
+              type="url"
+              defaultValue={member?.websiteUrl ?? ""}
+              placeholder="https://www.example.com"
+            />
+            <Input
+              label="Public profile slug"
+              name="slug"
+              defaultValue={member?.slug ?? ""}
+              placeholder="auto-generated on save if blank"
+            />
+            <Input
+              label="Sort order"
+              name="sortOrder"
+              type="number"
+              min={0}
+              defaultValue={member?.sortOrder ?? 0}
+            />
+            <Select
+              label="Role group"
+              name="roleGroup"
+              defaultValue={member?.roleGroup ?? "none"}
+              options={ROLE_GROUPS.map((g) => ({ value: g.value, label: g.label }))}
+            />
+            <Select
+              label="Status"
+              name="status"
+              defaultValue={member?.status ?? "active"}
+              options={MEMBER_STATUSES.map((s) => ({
+                value: s.value,
+                label: s.label,
+              }))}
+            />
+            <ChapterRolesField
+              presetRoles={presetRoles}
+              otherRoles={otherRoles}
+              onPresetRolesChange={setPresetRoles}
+              onOtherRolesChange={setOtherRoles}
+            />
+            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-border bg-white px-4 py-3 sm:col-span-2">
+              <input
+                type="checkbox"
+                name="bookletAtBottom"
+                defaultChecked={member?.bookletAtBottom ?? false}
+                className="mt-0.5 accent-bni"
+              />
+              <span className="space-y-0.5">
+                <span className="block text-sm font-medium text-foreground">
+                  Pin to bottom of meeting sheet
+                </span>
+                <span className="block text-xs text-muted">
+                  Use for Director Consultant, Ambassador and similar roles. They
+                  still appear in leadership sections but print after regular members
+                  on the member pages.
+                </span>
+              </span>
+            </label>
+          </div>
+
+          <Textarea
+            label="Notes"
+            name="notes"
+            defaultValue={member?.notes ?? ""}
+            placeholder="Internal notes for admin and exports"
+          />
+
+          <ImageUpload
+            label="Headshot"
+            description="Used on the member directory, roster and meeting sheet booklet."
+            value={headshotUrl}
+            onChange={setHeadshotUrl}
+            folder="headshots"
+            aspect="square"
+          />
+        </TabPanel>
+
+        <TabPanel tab="profile" activeTab={activeTab}>
+          <MemberProfileFields
+            member={member}
+            headline={profileHeadline}
+            summary={profileSummary}
+            services={profileServices}
+            idealReferral={profileIdealReferral}
+            sourceUrl={profileSourceUrl}
+            generatedAt={profileGeneratedAt}
+            published={profilePublished}
+            onHeadlineChange={setProfileHeadline}
+            onSummaryChange={setProfileSummary}
+            onServicesChange={setProfileServices}
+            onIdealReferralChange={setProfileIdealReferral}
+            onSourceUrlChange={setProfileSourceUrl}
+            onGeneratedAtChange={setProfileGeneratedAt}
+            onPublishedChange={setProfilePublished}
+          />
+        </TabPanel>
+
+        <div className="flex flex-wrap gap-3 border-t border-border pt-5">
+          <Button type="submit" disabled={isPending}>
+            {isPending ? "Saving..." : member ? "Update member" : "Add member"}
+          </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => router.push("/members")}
+          >
+            Cancel
+          </Button>
+          {member ? (
+            <Button type="button" variant="danger" onClick={handleDelete}>
+              Delete
+            </Button>
+          ) : null}
+        </div>
+      </form>
+    </div>
   );
 }

@@ -50,6 +50,13 @@
       "when": 1786389000000,
       "tag": "0006_charity_footnote",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1786390000000,
+      "tag": "0007_member_profiles",
+      "breakpoints": true
     }
   ]
 }
