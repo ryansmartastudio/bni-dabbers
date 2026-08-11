@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const MAX_TEXT_LENGTH = 15_000;
+const FETCH_TIMEOUT_MS = 15_000;
 
 export type CompanyResearchResult = {
   url: string;
@@ -14,31 +15,58 @@ export type CompanyResearchFailure = {
   message: string;
 };
 
-const USER_AGENT =
-  "BNIDabbersDirectoryBot/1.0 (+https://bni-dabbers.vercel.app; chapter directory research)";
+const USER_AGENTS = [
+  "Mozilla/5.0 (compatible; BNIDabbersDirectoryBot/1.0; +https://bni-dabbers.vercel.app)",
+  "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+];
+
+function decodeHtmlEntities(text: string) {
+  return text
+    .replace(/&amp;/g, "&")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&nbsp;/g, " ")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)));
+}
 
 function stripHtml(html: string) {
-  return html
-    .replace(/<script[\s\S]*?<\/script>/gi, " ")
-    .replace(/<style[\s\S]*?<\/style>/gi, " ")
-    .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+  return decodeHtmlEntities(
+    html
+      .replace(/<script[\s\S]*?<\/script>/gi, " ")
+      .replace(/<style[\s\S]*?<\/style>/gi, " ")
+      .replace(/<noscript[\s\S]*?<\/noscript>/gi, " ")
+      .replace(/<svg[\s\S]*?<\/svg>/gi, " ")
+      .replace(/<[^>]+>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim(),
+  );
 }
 
 function extractMeta(html: string, name: string) {
-  const pattern = new RegExp(
-    `<meta[^>]+(?:name|property)=["']${name}["'][^>]+content=["']([^"']+)["']`,
-    "i",
-  );
-  const match = html.match(pattern);
-  return match?.[1]?.trim() ?? "";
+  const patterns = [
+    new RegExp(
+      `<meta[^>]+(?:name|property)=["']${name}["'][^>]+content=["']([^"']+)["']`,
+      "i",
+    ),
+    new RegExp(
+      `<meta[^>]+content=["']([^"']+)["'][^>]+(?:name|property)=["']${name}["']`,
+      "i",
+    ),
+  ];
+
+  for (const pattern of patterns) {
+    const match = html.match(pattern);
+    if (match?.[1]?.trim()) return match[1].trim();
+  }
+
+  return "";
 }
 
 function extractTitle(html: string) {
   const match = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
-  return match?.[1]?.replace(/\s+/g, " ").trim() ?? "";
+  return decodeHtmlEntities(match?.[1]?.replace(/\s+/g, " ").trim() ?? "");
 }
 
 function resolveUrl(base: string, href: string) {
@@ -49,41 +77,104 @@ function resolveUrl(base: string, href: string) {
   }
 }
 
-function findFollowUpUrl(baseUrl: string, html: string) {
+function normalizePageUrl(url: string) {
+  const parsed = new URL(url);
+  parsed.hash = "";
+  return parsed.toString().replace(/\/$/, "");
+}
+
+function linkLabel(htmlFragment: string) {
+  return stripHtml(htmlFragment).toLowerCase();
+}
+
+function isUsefulFollowUpPath(pathname: string) {
+  return /(about|service|commercial|wrapping|wrap|fleet|brand|company|what-we-do|our-work)/i.test(
+    pathname,
+  );
+}
+
+function findFollowUpUrls(baseUrl: string, html: string) {
   const origin = new URL(baseUrl).origin;
+  const baseNormalized = normalizePageUrl(baseUrl);
+  const candidates: string[] = [];
   const linkPattern = /<a[^>]+href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match: RegExpExecArray | null;
 
   while ((match = linkPattern.exec(html)) !== null) {
     const href = match[1];
-    const label = stripHtml(match[2]).toLowerCase();
+    const label = linkLabel(match[2]);
     if (!href || href.startsWith("#") || href.startsWith("mailto:")) continue;
-    if (!/(about|services|what we do|our work|company)/i.test(label)) continue;
 
     const resolved = resolveUrl(baseUrl, href);
     if (!resolved || !resolved.startsWith(origin)) continue;
-    if (resolved === baseUrl) continue;
-    return resolved;
+
+    const normalized = normalizePageUrl(resolved);
+    if (normalized === baseNormalized) continue;
+    if (candidates.includes(normalized)) continue;
+
+    const pathname = new URL(resolved).pathname;
+    const labelMatches =
+      /(about|services|what we do|our work|company|commercial|wrapping|fleet|branding)/i.test(
+        label,
+      );
+    const pathMatches = isUsefulFollowUpPath(pathname);
+
+    if (labelMatches || pathMatches) {
+      candidates.push(normalized);
+    }
   }
 
-  return null;
+  return candidates.slice(0, 2);
+}
+
+async function fetchHtml(url: string) {
+  let lastError: unknown;
+  let lastStatus: number | undefined;
+
+  for (const userAgent of USER_AGENTS) {
+    try {
+      const response = await fetch(url, {
+        headers: {
+          "User-Agent": userAgent,
+          Accept:
+            "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-GB,en;q=0.9",
+        },
+        signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+        redirect: "follow",
+        cache: "no-store",
+      });
+
+      lastStatus = response.status;
+
+      if (response.status === 403 || response.status === 401) {
+        continue;
+      }
+
+      if (!response.ok) {
+        throw new Error(`Website returned ${response.status}`);
+      }
+
+      const html = await response.text();
+      if (html.length < 200) {
+        throw new Error("Website returned an empty response");
+      }
+
+      return html;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastStatus === 403 || lastStatus === 401) {
+    throw new Error(`Website blocked our request (${lastStatus})`);
+  }
+
+  throw lastError instanceof Error ? lastError : new Error("Website fetch failed");
 }
 
 async function fetchPageText(url: string) {
-  const response = await fetch(url, {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "text/html,application/xhtml+xml",
-    },
-    signal: AbortSignal.timeout(10_000),
-    redirect: "follow",
-  });
-
-  if (!response.ok) {
-    throw new Error(`Website returned ${response.status}`);
-  }
-
-  const html = await response.text();
+  const html = await fetchHtml(url);
   return {
     html,
     title: extractTitle(html),
@@ -113,20 +204,19 @@ export async function researchCompanyWebsite(
 
   try {
     const homepage = await fetchPageText(normalized);
-    const followUp = findFollowUpUrl(normalized, homepage.html);
-    let combinedText = homepage.text;
+    const followUps = findFollowUpUrls(normalized, homepage.html);
+    const chunks = [homepage.text];
 
-    if (followUp) {
+    for (const followUp of followUps) {
       try {
         const secondary = await fetchPageText(followUp);
-        combinedText = `${homepage.text}\n\n${secondary.text}`.slice(
-          0,
-          MAX_TEXT_LENGTH,
-        );
+        chunks.push(secondary.text);
       } catch {
-        // Keep homepage content only.
+        // Keep whatever pages we already have.
       }
     }
+
+    const combinedText = chunks.join("\n\n").slice(0, MAX_TEXT_LENGTH);
 
     if (!combinedText.trim()) {
       return {
@@ -142,11 +232,12 @@ export async function researchCompanyWebsite(
       description: homepage.description,
       text: combinedText,
     };
-  } catch {
+  } catch (error) {
+    const detail =
+      error instanceof Error && error.message ? ` ${error.message}.` : "";
     return {
       code: "unreachable",
-      message:
-        "We couldn't fetch this website. Check the URL or write the profile manually.",
+      message: `We couldn't fetch this website.${detail} Check the URL or write the profile manually.`,
     };
   }
 }
