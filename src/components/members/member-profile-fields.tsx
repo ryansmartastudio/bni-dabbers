@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import type { Member } from "@/db/schema";
 import { draftMemberProfile } from "@/actions/member-profile";
+import { saveMemberProfile } from "@/actions/members";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form-fields";
 import { getMemberProfilePath } from "@/lib/members";
+import type { MemberProfileFormValues } from "@/lib/member-profile";
 
 type MemberProfileFieldsProps = {
   member?: Member;
@@ -36,6 +39,26 @@ function formatGeneratedAt(value: string) {
   });
 }
 
+function buildProfilePayload(
+  headline: string,
+  summary: string,
+  services: string[],
+  idealReferral: string,
+  sourceUrl: string,
+  generatedAt: string,
+  published: boolean,
+): MemberProfileFormValues {
+  return {
+    profileHeadline: headline,
+    profileSummary: summary,
+    profileServices: services.map((service) => service.trim()).filter(Boolean),
+    profileIdealReferral: idealReferral,
+    profileSourceUrl: sourceUrl,
+    profileGeneratedAt: generatedAt || null,
+    profilePublished: published,
+  };
+}
+
 export function MemberProfileFields({
   member,
   headline,
@@ -53,9 +76,36 @@ export function MemberProfileFields({
   onGeneratedAtChange,
   onPublishedChange,
 }: MemberProfileFieldsProps) {
+  const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
+
+  const hasDraftContent = Boolean(
+    headline.trim() ||
+      summary.trim() ||
+      services.some((service) => service.trim()) ||
+      idealReferral.trim(),
+  );
+
+  async function persistProfile(nextPublished: boolean) {
+    if (!member) return;
+
+    await saveMemberProfile(
+      member.id,
+      buildProfilePayload(
+        headline,
+        summary,
+        services,
+        idealReferral,
+        sourceUrl,
+        generatedAt,
+        nextPublished,
+      ),
+    );
+    onPublishedChange(nextPublished);
+    router.refresh();
+  }
 
   function handleGenerate() {
     if (!member) return;
@@ -68,7 +118,7 @@ export function MemberProfileFields({
     if (
       hasExistingCopy &&
       !confirm(
-        "Generate new copy from the website? This will replace the current draft in the form (you still need to save).",
+        "Generate new copy from the website? This will replace the current draft (you still need to publish).",
       )
     ) {
       return;
@@ -90,8 +140,48 @@ export function MemberProfileFields({
       onIdealReferralChange(result.draft.idealReferral);
       onSourceUrlChange(result.sourceUrl);
       onGeneratedAtChange(result.generatedAt);
-      onPublishedChange(false);
-      setMessage("Draft generated from website. Review, edit, then save.");
+
+      try {
+        await saveMemberProfile(member.id, {
+          profileHeadline: result.draft.headline,
+          profileSummary: result.draft.summary,
+          profileServices: result.draft.services,
+          profileIdealReferral: result.draft.idealReferral,
+          profileSourceUrl: result.sourceUrl,
+          profileGeneratedAt: result.generatedAt,
+          profilePublished: false,
+        });
+        onPublishedChange(false);
+        router.refresh();
+        setMessage(
+          "Draft saved. Click Publish profile to show this on the public page.",
+        );
+      } catch (saveError) {
+        setError(
+          saveError instanceof Error
+            ? saveError.message
+            : "Draft generated but could not be saved.",
+        );
+      }
+    });
+  }
+
+  function handlePublish() {
+    if (!member) return;
+    setError(null);
+    setMessage(null);
+
+    startTransition(async () => {
+      try {
+        await persistProfile(true);
+        setMessage("Profile published. It is now live on the public directory.");
+      } catch (publishError) {
+        setError(
+          publishError instanceof Error
+            ? publishError.message
+            : "Could not publish this profile.",
+        );
+      }
     });
   }
 
@@ -119,9 +209,9 @@ export function MemberProfileFields({
               Public profile copy
             </h2>
             <p className="text-sm text-muted">
-              Generate a draft from the member&apos;s website, edit it here, then
-              publish when you&apos;re happy. Unpublished profiles show basic details
-              only on the public page.
+              Generate a draft from the member&apos;s website, review it, then
+              publish when you&apos;re happy. Until you publish, visitors only
+              see basic contact details.
             </p>
             {generatedLabel ? (
               <p className="text-xs text-muted">
@@ -158,9 +248,32 @@ export function MemberProfileFields({
             >
               {isPending ? "Generating..." : "Generate from website"}
             </Button>
+            {member && hasDraftContent ? (
+              <Button
+                type="button"
+                onClick={handlePublish}
+                disabled={isPending || published}
+              >
+                {published ? "Published" : "Publish profile"}
+              </Button>
+            ) : null}
           </div>
         </div>
       </div>
+
+      {hasDraftContent && !published ? (
+        <p className="rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
+          This profile is saved as a draft and is not live yet. Click{" "}
+          <strong>Publish profile</strong> to show the company story, services
+          and referral text on the public page.
+        </p>
+      ) : null}
+
+      {published ? (
+        <p className="rounded-md border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-950">
+          This profile is live on the public directory.
+        </p>
+      ) : null}
 
       {error ? (
         <p className="rounded-md border border-bni/20 bg-red-50 px-4 py-3 text-sm text-bni">
@@ -186,6 +299,7 @@ export function MemberProfileFields({
           </span>
           <span className="block text-xs text-muted">
             When off, visitors see name, company, seat and contact details only.
+            Use Publish profile above, or tick this and click Update member.
           </span>
         </span>
       </label>

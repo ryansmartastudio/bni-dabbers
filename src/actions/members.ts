@@ -10,6 +10,12 @@ import {
   getMemberProfilePath,
 } from "@/lib/members";
 import { memberSchema, type MemberFormValues } from "@/lib/validations";
+import {
+  memberProfileSchema,
+  type MemberProfileFormValues,
+} from "@/lib/member-profile";
+
+export type { MemberProfileFormValues };
 
 function revalidateMemberPaths(member?: { id: string; slug: string | null }) {
   revalidatePath("/");
@@ -20,7 +26,15 @@ function revalidateMemberPaths(member?: { id: string; slug: string | null }) {
   }
 }
 
-function normalizeProfileFields(parsed: MemberFormValues) {
+function normalizeProfileFields(parsed: {
+  profileHeadline?: string | null;
+  profileSummary?: string | null;
+  profileServices?: string[];
+  profileIdealReferral?: string | null;
+  profileSourceUrl?: string | null;
+  profileGeneratedAt?: string | null;
+  profilePublished?: boolean;
+}) {
   return {
     profileHeadline: parsed.profileHeadline?.trim() || null,
     profileSummary: parsed.profileSummary?.trim() || null,
@@ -115,4 +129,29 @@ export async function deleteMember(id: string) {
   await db.delete(members).where(eq(members.id, id));
   revalidateMemberPaths(existing ?? undefined);
   return { success: true };
+}
+
+export async function saveMemberProfile(
+  id: string,
+  data: MemberProfileFormValues,
+) {
+  await requireAdmin();
+  const parsed = memberProfileSchema.parse(data);
+  const existing = await db.query.members.findFirst({
+    where: eq(members.id, id),
+  });
+  if (!existing) {
+    throw new Error("Member not found");
+  }
+
+  await db
+    .update(members)
+    .set({
+      ...normalizeProfileFields(parsed),
+      updatedAt: new Date(),
+    })
+    .where(eq(members.id, id));
+
+  revalidateMemberPaths({ id, slug: existing.slug });
+  return { success: true, published: parsed.profilePublished };
 }
