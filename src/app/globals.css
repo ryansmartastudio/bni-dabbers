@@ -22,8 +22,7 @@
   --color-surface-muted: var(--color-surface-muted);
   --color-border: var(--color-border);
   --color-ink-muted: var(--color-ink-muted);
-  --font-sans: var(--font-source-sans);
-  --font-serif: var(--font-source-serif);
+  --font-sans: var(--font-figtree), ui-sans-serif, system-ui, sans-serif;
 }
 
 ::selection {
@@ -34,11 +33,7 @@
 body {
   background: var(--color-surface);
   color: var(--color-text-primary);
-  font-family: var(--font-source-sans), system-ui, sans-serif;
-}
-
-.font-display {
-  font-family: var(--font-source-serif), Georgia, "Times New Roman", serif;
+  font-family: var(--font-sans);
 }
 
 .directory-shell {

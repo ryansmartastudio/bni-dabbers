@@ -79,7 +79,7 @@ export function MemberProfileView({
               </div>
 
               <div className="min-w-0">
-                <h1 className="font-display text-[clamp(2.2rem,5vw,3.8rem)] font-semibold leading-[0.98] tracking-[-0.03em] text-foreground">
+                <h1 className="text-[clamp(2.2rem,5vw,3.8rem)] font-bold leading-[0.98] tracking-[-0.03em] text-foreground">
                   {displayName}
                 </h1>
                 <p className="mt-2 text-xl text-muted">{member.company}</p>
@@ -154,7 +154,7 @@ export function MemberProfileView({
             <div className="space-y-8">
               {member.profileSummary ? (
                 <div>
-                  <h2 className="font-display text-3xl font-semibold tracking-[-0.02em] text-foreground">
+                  <h2 className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
                     About {member.company}
                   </h2>
                   <div className="mt-4 space-y-4 text-base leading-relaxed text-muted">
@@ -167,7 +167,7 @@ export function MemberProfileView({
 
               {member.profileIdealReferral ? (
                 <div className="rounded-2xl border border-border bg-white p-6">
-                  <h3 className="font-display text-2xl font-semibold text-foreground">
+                  <h3 className="text-2xl font-semibold text-foreground">
                     Ideal referral
                   </h3>
                   <p className="mt-3 text-base leading-relaxed text-muted">
@@ -179,7 +179,7 @@ export function MemberProfileView({
 
             {member.profileServices.length ? (
               <div className="rounded-2xl border border-border bg-white p-6">
-                <h3 className="font-display text-2xl font-semibold text-foreground">
+                <h3 className="text-2xl font-semibold text-foreground">
                   Services
                 </h3>
                 <ul className="mt-4 space-y-3">
@@ -201,7 +201,7 @@ export function MemberProfileView({
           </div>
         ) : (
           <div className="rounded-2xl border border-dashed border-border bg-white/70 px-6 py-10 text-center">
-            <h2 className="font-display text-2xl font-semibold text-foreground">
+            <h2 className="text-2xl font-semibold text-foreground">
               Profile details coming soon
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted">
@@ -215,7 +215,7 @@ export function MemberProfileView({
           <div className="mt-16 border-t border-border pt-12">
             <div className="flex items-end justify-between gap-4">
               <div>
-                <h2 className="font-display text-3xl font-semibold tracking-[-0.02em] text-foreground">
+                <h2 className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
                   More members
                 </h2>
                 <p className="mt-2 text-sm text-muted">

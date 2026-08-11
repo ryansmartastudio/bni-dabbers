@@ -22,10 +22,10 @@
 
 ## Typography
 
-- **Display:** Source Serif 4 (`font-display`) — chapter name, section headings, member names on profiles.
-- **UI:** Source Sans 3 — body, forms, metadata, buttons.
+- **UI:** Figtree (Google Font) with `system-ui` fallback — all text, headings included.
+- Headings use weight and tracking only; no serif display face.
 
-Scale: hero display up to ~4.75rem; section headings 2–3rem; body 1rem with relaxed leading on long copy.
+Scale: hero up to ~4.75rem bold; section headings 2–3rem semibold; body 1rem with relaxed leading on long copy.
 
 ## Components
 

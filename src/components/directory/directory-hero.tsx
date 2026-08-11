@@ -22,7 +22,7 @@ export function DirectoryHero({ settings, memberCount }: DirectoryHeroProps) {
       <div className="absolute inset-x-0 top-0 h-1 bg-bni" aria-hidden="true" />
       <div className="mx-auto grid max-w-7xl gap-10 px-4 py-12 sm:px-6 lg:grid-cols-[minmax(0,1.15fr)_minmax(280px,0.85fr)] lg:items-end lg:py-16">
         <div className="max-w-3xl">
-          <h1 className="font-display text-[clamp(2.6rem,6vw,4.75rem)] font-semibold leading-[0.95] tracking-[-0.03em] text-foreground">
+          <h1 className="text-[clamp(2.6rem,6vw,4.75rem)] font-bold leading-[0.95] tracking-[-0.03em] text-foreground">
             {settings.chapterName}
           </h1>
           <p className="mt-5 max-w-2xl text-lg leading-relaxed text-muted">

@@ -41,7 +41,7 @@ export function PublicMemberCard({ member }: PublicMemberCardProps) {
           </div>
 
           <div className="min-w-0 flex-1">
-            <h3 className="font-display text-xl font-semibold leading-tight text-foreground">
+            <h3 className="text-xl font-semibold leading-tight text-foreground">
               {getMemberDisplayName(member)}
             </h3>
             <p className="mt-1 truncate text-sm text-muted">{member.company}</p>

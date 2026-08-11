@@ -33,7 +33,7 @@ export function DirectoryGrid({ members }: DirectoryGridProps) {
     <section id="members" className="mx-auto max-w-7xl px-4 py-12 sm:px-6 sm:py-16">
       <div className="flex flex-col gap-6 border-b border-border pb-8 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-2xl">
-          <h2 className="font-display text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
+          <h2 className="text-3xl font-semibold tracking-[-0.02em] text-foreground sm:text-4xl">
             Member directory
           </h2>
           <p className="mt-3 text-base text-muted">
