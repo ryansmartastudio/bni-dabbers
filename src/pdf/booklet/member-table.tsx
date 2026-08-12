@@ -77,10 +77,16 @@ function TableHeader({
 }) {
   return (
     <View style={styles.tableHeaderRow} {...(fixed ? { fixed: true } : {})}>
-      {columns.map((column) => (
+      {columns.map((column, index) => (
         <View
           key={column.label}
-          style={[styles.tableCell, styles.tableHeaderCell, { width: column.width }]}
+          style={[
+            styles.tableCell,
+            styles.tableHeaderCell,
+            { width: column.width },
+            ...(index === 0 ? [styles.tableFirstCell] : []),
+            ...(index === columns.length - 1 ? [styles.tableLastCell] : []),
+          ]}
         >
           <Text style={styles.tableHeaderText}>{column.label}</Text>
         </View>
@@ -92,7 +98,13 @@ function TableHeader({
 function MemberTableRow({ member }: { member: BookletMember }) {
   return (
     <View style={styles.tableBodyRow} wrap={false}>
-      <View style={[styles.tableCell, { width: MEMBER_COLUMNS[0].width }]}>
+      <View
+        style={[
+          styles.tableCell,
+          styles.tableFirstCell,
+          { width: MEMBER_COLUMNS[0].width },
+        ]}
+      >
         <View style={styles.photoColumn}>
           {member.headshotUrl ? (
             <Image src={member.headshotUrl} style={styles.headshot} />
@@ -146,7 +158,14 @@ function MemberTableRow({ member }: { member: BookletMember }) {
         </View>
       </View>
 
-      <View style={[styles.tableCell, styles.notesCell, { width: MEMBER_COLUMNS[3].width }]}>
+      <View
+        style={[
+          styles.tableCell,
+          styles.notesCell,
+          styles.tableLastCell,
+          { width: MEMBER_COLUMNS[3].width },
+        ]}
+      >
         <NotesLines />
       </View>
     </View>

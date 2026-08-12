@@ -601,14 +601,19 @@ export const bookletStyles = StyleSheet.create({
     marginBottom: 12,
   },
   table: {
+    // Side borders live on each row's edge cells so they don't extend past page breaks.
+  },
+  tableFirstCell: {
     borderLeft: "1px solid #cfcfcf",
+  },
+  tableLastCell: {
     borderRight: "1px solid #cfcfcf",
-    borderTop: "1px solid #cfcfcf",
   },
   tableHeaderRow: {
     flexDirection: "row",
     backgroundColor: "#f3f3f3",
     borderBottom: "1px solid #cfcfcf",
+    borderTop: "1px solid #cfcfcf",
   },
   tableHeaderCell: {
     paddingVertical: 7,
@@ -740,7 +745,6 @@ export const bookletStyles = StyleSheet.create({
     color: "#333333",
   },
   notesCell: {
-    borderRight: "none",
     paddingVertical: 10,
   },
   notesLines: {
