@@ -36,9 +36,9 @@ export function buildMemberInviteEmail({
       Once signed in, you can update your contact details, headshot, company story, services, ideal referral and publish your public profile when you're ready. You can also download the weekly meeting sheet whenever you need it.
     </p>
     <p style="margin:0 0 8px;font-size:16px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
-      Click the button below to accept your invitation and set up access for <strong style="color:${EMAIL_BRAND.textPrimary};">${displayName}</strong> at <strong style="color:${EMAIL_BRAND.textPrimary};">${member.company}</strong>.
+      Click the button below to accept your invitation. Your email address is already filled in — you just need to create a password for your account.
     </p>
-    ${renderEmailButton(inviteUrl, "Manage my profile")}
+    ${renderEmailButton(inviteUrl, "Create your account")}
     <p style="margin:0 0 8px;font-size:14px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
       If the button doesn't work, copy and paste this link into your browser:
     </p>
@@ -54,7 +54,7 @@ export function buildMemberInviteEmail({
   const html = renderEmailLayout({
     settings,
     title: subject,
-    preheader: "Accept your invitation to manage your BNI Dabbers member profile.",
+    preheader: "Create your password to manage your BNI Dabbers member profile.",
     bodyHtml,
   });
 
@@ -66,7 +66,7 @@ The ${settings.chapterName} leadership team would like you to keep your member p
 
 Once signed in, you can update your contact details, headshot, company story, services, ideal referral and publish your public profile when you're ready. You can also download the weekly meeting sheet whenever you need it.
 
-Accept your invitation for ${displayName} at ${member.company}:
+Accept your invitation for ${displayName} at ${member.company}. Your email is already filled in — create a password here:
 ${inviteUrl}
 
 With best wishes,

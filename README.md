@@ -27,7 +27,15 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
    ```json
    { "metadata": "{{user.public_metadata}}" }
    ```
-   Set `NEXT_PUBLIC_APP_URL` to your live site (e.g. `https://www.bnidabbers.co.uk`) so member invite links redirect correctly after sign-in.
+   Set `NEXT_PUBLIC_APP_URL=https://www.bnidabbers.co.uk` in Vercel so invite links use the live domain (not the Vercel preview URL).
+   In **Clerk Dashboard → Domains** (Production instance), verify `bnidabbers.co.uk` with the DNS records Clerk provides.
+   **You do not need Clerk Dashboard → Paths.** That screen often rejects custom domains and is only for the hosted Account Portal. This app uses embedded `/sign-in` and `/sign-up` pages instead — configure them with Vercel env vars (relative paths, not full URLs):
+   - `NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in`
+   - `NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up`
+   - `NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL=/members`
+   - `NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL=/my-profile`
+   Use **Production** Clerk keys in Vercel (`pk_live_…` / `sk_live_…`). Member invites land on sign-up with email prefilled; the member only creates a password, then is redirected to their public profile with **Edit profile**.
+   Enable **Email** + **Password** under Clerk → User & authentication. Social sign-up is hidden on `/sign-up` for invited members.
    Only set `NEXT_PUBLIC_CLERK_PROXY_URL` if you enable Frontend API proxying in Clerk Dashboard → Domains. Leave it unset when using Clerk's standard DNS/CNAME setup.
 3. Set your first admin in Clerk: Users → Metadata → `publicMetadata`: `{ "role": "admin" }`. Additional admins can be invited from Settings → Admins (copy the invite link and send it manually).
 4. Verify `bnidabbers.co.uk` in Resend and add `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `RESEND_REPLY_TO` to `.env.local` and Vercel. Member profile invites are sent from the edit member screen → Profile access tab. The email uses the chapter logo from Settings.

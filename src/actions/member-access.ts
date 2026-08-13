@@ -19,7 +19,7 @@ import { sendEmail } from "@/lib/email/resend";
 import { requireLinkedMember } from "@/lib/member-access";
 import {
   getLatestMemberInvite,
-  getMyProfileUrl,
+  getMemberSignInRedirectUrl,
   revokePendingInvitesForMember,
 } from "@/lib/member-invites";
 import { getMemberById, getMemberProfilePath } from "@/lib/members";
@@ -136,7 +136,7 @@ export async function sendMemberInviteAction(memberId: string, email: string) {
         })
         .returning();
 
-      const inviteUrl = getMyProfileUrl();
+      const inviteUrl = getMemberSignInRedirectUrl(member);
       let emailSent = true;
       let emailError: string | null = null;
 
@@ -162,7 +162,7 @@ export async function sendMemberInviteAction(memberId: string, email: string) {
     await revokePendingInvitesForMember(memberId);
 
     try {
-      const invitation = await createMemberInvitation(normalizedEmail, memberId);
+      const invitation = await createMemberInvitation(normalizedEmail, member);
 
       const [invite] = await db
         .insert(memberInvites)
@@ -225,7 +225,7 @@ export async function sendMemberInviteAction(memberId: string, email: string) {
         })
         .returning();
 
-      const inviteUrl = getMyProfileUrl();
+      const inviteUrl = getMemberSignInRedirectUrl(member);
       let emailSent = true;
       let emailError: string | null = null;
 
@@ -279,21 +279,30 @@ export async function resendMemberInviteAction(memberId: string) {
     return { success: false, error: "No pending invitation found." };
   }
 
-  let invitationUrl = getMyProfileUrl();
-
-  if (invite.clerkInvitationId) {
-    const { getClerkInvitationUrl } = await import("@/lib/clerk-members");
-    invitationUrl =
-      (await getClerkInvitationUrl(invite.clerkInvitationId)) ?? invitationUrl;
-  }
-
   try {
-    await sendMemberInviteEmail(member, invitationUrl, invite.email);
+    if (invite.clerkInvitationId) {
+      await revokeClerkMemberInvitation(invite.clerkInvitationId);
+    }
+
+    const invitation = await createMemberInvitation(invite.email, member);
 
     await db
       .update(memberInvites)
-      .set({ lastEmailedAt: new Date() })
+      .set({
+        clerkInvitationId: invitation.clerkInvitationId,
+        lastEmailedAt: new Date(),
+      })
       .where(eq(memberInvites.id, invite.id));
+
+    const invitationUrl = invitation.invitationUrl;
+    if (!invitationUrl) {
+      return {
+        success: false,
+        error: "Invite refreshed but no invitation URL was returned.",
+      };
+    }
+
+    await sendMemberInviteEmail(member, invitationUrl, invite.email);
 
     revalidateMemberPaths(member);
     return {
@@ -305,7 +314,6 @@ export async function resendMemberInviteAction(memberId: string) {
     return {
       success: false,
       error: getClerkErrorMessage(error),
-      invitationUrl,
     };
   }
 }

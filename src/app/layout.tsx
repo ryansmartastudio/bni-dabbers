@@ -20,7 +20,17 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
   const proxyUrl = getClerkProxyUrl();
 
   return (
-    <ClerkProvider {...(proxyUrl ? { proxyUrl } : {})}>
+    <ClerkProvider
+      signInUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_IN_URL ?? "/sign-in"}
+      signUpUrl={process.env.NEXT_PUBLIC_CLERK_SIGN_UP_URL ?? "/sign-up"}
+      signInFallbackRedirectUrl={
+        process.env.NEXT_PUBLIC_CLERK_SIGN_IN_FALLBACK_REDIRECT_URL ?? "/members"
+      }
+      signUpFallbackRedirectUrl={
+        process.env.NEXT_PUBLIC_CLERK_SIGN_UP_FALLBACK_REDIRECT_URL ?? "/my-profile"
+      }
+      {...(proxyUrl ? { proxyUrl } : {})}
+    >
       <html
         lang="en"
         className={`${figtree.variable} h-full antialiased`}

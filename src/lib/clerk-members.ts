@@ -1,11 +1,9 @@
 import { clerkClient } from "@clerk/nextjs/server";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { members } from "@/db/schema";
-import {
-  getAppOrigin,
-  getClerkErrorMessage,
-} from "@/lib/clerk-admins";
+import { members, type Member } from "@/db/schema";
+import { getClerkErrorMessage } from "@/lib/clerk-admins";
+import { getMemberInviteSignUpRedirectUrl } from "@/lib/member-invites";
 
 export { getClerkErrorMessage };
 
@@ -65,17 +63,17 @@ export async function linkClerkUserToMember(
 
 export async function createMemberInvitation(
   emailAddress: string,
-  memberId: string,
+  member: Pick<Member, "id" | "slug">,
 ) {
   const email = emailAddress.trim().toLowerCase();
   const client = await clerkClient();
 
   const invitation = await client.invitations.createInvitation({
     emailAddress: email,
-    redirectUrl: `${getAppOrigin()}/my-profile`,
+    redirectUrl: getMemberInviteSignUpRedirectUrl(member),
     publicMetadata: {
       role: "member",
-      memberId,
+      memberId: member.id,
     },
     notify: false,
   });

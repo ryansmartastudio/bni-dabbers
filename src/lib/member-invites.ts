@@ -6,6 +6,7 @@ import {
   getClerkInvitationUrl,
   getClerkUserByEmail,
 } from "@/lib/clerk-members";
+import { getMemberProfilePath } from "@/lib/members";
 
 export type MemberAccessState =
   | {
@@ -94,6 +95,24 @@ export async function getMemberAccessState(
 
 export function getMyProfileUrl() {
   return `${getAppOrigin()}/my-profile`;
+}
+
+export function getMemberProfileUrl(member: Pick<Member, "id" | "slug">) {
+  return `${getAppOrigin()}${getMemberProfilePath(member)}`;
+}
+
+export function getMemberInviteSignUpRedirectUrl(
+  member: Pick<Member, "id" | "slug">,
+) {
+  const url = new URL(`${getAppOrigin()}/sign-up`);
+  url.searchParams.set("redirect_url", getMemberProfilePath(member));
+  return url.toString();
+}
+
+export function getMemberSignInRedirectUrl(member: Pick<Member, "id" | "slug">) {
+  const url = new URL(`${getAppOrigin()}/sign-in`);
+  url.searchParams.set("redirect_url", getMemberProfilePath(member));
+  return url.toString();
 }
 
 export async function revokePendingInvitesForMember(memberId: string) {
