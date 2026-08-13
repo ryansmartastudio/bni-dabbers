@@ -10,10 +10,16 @@ import {
   getMemberProfilePath,
   hasChapterRoles,
 } from "@/lib/members";
+import {
+  isProfileFieldVisible,
+  hasVisibleContactFields,
+  hasVisiblePublishedContent,
+} from "@/lib/profile-visibility";
 
 type MemberProfileViewProps = {
   member: Member;
   relatedMembers: Member[];
+  editHref?: string;
 };
 
 function ContactLink({
@@ -36,21 +42,39 @@ function ContactLink({
 export function MemberProfileView({
   member,
   relatedMembers,
+  editHref,
 }: MemberProfileViewProps) {
   const displayName = getMemberDisplayName(member);
   const published =
+    member.profilePublished && hasVisiblePublishedContent(member);
+  const showContactPanel = hasVisibleContactFields(member);
+  const showHeadline =
     member.profilePublished &&
-    Boolean(
-      member.profileHeadline ||
-        member.profileSummary ||
-        member.profileServices.length ||
-        member.profileIdealReferral,
-    );
+    isProfileFieldVisible(member.profileVisibility, "headline") &&
+    Boolean(member.profileHeadline?.trim());
+  const showSummary =
+    member.profilePublished &&
+    isProfileFieldVisible(member.profileVisibility, "summary") &&
+    Boolean(member.profileSummary?.trim());
+  const showIdealReferral =
+    member.profilePublished &&
+    isProfileFieldVisible(member.profileVisibility, "idealReferral") &&
+    Boolean(member.profileIdealReferral?.trim());
+  const showServices =
+    member.profilePublished &&
+    isProfileFieldVisible(member.profileVisibility, "services") &&
+    member.profileServices.length > 0;
 
   return (
     <div className="directory-shell">
       <section className="border-b border-border bg-[#fffdf9]">
-        <div className="mx-auto grid max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:grid-cols-[minmax(0,1fr)_320px] lg:py-14">
+        <div
+          className={`mx-auto max-w-7xl gap-10 px-4 py-10 sm:px-6 lg:py-14 ${
+            showContactPanel
+              ? "grid lg:grid-cols-[minmax(0,1fr)_320px]"
+              : "max-w-5xl"
+          }`}
+        >
           <div>
             <Link
               href="/"
@@ -59,6 +83,17 @@ export function MemberProfileView({
               <ChevronIcon direction="left" />
               Back to directory
             </Link>
+
+            {editHref ? (
+              <div className="mt-4">
+                <Link
+                  href={editHref}
+                  className="inline-flex items-center rounded-md border border-border bg-white px-3 py-2 text-sm font-medium text-foreground transition hover:border-bni/40 hover:text-bni"
+                >
+                  Edit profile
+                </Link>
+              </div>
+            ) : null}
 
             <div className="mt-8 flex flex-col gap-6 sm:flex-row sm:items-start">
               <div className="relative h-36 w-36 shrink-0 overflow-hidden rounded-[1.4rem] bg-surface-muted ring-1 ring-border">
@@ -89,7 +124,7 @@ export function MemberProfileView({
                     {formatChapterRoles(member.chapterRoles)}
                   </p>
                 ) : null}
-                {published && member.profileHeadline ? (
+                {showHeadline ? (
                   <p className="mt-5 max-w-3xl text-lg leading-relaxed text-foreground">
                     {member.profileHeadline}
                   </p>
@@ -98,11 +133,13 @@ export function MemberProfileView({
             </div>
           </div>
 
+          {showContactPanel ? (
           <aside className="rounded-2xl border border-border bg-white p-5 shadow-[0_18px_40px_-34px_rgba(23,20,18,0.45)]">
             <h2 className="text-sm font-semibold uppercase tracking-[0.18em] text-ink-muted">
               Contact
             </h2>
             <dl className="mt-4 space-y-4 text-sm">
+              {isProfileFieldVisible(member.profileVisibility, "email") ? (
               <div>
                 <dt className="text-xs uppercase tracking-[0.16em] text-muted">Email</dt>
                 <dd className="mt-1">
@@ -111,6 +148,8 @@ export function MemberProfileView({
                   </ContactLink>
                 </dd>
               </div>
+              ) : null}
+              {isProfileFieldVisible(member.profileVisibility, "phone") ? (
               <div>
                 <dt className="text-xs uppercase tracking-[0.16em] text-muted">Phone</dt>
                 <dd className="mt-1">
@@ -119,7 +158,9 @@ export function MemberProfileView({
                   </ContactLink>
                 </dd>
               </div>
-              {member.websiteUrl ? (
+              ) : null}
+              {member.websiteUrl &&
+              isProfileFieldVisible(member.profileVisibility, "website") ? (
                 <div>
                   <dt className="text-xs uppercase tracking-[0.16em] text-muted">
                     Website
@@ -134,7 +175,8 @@ export function MemberProfileView({
               ) : null}
             </dl>
 
-            {member.linkedinUrl ? (
+            {member.linkedinUrl &&
+            isProfileFieldVisible(member.profileVisibility, "linkedin") ? (
               <div className="mt-6 border-t border-border pt-5">
                 <p className="text-xs font-semibold uppercase tracking-[0.16em] text-ink-muted">
                   LinkedIn
@@ -145,6 +187,7 @@ export function MemberProfileView({
               </div>
             ) : null}
           </aside>
+          ) : null}
         </div>
       </section>
 
@@ -152,7 +195,7 @@ export function MemberProfileView({
         {published ? (
           <div className="grid gap-10 lg:grid-cols-[minmax(0,1.2fr)_minmax(280px,0.8fr)]">
             <div className="space-y-8">
-              {member.profileSummary ? (
+              {showSummary && member.profileSummary ? (
                 <div>
                   <h2 className="text-3xl font-semibold tracking-[-0.02em] text-foreground">
                     About {member.company}
@@ -165,7 +208,7 @@ export function MemberProfileView({
                 </div>
               ) : null}
 
-              {member.profileIdealReferral ? (
+              {showIdealReferral && member.profileIdealReferral ? (
                 <div className="rounded-2xl border border-border bg-white p-6">
                   <h3 className="text-2xl font-semibold text-foreground">
                     Ideal referral
@@ -177,7 +220,7 @@ export function MemberProfileView({
               ) : null}
             </div>
 
-            {member.profileServices.length ? (
+            {showServices ? (
               <div className="rounded-2xl border border-border bg-white p-6">
                 <h3 className="text-2xl font-semibold text-foreground">
                   Services
@@ -205,8 +248,9 @@ export function MemberProfileView({
               Profile details coming soon
             </h2>
             <p className="mx-auto mt-3 max-w-2xl text-sm leading-relaxed text-muted">
-              Contact {displayName} using the details above. A fuller company
-              profile will appear here once the chapter admin publishes it.
+              {showContactPanel
+                ? `Contact ${displayName} using the details above. A fuller company profile will appear here once it is published.`
+                : `A fuller company profile for ${displayName} will appear here once it is published.`}
             </p>
           </div>
         )}

@@ -2,6 +2,7 @@ import { put } from "@vercel/blob";
 import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { getRoleFromClaims } from "@/lib/auth";
+import { canUploadHeadshot } from "@/lib/member-access";
 import {
   buildUploadPathname,
   isUploadFolder,
@@ -34,8 +35,13 @@ export async function POST(request: Request) {
   if (!userId) {
     return jsonError("You must be signed in to upload files.", 401);
   }
-  if (role !== "admin") {
-    return jsonError("Admin access is required to upload files.", 403);
+
+  const canUpload =
+    role === "admin" ||
+    (await canUploadHeadshot(userId, role));
+
+  if (!canUpload) {
+    return jsonError("You do not have permission to upload files.", 403);
   }
 
   if (
@@ -64,6 +70,10 @@ export async function POST(request: Request) {
 
   if (typeof folder !== "string" || !isUploadFolder(folder)) {
     return jsonError("Invalid upload folder.", 400);
+  }
+
+  if (role !== "admin" && folder !== "headshots") {
+    return jsonError("You can only upload headshots.", 403);
   }
 
   if (file.size > MAX_FILE_SIZE_BYTES) {

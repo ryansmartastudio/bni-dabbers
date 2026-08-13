@@ -22,7 +22,7 @@ export function MemberTable({ members, isAdmin = false }: MemberTableProps) {
             <th className="px-4 py-3">Email</th>
             <th className="px-4 py-3">Phone</th>
             <th className="px-4 py-3">Website</th>
-            <th className="px-4 py-3">Notes</th>
+            {isAdmin ? <th className="px-4 py-3">Notes</th> : null}
             <th className="px-4 py-3">LinkedIn</th>
             {isAdmin ? <th className="px-4 py-3">Actions</th> : null}
           </tr>
@@ -49,9 +49,11 @@ export function MemberTable({ members, isAdmin = false }: MemberTableProps) {
                   "—"
                 )}
               </td>
-              <td className="max-w-xs px-4 py-3 text-muted">
-                {member.notes ?? "—"}
-              </td>
+              {isAdmin ? (
+                <td className="max-w-xs px-4 py-3 text-muted">
+                  {member.notes ?? "—"}
+                </td>
+              ) : null}
               <td className="px-4 py-3">
                 {member.linkedinUrl ? (
                   <LinkedInQr url={member.linkedinUrl} size={56} />

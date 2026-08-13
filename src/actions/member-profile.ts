@@ -1,6 +1,6 @@
 "use server";
 
-import { requireAdmin } from "@/lib/auth";
+import { requireMemberAccess } from "@/lib/member-access";
 import { generateMemberProfileDraft } from "@/lib/ai/member-profile";
 import {
   researchCompanyWebsite,
@@ -23,7 +23,7 @@ export type DraftMemberProfileResult =
 export async function draftMemberProfile(
   memberId: string,
 ): Promise<DraftMemberProfileResult> {
-  await requireAdmin();
+  await requireMemberAccess(memberId);
 
   const member = await getMemberById(memberId);
   if (!member) {

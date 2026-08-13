@@ -9,9 +9,11 @@ import {
   deleteMember,
 } from "@/actions/members";
 import { ChapterRolesField } from "@/components/members/chapter-roles-field";
+import { MemberAccessPanel } from "@/components/members/member-access-panel";
 import { MemberProfileFields } from "@/components/members/member-profile-fields";
 import {
   MemberTabs,
+  MEMBER_TABS,
   type MemberTabId,
 } from "@/components/members/member-tabs";
 import { Button } from "@/components/ui/button";
@@ -23,9 +25,13 @@ import {
   ROLE_GROUPS,
 } from "@/lib/constants";
 import { cn } from "@/lib/utils";
+import type { MemberAccessState } from "@/lib/member-invites";
+import { resolveProfileVisibility } from "@/lib/profile-visibility";
+import type { ProfileVisibilityFormValues } from "@/lib/validations";
 
 type MemberFormProps = {
   member?: Member;
+  accessState?: MemberAccessState;
 };
 
 function TabPanel({
@@ -44,7 +50,7 @@ function TabPanel({
   );
 }
 
-export function MemberForm({ member }: MemberFormProps) {
+export function MemberForm({ member, accessState }: MemberFormProps) {
   const router = useRouter();
   const [activeTab, setActiveTab] = useState<MemberTabId>("details");
   const [isPending, startTransition] = useTransition();
@@ -76,6 +82,14 @@ export function MemberForm({ member }: MemberFormProps) {
   const [profilePublished, setProfilePublished] = useState(
     member?.profilePublished ?? false,
   );
+  const [profileVisibility, setProfileVisibility] =
+    useState<ProfileVisibilityFormValues>(
+      resolveProfileVisibility(member?.profileVisibility),
+    );
+
+  const tabs = member
+    ? MEMBER_TABS
+    : MEMBER_TABS.filter((tab) => tab.id !== "access");
 
   async function handleSubmit(formData: FormData) {
     setError(null);
@@ -116,6 +130,7 @@ export function MemberForm({ member }: MemberFormProps) {
       profileSourceUrl,
       profileGeneratedAt: profileGeneratedAt || null,
       profilePublished,
+      profileVisibility,
     };
 
     startTransition(async () => {
@@ -145,8 +160,17 @@ export function MemberForm({ member }: MemberFormProps) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-border bg-white shadow-sm">
-      <MemberTabs activeTab={activeTab} onChange={setActiveTab} />
+      <MemberTabs activeTab={activeTab} onChange={setActiveTab} tabs={tabs} />
 
+      {activeTab === "access" && member && accessState ? (
+        <div className="space-y-6 p-5 sm:p-6">
+          <MemberAccessPanel
+            memberId={member.id}
+            defaultEmail={member.email}
+            accessState={accessState}
+          />
+        </div>
+      ) : (
       <form
         onSubmit={(e) => {
           e.preventDefault();
@@ -301,6 +325,8 @@ export function MemberForm({ member }: MemberFormProps) {
             onSourceUrlChange={setProfileSourceUrl}
             onGeneratedAtChange={setProfileGeneratedAt}
             onPublishedChange={setProfilePublished}
+            visibility={profileVisibility}
+            onVisibilityChange={setProfileVisibility}
           />
         </TabPanel>
 
@@ -322,6 +348,7 @@ export function MemberForm({ member }: MemberFormProps) {
           ) : null}
         </div>
       </form>
+      )}
     </div>
   );
 }

@@ -61,7 +61,7 @@ export function MemberCard({ member, showContact = false, showEdit = false }: Me
           {member.websiteUrl ? (
             <MemberWebsiteLink url={member.websiteUrl} className="mt-1 block" />
           ) : null}
-          {member.notes ? (
+          {showEdit && member.notes ? (
             <p className="mt-2 text-xs text-muted">{member.notes}</p>
           ) : null}
           {showEdit ? (

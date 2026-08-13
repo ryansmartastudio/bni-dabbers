@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { profileVisibilitySchema } from "@/lib/validations";
 
 export const memberProfileSchema = z.object({
   profileHeadline: z.string().optional(),
@@ -8,6 +9,7 @@ export const memberProfileSchema = z.object({
   profileSourceUrl: z.string().optional(),
   profileGeneratedAt: z.string().datetime().optional().nullable(),
   profilePublished: z.boolean().default(false),
+  profileVisibility: profileVisibilitySchema.optional(),
 });
 
 export type MemberProfileFormValues = z.infer<typeof memberProfileSchema>;

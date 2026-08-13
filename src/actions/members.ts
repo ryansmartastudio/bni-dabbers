@@ -2,9 +2,11 @@
 
 import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import { members } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { requireMemberAccess } from "@/lib/member-access";
 import {
   buildUniqueMemberSlug,
   getMemberProfilePath,
@@ -14,6 +16,8 @@ import {
   memberProfileSchema,
   type MemberProfileFormValues,
 } from "@/lib/member-profile";
+import { resolveProfileVisibility } from "@/lib/profile-visibility";
+import { profileVisibilitySchema } from "@/lib/validations";
 
 export type { MemberProfileFormValues };
 
@@ -34,6 +38,7 @@ function normalizeProfileFields(parsed: {
   profileSourceUrl?: string | null;
   profileGeneratedAt?: string | null;
   profilePublished?: boolean;
+  profileVisibility?: z.infer<typeof profileVisibilitySchema>;
 }) {
   return {
     profileHeadline: parsed.profileHeadline?.trim() || null,
@@ -45,6 +50,7 @@ function normalizeProfileFields(parsed: {
       ? new Date(parsed.profileGeneratedAt)
       : null,
     profilePublished: parsed.profilePublished ?? false,
+    profileVisibility: resolveProfileVisibility(parsed.profileVisibility),
   };
 }
 
@@ -135,7 +141,7 @@ export async function saveMemberProfile(
   id: string,
   data: MemberProfileFormValues,
 ) {
-  await requireAdmin();
+  await requireMemberAccess(id);
   const parsed = memberProfileSchema.parse(data);
   const existing = await db.query.members.findFirst({
     where: eq(members.id, id),

@@ -8,8 +8,10 @@ import { draftMemberProfile } from "@/actions/member-profile";
 import { saveMemberProfile } from "@/actions/members";
 import { Button } from "@/components/ui/button";
 import { Input, Textarea } from "@/components/ui/form-fields";
+import { ProfileVisibilityFields } from "@/components/members/profile-visibility-fields";
 import { getMemberProfilePath } from "@/lib/members";
 import type { MemberProfileFormValues } from "@/lib/member-profile";
+import type { ProfileVisibilityFormValues } from "@/lib/validations";
 
 type MemberProfileFieldsProps = {
   member?: Member;
@@ -20,6 +22,7 @@ type MemberProfileFieldsProps = {
   sourceUrl: string;
   generatedAt: string;
   published: boolean;
+  visibility?: ProfileVisibilityFormValues;
   onHeadlineChange: (value: string) => void;
   onSummaryChange: (value: string) => void;
   onServicesChange: (value: string[]) => void;
@@ -27,6 +30,7 @@ type MemberProfileFieldsProps = {
   onSourceUrlChange: (value: string) => void;
   onGeneratedAtChange: (value: string) => void;
   onPublishedChange: (value: boolean) => void;
+  onVisibilityChange?: (value: ProfileVisibilityFormValues) => void;
 };
 
 function formatGeneratedAt(value: string) {
@@ -47,6 +51,7 @@ function buildProfilePayload(
   sourceUrl: string,
   generatedAt: string,
   published: boolean,
+  visibility?: ProfileVisibilityFormValues,
 ): MemberProfileFormValues {
   return {
     profileHeadline: headline,
@@ -56,6 +61,7 @@ function buildProfilePayload(
     profileSourceUrl: sourceUrl,
     profileGeneratedAt: generatedAt || null,
     profilePublished: published,
+    ...(visibility ? { profileVisibility: visibility } : {}),
   };
 }
 
@@ -68,6 +74,7 @@ export function MemberProfileFields({
   sourceUrl,
   generatedAt,
   published,
+  visibility,
   onHeadlineChange,
   onSummaryChange,
   onServicesChange,
@@ -75,6 +82,7 @@ export function MemberProfileFields({
   onSourceUrlChange,
   onGeneratedAtChange,
   onPublishedChange,
+  onVisibilityChange,
 }: MemberProfileFieldsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
@@ -101,6 +109,7 @@ export function MemberProfileFields({
         sourceUrl,
         generatedAt,
         nextPublished,
+        visibility,
       ),
     );
     onPublishedChange(nextPublished);
@@ -150,6 +159,7 @@ export function MemberProfileFields({
           profileSourceUrl: result.sourceUrl,
           profileGeneratedAt: result.generatedAt,
           profilePublished: false,
+          ...(visibility ? { profileVisibility: visibility } : {}),
         });
         onPublishedChange(false);
         router.refresh();
@@ -366,6 +376,13 @@ export function MemberProfileFields({
         onChange={(event) => onIdealReferralChange(event.target.value)}
         placeholder="Who should other members refer to this business?"
       />
+
+      {visibility && onVisibilityChange ? (
+        <ProfileVisibilityFields
+          visibility={visibility}
+          onChange={onVisibilityChange}
+        />
+      ) : null}
 
       <input type="hidden" name="profileSourceUrl" value={sourceUrl} />
       <input type="hidden" name="profileGeneratedAt" value={generatedAt} />

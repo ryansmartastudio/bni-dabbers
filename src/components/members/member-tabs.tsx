@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 export const MEMBER_TABS = [
   { id: "details", label: "Details" },
   { id: "profile", label: "Public profile" },
+  { id: "access", label: "Profile access" },
 ] as const;
 
 export type MemberTabId = (typeof MEMBER_TABS)[number]["id"];
@@ -12,9 +13,14 @@ export type MemberTabId = (typeof MEMBER_TABS)[number]["id"];
 type MemberTabsProps = {
   activeTab: MemberTabId;
   onChange: (tab: MemberTabId) => void;
+  tabs?: readonly { id: MemberTabId; label: string }[];
 };
 
-export function MemberTabs({ activeTab, onChange }: MemberTabsProps) {
+export function MemberTabs({
+  activeTab,
+  onChange,
+  tabs = MEMBER_TABS,
+}: MemberTabsProps) {
   return (
     <div className="overflow-x-auto border-b border-border">
       <div
@@ -22,7 +28,7 @@ export function MemberTabs({ activeTab, onChange }: MemberTabsProps) {
         role="tablist"
         aria-label="Member sections"
       >
-        {MEMBER_TABS.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
           return (
             <button

@@ -7,6 +7,7 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
 - Public member directory with LinkedIn QR codes
 - Signed-in member roster with contact details
 - Admin CRUD for members (Clerk role: `admin` in `publicMetadata`)
+- Member self-service profile editing via email invite (Resend + Clerk)
 - Chapter settings, charity block and editable QR links
 - Exports: directory PDF, Excel roster, A4 meeting sheet booklet
 
@@ -15,6 +16,7 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
 - Next.js 15+ (App Router), TypeScript, Tailwind CSS v4
 - Clerk authentication
 - Neon Postgres + Drizzle ORM
+- Resend for member profile invite emails
 - Vercel Blob for headshots
 - `@react-pdf/renderer` for PDFs, ExcelJS for `.xlsx`
 
@@ -26,12 +28,13 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
    { "metadata": "{{user.public_metadata}}" }
    ```
 3. Set your first admin in Clerk: Users → Metadata → `publicMetadata`: `{ "role": "admin" }`. Additional admins can be invited from Settings → Admins (copy the invite link and send it manually).
-4. Push the database schema:
+4. Verify `bnidabbers.co.uk` in Resend and add `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `RESEND_REPLY_TO` to `.env.local` and Vercel. Member profile invites are sent from the edit member screen → Profile access tab. The email uses the chapter logo from Settings.
+5. Push the database schema:
    ```bash
    npm run db:push
    npm run db:seed
    ```
-5. Run locally:
+6. Run locally:
    ```bash
    npm run dev
    ```
@@ -40,7 +43,7 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
 
 1. Import the repo to Vercel
 2. Add Neon integration (sets `DATABASE_URL`)
-3. Add Clerk env vars and `BLOB_READ_WRITE_TOKEN`
+3. Add Clerk env vars, `BLOB_READ_WRITE_TOKEN`, and Resend keys (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO`)
 4. Run `npm run db:push` against production, then `npm run db:seed`
 
 ## Meeting sheet structure

@@ -1,16 +1,27 @@
 import Link from "next/link";
 import { getAuthContext } from "@/lib/auth";
+import { isLinkedMember } from "@/lib/member-access";
 import { AuthButtons } from "@/components/layout/auth-buttons";
 
 const navLinks = [
   { href: "/", label: "Directory", public: true },
   { href: "/members", label: "Members", auth: true },
+  { href: "/my-profile", label: "My profile", linkedMember: true },
   { href: "/exports", label: "Exports", auth: true },
   { href: "/settings", label: "Settings", admin: true },
 ];
 
 export async function Header() {
   const { isSignedIn, role } = await getAuthContext();
+  const linkedMember = isSignedIn ? await isLinkedMember() : false;
+
+  const visibleLinks = navLinks.filter((link) => {
+    if (link.public) return true;
+    if (link.auth && !isSignedIn) return false;
+    if (link.admin && role !== "admin") return false;
+    if (link.linkedMember && !linkedMember) return false;
+    return true;
+  });
 
   return (
     <header className="border-b border-border bg-white">
@@ -28,10 +39,7 @@ export async function Header() {
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">
-          {navLinks.map((link) => {
-            if (link.auth && !isSignedIn) return null;
-            if (link.admin && role !== "admin") return null;
-            return (
+          {visibleLinks.map((link) => (
               <Link
                 key={link.href}
                 href={link.href}
@@ -39,15 +47,13 @@ export async function Header() {
               >
                 {link.label}
               </Link>
-            );
-          })}
+            ))}
         </nav>
 
         {isSignedIn ? (
           <nav className="flex items-center gap-2 md:hidden">
-            {navLinks
-              .filter((link) => !link.auth || isSignedIn)
-              .filter((link) => !link.admin || role === "admin")
+            {visibleLinks
+              .filter((link) => !link.public)
               .map((link) => (
                 <Link
                   key={link.href}

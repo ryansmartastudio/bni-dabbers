@@ -22,6 +22,12 @@ export const roleGroupEnum = pgEnum("role_group", [
   "none",
 ]);
 
+export const memberInviteStatusEnum = pgEnum("member_invite_status", [
+  "pending",
+  "accepted",
+  "revoked",
+]);
+
 export const members = pgTable("members", {
   id: uuid("id").defaultRandom().primaryKey(),
   firstName: text("first_name").notNull(),
@@ -47,6 +53,11 @@ export const members = pgTable("members", {
   profileSourceUrl: text("profile_source_url"),
   profileGeneratedAt: timestamp("profile_generated_at", { withTimezone: true }),
   profilePublished: boolean("profile_published").default(false).notNull(),
+  profileVisibility: jsonb("profile_visibility")
+    .$type<ProfileVisibility>()
+    .default({})
+    .notNull(),
+  clerkUserId: text("clerk_user_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -95,6 +106,20 @@ export const chapterSettings = pgTable("chapter_settings", {
     .notNull(),
 });
 
+export const memberInvites = pgTable("member_invites", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  memberId: uuid("member_id")
+    .notNull()
+    .references(() => members.id, { onDelete: "cascade" }),
+  email: text("email").notNull(),
+  clerkInvitationId: text("clerk_invitation_id"),
+  status: memberInviteStatusEnum("status").default("pending").notNull(),
+  sentAt: timestamp("sent_at", { withTimezone: true }).defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at", { withTimezone: true }),
+  sentByUserId: text("sent_by_user_id"),
+  lastEmailedAt: timestamp("last_emailed_at", { withTimezone: true }),
+});
+
 export const charityLinks = pgTable("charity_links", {
   id: uuid("id").defaultRandom().primaryKey(),
   label: text("label").notNull(),
@@ -105,6 +130,8 @@ export const charityLinks = pgTable("charity_links", {
 
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
+export type MemberInvite = typeof memberInvites.$inferSelect;
+export type NewMemberInvite = typeof memberInvites.$inferInsert;
 export type ChapterSettings = typeof chapterSettings.$inferSelect;
 export type CharityLink = typeof charityLinks.$inferSelect;
 
@@ -115,3 +142,14 @@ export type CoreValue = {
   iconKey: string;
   iconUrl?: string | null;
 };
+
+export type ProfileVisibility = Partial<{
+  email: boolean;
+  phone: boolean;
+  website: boolean;
+  linkedin: boolean;
+  headline: boolean;
+  summary: boolean;
+  services: boolean;
+  idealReferral: boolean;
+}>;

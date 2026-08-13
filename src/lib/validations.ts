@@ -1,6 +1,17 @@
 import { z } from "zod";
 import { normalizeWebsiteUrl } from "@/lib/members";
 
+export const profileVisibilitySchema = z.object({
+  email: z.boolean().default(true),
+  phone: z.boolean().default(true),
+  website: z.boolean().default(true),
+  linkedin: z.boolean().default(true),
+  headline: z.boolean().default(true),
+  summary: z.boolean().default(true),
+  services: z.boolean().default(true),
+  idealReferral: z.boolean().default(true),
+});
+
 export const coreValueSchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -53,6 +64,26 @@ export const memberSchema = z.object({
   profileSourceUrl: z.string().optional(),
   profileGeneratedAt: z.string().datetime().optional().nullable(),
   profilePublished: z.boolean().default(false),
+  profileVisibility: profileVisibilitySchema.optional(),
+});
+
+export const memberSelfSchema = memberSchema.pick({
+  firstName: true,
+  lastName: true,
+  company: true,
+  email: true,
+  phone: true,
+  linkedinUrl: true,
+  websiteUrl: true,
+  headshotUrl: true,
+  profileHeadline: true,
+  profileSummary: true,
+  profileServices: true,
+  profileIdealReferral: true,
+  profileSourceUrl: true,
+  profileGeneratedAt: true,
+  profilePublished: true,
+  profileVisibility: true,
 });
 
 export const settingsSchema = z.object({
@@ -100,6 +131,8 @@ export const saveAllSettingsSchema = z.object({
 
 export type CoreValueFormValues = z.infer<typeof coreValueSchema>;
 export type MemberFormValues = z.infer<typeof memberSchema>;
+export type MemberSelfFormValues = z.infer<typeof memberSelfSchema>;
+export type ProfileVisibilityFormValues = z.infer<typeof profileVisibilitySchema>;
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 export type CharityLinkFormValues = z.infer<typeof charityLinkSchema>;
 export type SaveAllSettingsValues = z.infer<typeof saveAllSettingsSchema>;

@@ -21,6 +21,7 @@ const exportsList = [
 
 type ExportButtonsProps = {
   meetingSheetFilename: string;
+  isAdmin?: boolean;
 };
 
 function MeetingSheetPreviewBox({ onOpen }: { onOpen: () => void }) {
@@ -55,27 +56,36 @@ function MeetingSheetPreviewBox({ onOpen }: { onOpen: () => void }) {
   );
 }
 
-export function ExportButtons({ meetingSheetFilename }: ExportButtonsProps) {
+export function ExportButtons({
+  meetingSheetFilename,
+  isAdmin = false,
+}: ExportButtonsProps) {
   const [previewOpen, setPreviewOpen] = useState(false);
 
   return (
     <>
-      <div className="grid gap-4 md:grid-cols-3">
-        {exportsList.map((item) => (
-          <article
-            key={item.id}
-            className="flex flex-col rounded-xl border border-border bg-white p-5 shadow-sm"
-          >
-            <h3 className="text-base font-semibold text-foreground">{item.title}</h3>
-            <p className="mt-2 flex-1 text-sm text-muted">{item.description}</p>
-            <Button
-              className="mt-4 w-full"
-              onClick={() => window.open(item.href, "_blank")}
-            >
-              Download
-            </Button>
-          </article>
-        ))}
+      <div className={`grid gap-4 ${isAdmin ? "md:grid-cols-3" : "max-w-md"}`}>
+        {isAdmin
+          ? exportsList.map((item) => (
+              <article
+                key={item.id}
+                className="flex flex-col rounded-xl border border-border bg-white p-5 shadow-sm"
+              >
+                <h3 className="text-base font-semibold text-foreground">
+                  {item.title}
+                </h3>
+                <p className="mt-2 flex-1 text-sm text-muted">
+                  {item.description}
+                </p>
+                <Button
+                  className="mt-4 w-full"
+                  onClick={() => window.open(item.href, "_blank")}
+                >
+                  Download
+                </Button>
+              </article>
+            ))
+          : null}
 
         <article className="flex flex-col rounded-xl border border-border bg-white p-5 shadow-sm">
           <h3 className="text-base font-semibold text-foreground">Generate meeting sheet</h3>

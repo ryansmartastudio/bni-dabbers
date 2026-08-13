@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { MemberProfileView } from "@/components/directory/member-profile-view";
+import { getAuthContext } from "@/lib/auth";
+import { getCurrentMember } from "@/lib/member-access";
 import {
   getActiveMembers,
   getMemberBySlug,
@@ -53,5 +55,21 @@ export default async function MemberProfilePage({ params }: MemberProfilePagePro
     .filter((item) => item.id !== member.id)
     .slice(0, 4);
 
-  return <MemberProfileView member={member} relatedMembers={relatedMembers} />;
+  const { role } = await getAuthContext();
+  const currentMember = await getCurrentMember();
+
+  let editHref: string | undefined;
+  if (role === "admin") {
+    editHref = `/members/${member.id}/edit`;
+  } else if (currentMember?.id === member.id) {
+    editHref = "/my-profile";
+  }
+
+  return (
+    <MemberProfileView
+      member={member}
+      relatedMembers={relatedMembers}
+      editHref={editHref}
+    />
+  );
 }
