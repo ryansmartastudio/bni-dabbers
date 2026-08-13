@@ -22,7 +22,7 @@ import {
   getMemberSignInRedirectUrl,
   revokePendingInvitesForMember,
 } from "@/lib/member-invites";
-import { getMemberById, getMemberProfilePath } from "@/lib/members";
+import { getMemberById, getMemberDisplayName, getMemberProfilePath } from "@/lib/members";
 import { resolveProfileVisibility } from "@/lib/profile-visibility";
 import { getChapterSettings } from "@/lib/settings";
 import {
@@ -415,4 +415,96 @@ export async function updateOwnMember(data: MemberSelfFormValues) {
 
   revalidateMemberPaths({ id: member.id, slug: member.slug });
   return { success: true };
+}
+
+export type BulkInviteMemberResult = {
+  memberId: string;
+  name: string;
+  email: string;
+  success: boolean;
+  error?: string;
+  emailSent?: boolean;
+  emailError?: string | null;
+};
+
+export async function bulkSendMemberInvitesAction(memberIds: string[]) {
+  await requireAdmin();
+
+  const parsedIds = z.array(z.string().uuid()).min(1).safeParse(memberIds);
+  if (!parsedIds.success) {
+    return { success: false as const, error: "Select at least one member." };
+  }
+
+  const results: BulkInviteMemberResult[] = [];
+
+  for (const memberId of parsedIds.data) {
+    const member = await getMemberById(memberId);
+    if (!member) {
+      results.push({
+        memberId,
+        name: "Unknown member",
+        email: "",
+        success: false,
+        error: "Member not found.",
+      });
+      continue;
+    }
+
+    const name = getMemberDisplayName(member);
+
+    if (member.clerkUserId) {
+      results.push({
+        memberId,
+        name,
+        email: member.email,
+        success: false,
+        error: "Already has profile access.",
+      });
+      continue;
+    }
+
+    if (member.status !== "active") {
+      results.push({
+        memberId,
+        name,
+        email: member.email,
+        success: false,
+        error: "Member is not active.",
+      });
+      continue;
+    }
+
+    const result = await sendMemberInviteAction(memberId, member.email);
+    if (!result.success) {
+      results.push({
+        memberId,
+        name,
+        email: member.email,
+        success: false,
+        error: result.error,
+      });
+      continue;
+    }
+
+    results.push({
+      memberId,
+      name,
+      email: member.email,
+      success: true,
+      emailSent: result.emailSent,
+      emailError: result.emailError,
+    });
+  }
+
+  revalidateMemberPaths();
+
+  const sent = results.filter((result) => result.success).length;
+  const failed = results.length - sent;
+
+  return {
+    success: true as const,
+    results,
+    sent,
+    failed,
+  };
 }

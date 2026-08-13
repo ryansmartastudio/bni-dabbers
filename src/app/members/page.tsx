@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { requireAuth } from "@/lib/auth";
 import { getAllMembers } from "@/lib/members";
+import { BulkInviteMembers } from "@/components/members/bulk-invite-members";
 import { MemberCard } from "@/components/members/member-card";
 import { MemberTable } from "@/components/members/member-table";
 import { Button } from "@/components/ui/button";
@@ -22,9 +23,12 @@ export default async function MembersPage() {
           </p>
         </div>
         {isAdmin ? (
-          <Link href="/members/new">
-            <Button>Add member</Button>
-          </Link>
+          <div className="flex flex-wrap gap-2">
+            <BulkInviteMembers members={members} />
+            <Link href="/members/new">
+              <Button>Add member</Button>
+            </Link>
+          </div>
         ) : null}
       </div>
 
