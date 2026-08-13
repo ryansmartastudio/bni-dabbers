@@ -280,12 +280,12 @@ export function MemberForm({ member, accessState }: MemberFormProps) {
               />
               <span className="space-y-0.5">
                 <span className="block text-sm font-medium text-foreground">
-                  Pin to bottom of meeting sheet
+                  Pin to bottom of member lists
                 </span>
                 <span className="block text-xs text-muted">
                   Use for Director Consultant, Ambassador and similar roles. They
-                  still appear in leadership sections but print after regular members
-                  on the member pages.
+                  still appear in leadership sections but list after regular members
+                  on the website, roster and meeting sheet.
                 </span>
               </span>
             </label>

@@ -5,16 +5,18 @@ import { members, type Member } from "@/db/schema";
 const memberNameOrder = [asc(members.firstName), asc(members.lastName)];
 
 export async function getAllMembers(): Promise<Member[]> {
-  return db.query.members.findMany({
+  const rows = await db.query.members.findMany({
     orderBy: memberNameOrder,
   });
+  return sortMembersWithPinnedLast(rows);
 }
 
 export async function getActiveMembers(): Promise<Member[]> {
-  return db.query.members.findMany({
+  const rows = await db.query.members.findMany({
     where: eq(members.status, "active"),
     orderBy: memberNameOrder,
   });
+  return sortMembersWithPinnedLast(rows);
 }
 
 export async function getMemberById(id: string): Promise<Member | undefined> {
@@ -115,8 +117,8 @@ function compareMembersByName(
   });
 }
 
-/** Meeting sheet member pages: alphabetical, with pinned members last. */
-export function sortMembersForBooklet(membersList: Member[]) {
+/** Alphabetical order, with bookletAtBottom members last. */
+export function sortMembersWithPinnedLast(membersList: Member[]) {
   const regular = membersList.filter((member) => !member.bookletAtBottom);
   const bottom = membersList.filter((member) => member.bookletAtBottom);
   return [
@@ -124,6 +126,8 @@ export function sortMembersForBooklet(membersList: Member[]) {
     ...bottom.sort(compareMembersByName),
   ];
 }
+
+export const sortMembersForBooklet = sortMembersWithPinnedLast;
 
 export function getMembersByRoleGroup(membersList: Member[]) {
   return {
