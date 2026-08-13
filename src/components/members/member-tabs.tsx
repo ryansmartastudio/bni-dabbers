@@ -10,23 +10,33 @@ export const MEMBER_TABS = [
 
 export type MemberTabId = (typeof MEMBER_TABS)[number]["id"];
 
-type MemberTabsProps = {
-  activeTab: MemberTabId;
-  onChange: (tab: MemberTabId) => void;
-  tabs?: readonly { id: MemberTabId; label: string }[];
+export const MY_PROFILE_TABS = [
+  { id: "contact", label: "Contact" },
+  { id: "profile", label: "Public profile" },
+  { id: "visibility", label: "Visibility" },
+] as const;
+
+export type MyProfileTabId = (typeof MY_PROFILE_TABS)[number]["id"];
+
+type SectionTabsProps<T extends string> = {
+  activeTab: T;
+  onChange: (tab: T) => void;
+  tabs: readonly { id: T; label: string }[];
+  ariaLabel: string;
 };
 
-export function MemberTabs({
+export function SectionTabs<T extends string>({
   activeTab,
   onChange,
-  tabs = MEMBER_TABS,
-}: MemberTabsProps) {
+  tabs,
+  ariaLabel,
+}: SectionTabsProps<T>) {
   return (
     <div className="overflow-x-auto border-b border-border">
       <div
         className="flex min-w-max gap-1 px-1"
         role="tablist"
-        aria-label="Member sections"
+        aria-label={ariaLabel}
       >
         {tabs.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -50,5 +60,42 @@ export function MemberTabs({
         })}
       </div>
     </div>
+  );
+}
+
+type MemberTabsProps = {
+  activeTab: MemberTabId;
+  onChange: (tab: MemberTabId) => void;
+  tabs?: readonly { id: MemberTabId; label: string }[];
+};
+
+export function MemberTabs({
+  activeTab,
+  onChange,
+  tabs = MEMBER_TABS,
+}: MemberTabsProps) {
+  return (
+    <SectionTabs
+      activeTab={activeTab}
+      onChange={onChange}
+      tabs={tabs}
+      ariaLabel="Member sections"
+    />
+  );
+}
+
+type MyProfileTabsProps = {
+  activeTab: MyProfileTabId;
+  onChange: (tab: MyProfileTabId) => void;
+};
+
+export function MyProfileTabs({ activeTab, onChange }: MyProfileTabsProps) {
+  return (
+    <SectionTabs
+      activeTab={activeTab}
+      onChange={onChange}
+      tabs={MY_PROFILE_TABS}
+      ariaLabel="Profile sections"
+    />
   );
 }

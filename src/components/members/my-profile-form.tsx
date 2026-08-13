@@ -6,6 +6,10 @@ import { useState, useTransition } from "react";
 import type { Member } from "@/db/schema";
 import { updateOwnMember } from "@/actions/member-access";
 import { MemberProfileFields } from "@/components/members/member-profile-fields";
+import {
+  MyProfileTabs,
+  type MyProfileTabId,
+} from "@/components/members/member-tabs";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/form-fields";
 import { ImageUpload } from "@/components/ui/image-upload";
@@ -17,6 +21,7 @@ import {
 } from "@/lib/members";
 import { MEMBER_STATUSES, ROLE_GROUPS } from "@/lib/constants";
 import { resolveProfileVisibility } from "@/lib/profile-visibility";
+import { cn } from "@/lib/utils";
 import type { ProfileVisibilityFormValues } from "@/lib/validations";
 import { ProfileVisibilityFields } from "@/components/members/profile-visibility-fields";
 
@@ -24,8 +29,28 @@ type MyProfileFormProps = {
   member: Member;
 };
 
+function TabPanel({
+  tab,
+  activeTab,
+  children,
+}: {
+  tab: MyProfileTabId;
+  activeTab: MyProfileTabId;
+  children: React.ReactNode;
+}) {
+  return (
+    <div
+      className={cn("space-y-6", activeTab !== tab && "hidden")}
+      role="tabpanel"
+    >
+      {children}
+    </div>
+  );
+}
+
 export function MyProfileForm({ member }: MyProfileFormProps) {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<MyProfileTabId>("contact");
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [headshotUrl, setHeadshotUrl] = useState(member.headshotUrl ?? "");
@@ -107,12 +132,14 @@ export function MyProfileForm({ member }: MyProfileFormProps) {
         </p>
       </div>
 
+      <MyProfileTabs activeTab={activeTab} onChange={setActiveTab} />
+
       <form
         onSubmit={(e) => {
           e.preventDefault();
           void handleSubmit(new FormData(e.currentTarget));
         }}
-        className="space-y-8 p-5 sm:p-6"
+        className="space-y-6 p-5 sm:p-6"
       >
         {error ? (
           <p className="rounded-md border border-bni/20 bg-red-50 px-4 py-3 text-sm text-bni">
@@ -120,7 +147,7 @@ export function MyProfileForm({ member }: MyProfileFormProps) {
           </p>
         ) : null}
 
-        <section className="space-y-4">
+        <TabPanel tab="contact" activeTab={activeTab}>
           <div>
             <h2 className="text-base font-semibold text-foreground">
               Contact details
@@ -192,72 +219,65 @@ export function MyProfileForm({ member }: MyProfileFormProps) {
             folder="headshots"
             aspect="square"
           />
-        </section>
 
-        <section className="space-y-4">
-          <ProfileVisibilityFields
-            visibility={profileVisibility}
-            onChange={setProfileVisibility}
-          />
-        </section>
+          <div className="rounded-xl border border-border bg-surface-muted/40 p-4 sm:p-5">
+            <div>
+              <h2 className="text-base font-semibold text-foreground">
+                Chapter details
+              </h2>
+              <p className="mt-1 text-sm text-muted">
+                Managed by the chapter leadership team.
+              </p>
+            </div>
 
-        <section className="space-y-4 rounded-xl border border-border bg-surface-muted/40 p-4 sm:p-5">
-          <div>
-            <h2 className="text-base font-semibold text-foreground">
-              Chapter details
-            </h2>
-            <p className="mt-1 text-sm text-muted">
-              Managed by the chapter leadership team.
-            </p>
-          </div>
-
-          <dl className="grid gap-4 sm:grid-cols-2">
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                BNI seat
-              </dt>
-              <dd className="mt-1 text-sm text-foreground">{member.bniSeat}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                Status
-              </dt>
-              <dd className="mt-1 text-sm text-foreground">{statusLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                Role group
-              </dt>
-              <dd className="mt-1 text-sm text-foreground">{roleGroupLabel}</dd>
-            </div>
-            <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                Public profile
-              </dt>
-              <dd className="mt-1 text-sm">
-                <Link
-                  href={profilePath}
-                  className="font-medium text-bni hover:underline"
-                  target="_blank"
-                >
-                  {member.slug ?? "View page"}
-                </Link>
-              </dd>
-            </div>
-            {hasChapterRoles(member.chapterRoles) ? (
-              <div className="sm:col-span-2">
+            <dl className="mt-4 grid gap-4 sm:grid-cols-2">
+              <div>
                 <dt className="text-xs font-medium uppercase tracking-wide text-muted">
-                  Chapter roles
+                  BNI seat
                 </dt>
-                <dd className="mt-1 text-sm text-foreground">
-                  {formatChapterRoles(member.chapterRoles)}
+                <dd className="mt-1 text-sm text-foreground">{member.bniSeat}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+                  Status
+                </dt>
+                <dd className="mt-1 text-sm text-foreground">{statusLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+                  Role group
+                </dt>
+                <dd className="mt-1 text-sm text-foreground">{roleGroupLabel}</dd>
+              </div>
+              <div>
+                <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+                  Public profile
+                </dt>
+                <dd className="mt-1 text-sm">
+                  <Link
+                    href={profilePath}
+                    className="font-medium text-bni hover:underline"
+                    target="_blank"
+                  >
+                    {member.slug ?? "View page"}
+                  </Link>
                 </dd>
               </div>
-            ) : null}
-          </dl>
-        </section>
+              {hasChapterRoles(member.chapterRoles) ? (
+                <div className="sm:col-span-2">
+                  <dt className="text-xs font-medium uppercase tracking-wide text-muted">
+                    Chapter roles
+                  </dt>
+                  <dd className="mt-1 text-sm text-foreground">
+                    {formatChapterRoles(member.chapterRoles)}
+                  </dd>
+                </div>
+              ) : null}
+            </dl>
+          </div>
+        </TabPanel>
 
-        <section className="space-y-4">
+        <TabPanel tab="profile" activeTab={activeTab}>
           <MemberProfileFields
             member={member}
             headline={profileHeadline}
@@ -275,7 +295,14 @@ export function MyProfileForm({ member }: MyProfileFormProps) {
             onGeneratedAtChange={setProfileGeneratedAt}
             onPublishedChange={setProfilePublished}
           />
-        </section>
+        </TabPanel>
+
+        <TabPanel tab="visibility" activeTab={activeTab}>
+          <ProfileVisibilityFields
+            visibility={profileVisibility}
+            onChange={setProfileVisibility}
+          />
+        </TabPanel>
 
         <div className="flex flex-wrap gap-3 border-t border-border pt-5">
           <Button type="submit" disabled={isPending}>
