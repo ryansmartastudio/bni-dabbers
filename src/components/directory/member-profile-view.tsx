@@ -32,7 +32,7 @@ function ContactLink({
   return (
     <a
       href={href}
-      className="text-foreground underline decoration-border underline-offset-4 transition hover:text-bni hover:decoration-bni/40"
+      className="wrap-break-word text-foreground underline decoration-border underline-offset-4 transition hover:text-bni hover:decoration-bni/40"
     >
       {children}
     </a>

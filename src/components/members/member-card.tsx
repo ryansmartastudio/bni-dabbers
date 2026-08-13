@@ -51,13 +51,15 @@ export function MemberCard({ member, showContact = false, showEdit = false }: Me
           ) : null}
         </div>
         {member.linkedinUrl ? (
-          <LinkedInQr url={member.linkedinUrl} size={72} />
+          <div className="hidden shrink-0 sm:block">
+            <LinkedInQr url={member.linkedinUrl} size={72} />
+          </div>
         ) : null}
       </div>
       {showContact ? (
         <div className="border-t border-border bg-surface-muted px-4 py-3 text-sm">
-          <p>{member.email}</p>
-          <p>{member.phone}</p>
+          <p className="wrap-break-word">{member.email}</p>
+          <p className="wrap-break-word">{member.phone}</p>
           {member.websiteUrl ? (
             <MemberWebsiteLink url={member.websiteUrl} className="mt-1 block" />
           ) : null}

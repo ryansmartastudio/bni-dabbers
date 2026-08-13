@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getAuthContext } from "@/lib/auth";
 import { isLinkedMember } from "@/lib/member-access";
 import { AuthButtons } from "@/components/layout/auth-buttons";
+import { MobileNav } from "@/components/layout/mobile-nav";
 
 const navLinks = [
   { href: "/", label: "Directory", public: true },
@@ -24,7 +25,7 @@ export async function Header() {
   });
 
   return (
-    <header className="border-b border-border bg-white">
+    <header className="relative border-b border-border bg-white">
       <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-4 sm:px-6">
         <Link href="/" className="flex items-center gap-3">
           <span className="flex h-9 w-9 items-center justify-center rounded-full bg-bni text-sm font-bold text-white">
@@ -40,33 +41,22 @@ export async function Header() {
 
         <nav className="hidden items-center gap-1 md:flex">
           {visibleLinks.map((link) => (
-              <Link
-                key={link.href}
-                href={link.href}
-                className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition hover:bg-surface-muted"
-              >
-                {link.label}
-              </Link>
-            ))}
+            <Link
+              key={link.href}
+              href={link.href}
+              className="rounded-md px-3 py-2 text-sm font-medium text-foreground transition hover:bg-surface-muted"
+            >
+              {link.label}
+            </Link>
+          ))}
         </nav>
 
-        {isSignedIn ? (
-          <nav className="flex items-center gap-2 md:hidden">
-            {visibleLinks
-              .filter((link) => !link.public)
-              .map((link) => (
-                <Link
-                  key={link.href}
-                  href={link.href}
-                  className="rounded-md px-2 py-1.5 text-xs font-medium text-foreground"
-                >
-                  {link.label}
-                </Link>
-              ))}
-          </nav>
-        ) : null}
-
-        <AuthButtons />
+        <div className="flex items-center gap-2">
+          {visibleLinks.length > 1 ? (
+            <MobileNav links={visibleLinks} />
+          ) : null}
+          <AuthButtons />
+        </div>
       </div>
     </header>
   );

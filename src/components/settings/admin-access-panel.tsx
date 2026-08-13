@@ -174,7 +174,7 @@ export function AdminAccessPanel({
               {admins.map((admin) => (
                 <li
                   key={admin.id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex flex-col items-start gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -215,7 +215,7 @@ export function AdminAccessPanel({
               {pendingInvites.map((invite) => (
                 <li
                   key={invite.id}
-                  className="flex items-center justify-between gap-3 px-4 py-3"
+                  className="flex flex-col items-start gap-3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="min-w-0">
                     <p className="truncate text-sm font-medium text-foreground">
@@ -225,7 +225,7 @@ export function AdminAccessPanel({
                       Sent {formatInviteDate(invite.createdAt)}
                     </p>
                   </div>
-                  <div className="flex shrink-0 items-center gap-2">
+                  <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:shrink-0">
                     {invite.url ? (
                       <CopyInviteLinkButton url={invite.url} disabled={isPending} />
                     ) : null}
