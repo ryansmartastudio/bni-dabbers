@@ -1,4 +1,5 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { isClerkProxyEnabled } from "@/lib/clerk-config";
 
 const isAdminRoute = createRouteMatcher([
   "/members/new(.*)",
@@ -30,7 +31,7 @@ export default clerkMiddleware(
   },
   {
     frontendApiProxy: {
-      enabled: true,
+      enabled: isClerkProxyEnabled(),
     },
   },
 );

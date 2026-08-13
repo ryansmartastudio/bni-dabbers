@@ -27,6 +27,8 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
    ```json
    { "metadata": "{{user.public_metadata}}" }
    ```
+   Set `NEXT_PUBLIC_APP_URL` to your live site (e.g. `https://www.bnidabbers.co.uk`) so member invite links redirect correctly after sign-in.
+   Only set `NEXT_PUBLIC_CLERK_PROXY_URL` if you enable Frontend API proxying in Clerk Dashboard → Domains. Leave it unset when using Clerk's standard DNS/CNAME setup.
 3. Set your first admin in Clerk: Users → Metadata → `publicMetadata`: `{ "role": "admin" }`. Additional admins can be invited from Settings → Admins (copy the invite link and send it manually).
 4. Verify `bnidabbers.co.uk` in Resend and add `RESEND_API_KEY`, `RESEND_FROM_EMAIL` and `RESEND_REPLY_TO` to `.env.local` and Vercel. Member profile invites are sent from the edit member screen → Profile access tab. The email uses the chapter logo from Settings.
 5. Push the database schema:
@@ -43,7 +45,7 @@ A fast, mobile-friendly web app for managing the BNI Dabbers member roster, publ
 
 1. Import the repo to Vercel
 2. Add Neon integration (sets `DATABASE_URL`)
-3. Add Clerk env vars, `BLOB_READ_WRITE_TOKEN`, and Resend keys (`RESEND_API_KEY`, `RESEND_FROM_EMAIL`, `RESEND_REPLY_TO`)
+3. Add Clerk env vars, `BLOB_READ_WRITE_TOKEN`, Resend keys, and set `NEXT_PUBLIC_APP_URL=https://www.bnidabbers.co.uk`
 4. Run `npm run db:push` against production, then `npm run db:seed`
 
 ## Meeting sheet structure

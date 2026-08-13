@@ -1,4 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
+import { clerkClient } from "@clerk/nextjs/server";
 import { and, desc, eq, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
@@ -10,6 +11,21 @@ export function getMemberIdFromClaims(
 ): string | null {
   const metadata = sessionClaims?.metadata as { memberId?: string } | undefined;
   return typeof metadata?.memberId === "string" ? metadata.memberId : null;
+}
+
+async function getMemberIdForUser(
+  userId: string,
+  sessionClaims: Record<string, unknown> | null | undefined,
+): Promise<string | null> {
+  const fromClaims = getMemberIdFromClaims(sessionClaims);
+  if (fromClaims) return fromClaims;
+
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const memberId = (user.publicMetadata as { memberId?: string } | undefined)
+    ?.memberId;
+
+  return typeof memberId === "string" ? memberId : null;
 }
 
 async function acceptInviteForMember(memberId: string, userId: string) {
@@ -82,7 +98,8 @@ export async function getCurrentMember(): Promise<Member | null> {
   });
   if (byClerkId) return byClerkId;
 
-  const memberId = getMemberIdFromClaims(
+  const memberId = await getMemberIdForUser(
+    userId,
     sessionClaims as Record<string, unknown>,
   );
   if (!memberId) return null;

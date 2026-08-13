@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import type { Metadata } from "next";
 import { Figtree } from "next/font/google";
 import { Header } from "@/components/layout/header";
+import { getClerkProxyUrl } from "@/lib/clerk-config";
 import "./globals.css";
 
 const figtree = Figtree({
@@ -16,8 +17,10 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
+  const proxyUrl = getClerkProxyUrl();
+
   return (
-    <ClerkProvider>
+    <ClerkProvider {...(proxyUrl ? { proxyUrl } : {})}>
       <html
         lang="en"
         className={`${figtree.variable} h-full antialiased`}
