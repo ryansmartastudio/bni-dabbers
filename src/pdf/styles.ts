@@ -1,10 +1,11 @@
 import { StyleSheet } from "@react-pdf/renderer";
 import { BNI_GREY, BNI_RED } from "@/lib/constants";
+import { PDF_FONT_FAMILY } from "@/pdf/fonts";
 
 export const pdfStyles = StyleSheet.create({
   page: {
     padding: 40,
-    fontFamily: "Helvetica",
+    fontFamily: PDF_FONT_FAMILY,
     fontSize: 10,
     color: "#111111",
   },

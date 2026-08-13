@@ -22,6 +22,10 @@ const nextConfig: NextConfig = {
     ],
   },
   serverExternalPackages: ["@react-pdf/renderer"],
+  outputFileTracingIncludes: {
+    "/api/export/booklet": ["./src/pdf/fonts/**"],
+    "/api/export/directory": ["./src/pdf/fonts/**"],
+  },
 };
 
 export default nextConfig;

@@ -70,6 +70,10 @@ export function BookletDocument({
             <Text style={styles.slotBody}>
               {settings.presentationSlot || " "}
             </Text>
+            <View style={styles.slotSpeakerRow}>
+              <Text style={styles.slotSpeakerLabel}>This week&apos;s speaker:</Text>
+              <View style={styles.slotSpeakerLine} />
+            </View>
           </View>
           <View style={styles.slotBox}>
             <Text style={styles.slotTitle}>Education slot</Text>

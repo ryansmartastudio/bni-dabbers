@@ -5,6 +5,7 @@ import { getActiveMembers } from "@/lib/members";
 import { getChapterSettings } from "@/lib/settings";
 import { generateQrDataUrl } from "@/lib/qr";
 import "@/pdf/hyphenation";
+import "@/pdf/fonts";
 import { DirectoryDocument } from "@/pdf/directory-document";
 
 export async function GET() {

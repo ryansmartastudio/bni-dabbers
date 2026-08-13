@@ -1,12 +1,13 @@
 import { StyleSheet } from "@react-pdf/renderer";
 import { BNI_GREY, BNI_RED } from "@/lib/constants";
+import { PDF_FONT_FAMILY } from "@/pdf/fonts";
 
 export const bookletStyles = StyleSheet.create({
   page: {
     paddingTop: 32,
     paddingBottom: 32,
     paddingHorizontal: 28,
-    fontFamily: "Helvetica",
+    fontFamily: PDF_FONT_FAMILY,
     fontSize: 8.5,
     color: "#111111",
   },
@@ -14,7 +15,7 @@ export const bookletStyles = StyleSheet.create({
     paddingTop: 32,
     paddingBottom: 32,
     paddingHorizontal: 28,
-    fontFamily: "Helvetica",
+    fontFamily: PDF_FONT_FAMILY,
     fontSize: 8.5,
     color: "#111111",
   },
@@ -47,7 +48,7 @@ export const bookletStyles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 24,
     paddingHorizontal: 32,
-    fontFamily: "Helvetica",
+    fontFamily: PDF_FONT_FAMILY,
     fontSize: 9,
     color: "#111111",
     backgroundColor: "#ffffff",
@@ -208,25 +209,31 @@ export const bookletStyles = StyleSheet.create({
     borderRadius: 4,
     padding: 7,
     backgroundColor: "#ffffff",
-    minHeight: 62,
+    minHeight: 72,
+  },
+  coreValueHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginBottom: 4,
   },
   coreValueIconWrap: {
-    width: 18,
-    height: 18,
-    marginBottom: 5,
+    width: 26,
+    height: 26,
     alignItems: "center",
     justifyContent: "center",
+    flexShrink: 0,
   },
   coreValueCustomIcon: {
-    width: 16,
-    height: 16,
+    width: 24,
+    height: 24,
     objectFit: "contain",
   },
   coreValueTitle: {
     fontSize: 8,
     fontWeight: "bold",
-    marginBottom: 3,
     lineHeight: 1.2,
+    flex: 1,
   },
   coreValueDescription: {
     fontSize: 6.5,
@@ -585,6 +592,23 @@ export const bookletStyles = StyleSheet.create({
     fontSize: 9,
     color: BNI_GREY,
     lineHeight: 1.45,
+  },
+  slotSpeakerRow: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginTop: 10,
+  },
+  slotSpeakerLabel: {
+    fontSize: 9,
+    fontWeight: "bold",
+    color: "#333333",
+  },
+  slotSpeakerLine: {
+    flex: 1,
+    borderBottom: "1px solid #cccccc",
+    height: 14,
+    marginBottom: 2,
   },
   pageTitle: {
     fontSize: 15,

@@ -6,11 +6,11 @@ import { normalizeCoreValues } from "@/lib/core-values";
 import {
   CalendarIcon,
   ClockIcon,
-  CoreValueIcon,
   GlobeIcon,
   MapPinIcon,
   MessageIcon,
 } from "@/pdf/booklet/cover-icons";
+import { CoreValueFaIcon } from "@/pdf/booklet/fa-icons";
 import { bookletStyles as styles } from "@/pdf/booklet/styles";
 
 type CoverPageProps = {
@@ -38,14 +38,16 @@ function DetailRow({
 function CoreValueCard({ value }: { value: CoreValue }) {
   return (
     <View style={styles.coreValueCard}>
-      <View style={styles.coreValueIconWrap}>
-        {value.iconUrl ? (
-          <Image src={value.iconUrl} style={styles.coreValueCustomIcon} />
-        ) : (
-          <CoreValueIcon iconKey={value.iconKey} size={13} />
-        )}
+      <View style={styles.coreValueHeader}>
+        <View style={styles.coreValueIconWrap}>
+          {value.iconUrl ? (
+            <Image src={value.iconUrl} style={styles.coreValueCustomIcon} />
+          ) : (
+            <CoreValueFaIcon iconKey={value.iconKey} size={26} />
+          )}
+        </View>
+        <Text style={styles.coreValueTitle}>{value.title}</Text>
       </View>
-      <Text style={styles.coreValueTitle}>{value.title}</Text>
       <Text style={styles.coreValueDescription}>{value.description}</Text>
     </View>
   );

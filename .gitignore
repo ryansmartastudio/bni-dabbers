@@ -23,6 +23,7 @@
 # misc
 .DS_Store
 *.pem
+tmp-meeting-sheet-preview.pdf
 
 # debug
 npm-debug.log*

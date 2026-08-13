@@ -1,20 +1,34 @@
 import type { CoreValue } from "@/db/schema";
 
 export const CORE_VALUE_ICON_OPTIONS = [
-  { key: "gift", label: "Gift" },
-  { key: "landmark", label: "Landmark" },
-  { key: "users", label: "People" },
-  { key: "clipboard-check", label: "Accountability" },
-  { key: "book-open", label: "Learning" },
-  { key: "sun", label: "Positive attitude" },
+  { key: "handshake-angle", label: "Handshake angle" },
+  { key: "lightbulb-on", label: "Lightbulb on" },
+  { key: "user-group", label: "User group" },
+  { key: "shield-check", label: "Shield check" },
+  { key: "graduation-cap", label: "Graduation cap" },
+  { key: "face-smile", label: "Face smile" },
   { key: "trophy", label: "Trophy" },
   { key: "heart", label: "Heart" },
   { key: "handshake", label: "Handshake" },
   { key: "star", label: "Star" },
-  { key: "lightbulb", label: "Innovation" },
+  { key: "lightbulb", label: "Lightbulb" },
 ] as const;
 
 export type CoreValueIconKey = (typeof CORE_VALUE_ICON_OPTIONS)[number]["key"];
+
+const LEGACY_CORE_VALUE_ICON_KEYS: Record<string, CoreValueIconKey> = {
+  gift: "handshake-angle",
+  landmark: "lightbulb-on",
+  users: "user-group",
+  "clipboard-check": "shield-check",
+  "book-open": "graduation-cap",
+  sun: "face-smile",
+};
+
+export function resolveCoreValueIconKey(iconKey: string): CoreValueIconKey {
+  if (isCoreValueIconKey(iconKey)) return iconKey;
+  return LEGACY_CORE_VALUE_ICON_KEYS[iconKey] ?? "star";
+}
 
 export const DEFAULT_CORE_VALUES: CoreValue[] = [
   {
@@ -22,37 +36,37 @@ export const DEFAULT_CORE_VALUES: CoreValue[] = [
     title: "Givers Gain®",
     description:
       "Only by giving to others first will we ever be able to receive.",
-    iconKey: "gift",
+    iconKey: "handshake-angle",
   },
   {
     id: "traditions-innovation",
     title: "Traditions + Innovation",
     description: "We honour the past while embracing the future.",
-    iconKey: "landmark",
+    iconKey: "lightbulb-on",
   },
   {
     id: "building-relationships",
     title: "Building Relationships",
     description: "Relationships are the foundation of every successful business.",
-    iconKey: "users",
+    iconKey: "user-group",
   },
   {
     id: "accountability",
     title: "Accountability",
     description: "We hold ourselves accountable for our actions and results.",
-    iconKey: "clipboard-check",
+    iconKey: "shield-check",
   },
   {
     id: "lifelong-learning",
     title: "Lifelong Learning",
     description: "Continuous improvement through education and personal growth.",
-    iconKey: "book-open",
+    iconKey: "graduation-cap",
   },
   {
     id: "positive-attitude",
     title: "Positive Attitude",
     description: "A positive mindset creates positive outcomes for everyone.",
-    iconKey: "sun",
+    iconKey: "face-smile",
   },
   {
     id: "recognition",
@@ -68,7 +82,7 @@ export function normalizeCoreValues(values?: CoreValue[] | null): CoreValue[] {
 
   const byId = new Map(values.map((value) => [value.id, value]));
 
-  return DEFAULT_CORE_VALUES.map((defaultValue, index) => {
+  return DEFAULT_CORE_VALUES.map((defaultValue) => {
     const saved = byId.get(defaultValue.id);
     if (!saved) return { ...defaultValue };
 
@@ -76,7 +90,7 @@ export function normalizeCoreValues(values?: CoreValue[] | null): CoreValue[] {
       id: saved.id || defaultValue.id,
       title: saved.title?.trim() || defaultValue.title,
       description: saved.description?.trim() || defaultValue.description,
-      iconKey: saved.iconKey || defaultValue.iconKey,
+      iconKey: resolveCoreValueIconKey(saved.iconKey || defaultValue.iconKey),
       iconUrl: saved.iconUrl || null,
     };
   }).concat(
@@ -89,7 +103,7 @@ export function normalizeCoreValues(values?: CoreValue[] | null): CoreValue[] {
         id: value.id || `core-value-extra-${index}`,
         title: value.title?.trim() || "Core value",
         description: value.description?.trim() || "",
-        iconKey: value.iconKey || "star",
+        iconKey: resolveCoreValueIconKey(value.iconKey || "star"),
         iconUrl: value.iconUrl || null,
       })),
   );

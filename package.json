@@ -16,6 +16,7 @@
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",
     "@clerk/nextjs": "^7.7.1",
+    "@fortawesome/pro-duotone-svg-icons": "^7.3.1",
     "@neondatabase/serverless": "^1.1.0",
     "@react-pdf/renderer": "^4.6.0",
     "@vercel/blob": "^2.7.0",
