@@ -6,6 +6,7 @@ import { z } from "zod";
 import { db } from "@/db";
 import { members } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
+import { removeClerkAccessForMember } from "@/lib/clerk-members";
 import { requireMemberAccess } from "@/lib/member-access";
 import {
   buildUniqueMemberSlug,
@@ -132,8 +133,22 @@ export async function deleteMember(id: string) {
   const existing = await db.query.members.findFirst({
     where: eq(members.id, id),
   });
+
+  if (!existing) {
+    throw new Error("Member not found");
+  }
+
+  try {
+    await removeClerkAccessForMember(existing);
+  } catch (error) {
+    throw new Error(
+      `Could not remove Clerk access: ${error instanceof Error ? error.message : "Request failed."}`,
+    );
+  }
+
   await db.delete(members).where(eq(members.id, id));
-  revalidateMemberPaths(existing ?? undefined);
+  revalidateMemberPaths(existing);
+  revalidatePath("/my-profile");
   return { success: true };
 }
 

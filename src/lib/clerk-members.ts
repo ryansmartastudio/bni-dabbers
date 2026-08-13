@@ -1,7 +1,8 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { members, type Member } from "@/db/schema";
+import { memberInvites, members, type Member } from "@/db/schema";
+import { getRoleFromPublicMetadata } from "@/lib/auth";
 import { getClerkErrorMessage } from "@/lib/clerk-admins";
 import { getMemberInviteSignUpRedirectUrl } from "@/lib/member-invites";
 
@@ -113,4 +114,46 @@ export async function clearMemberIdFromClerkUser(clerkUserId: string) {
   await client.users.updateUserMetadata(clerkUserId, {
     publicMetadata: rest,
   });
+}
+
+async function revokePendingClerkInvitesForMember(memberId: string) {
+  const pendingInvites = await db.query.memberInvites.findMany({
+    where: and(
+      eq(memberInvites.memberId, memberId),
+      eq(memberInvites.status, "pending"),
+    ),
+  });
+
+  for (const invite of pendingInvites) {
+    if (!invite.clerkInvitationId) continue;
+
+    try {
+      await revokeClerkMemberInvitation(invite.clerkInvitationId);
+    } catch {
+      // Invitation may already be accepted or revoked in Clerk.
+    }
+  }
+}
+
+export async function removeClerkAccessForMember(
+  member: Pick<Member, "id" | "clerkUserId">,
+) {
+  await revokePendingClerkInvitesForMember(member.id);
+
+  if (!member.clerkUserId) {
+    return;
+  }
+
+  const client = await clerkClient();
+  const user = await client.users.getUser(member.clerkUserId);
+  const role = getRoleFromPublicMetadata(
+    user.publicMetadata as Record<string, unknown>,
+  );
+
+  if (role === "admin") {
+    await clearMemberIdFromClerkUser(member.clerkUserId);
+    return;
+  }
+
+  await client.users.deleteUser(member.clerkUserId);
 }
