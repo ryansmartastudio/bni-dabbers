@@ -209,7 +209,7 @@ export const bookletStyles = StyleSheet.create({
     borderRadius: 4,
     padding: 7,
     backgroundColor: "#ffffff",
-    minHeight: 72,
+    minHeight: 68,
   },
   coreValueHeader: {
     flexDirection: "row",
@@ -218,15 +218,15 @@ export const bookletStyles = StyleSheet.create({
     marginBottom: 4,
   },
   coreValueIconWrap: {
-    width: 26,
-    height: 26,
+    width: 20,
+    height: 20,
     alignItems: "center",
     justifyContent: "center",
     flexShrink: 0,
   },
   coreValueCustomIcon: {
-    width: 24,
-    height: 24,
+    width: 18,
+    height: 18,
     objectFit: "contain",
   },
   coreValueTitle: {

@@ -41,7 +41,7 @@ const CORE_VALUE_FA_ICONS: Record<CoreValueIconKey, IconDefinition> = {
 
 export function FaDuotoneIcon({
   icon,
-  size = 26,
+  size = 20,
   color = BNI_RED,
 }: FaIconProps) {
   const [width, height, , , paths] = icon.icon;
@@ -64,7 +64,7 @@ export function FaDuotoneIcon({
 
 export function CoreValueFaIcon({
   iconKey,
-  size = 26,
+  size = 20,
   color = BNI_RED,
 }: {
   iconKey: string;

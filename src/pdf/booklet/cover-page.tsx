@@ -43,7 +43,7 @@ function CoreValueCard({ value }: { value: CoreValue }) {
           {value.iconUrl ? (
             <Image src={value.iconUrl} style={styles.coreValueCustomIcon} />
           ) : (
-            <CoreValueFaIcon iconKey={value.iconKey} size={26} />
+            <CoreValueFaIcon iconKey={value.iconKey} size={20} />
           )}
         </View>
         <Text style={styles.coreValueTitle}>{value.title}</Text>
