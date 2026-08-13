@@ -109,9 +109,16 @@ export async function sendMemberInviteAction(memberId: string, email: string) {
   }
 
   const normalizedEmail = parsedEmail.data.toLowerCase();
+  const emailsToCheck = Array.from(
+    new Set([normalizedEmail, member.email.trim().toLowerCase()]),
+  );
 
   try {
-    const existingUser = await getClerkUserByEmail(normalizedEmail);
+    let existingUser = null;
+    for (const email of emailsToCheck) {
+      existingUser = await getClerkUserByEmail(email);
+      if (existingUser) break;
+    }
 
     if (existingUser) {
       await linkClerkUserToMember(existingUser.id, memberId);
@@ -154,49 +161,92 @@ export async function sendMemberInviteAction(memberId: string, email: string) {
 
     await revokePendingInvitesForMember(memberId);
 
-    const invitation = await createMemberInvitation(normalizedEmail, memberId);
+    try {
+      const invitation = await createMemberInvitation(normalizedEmail, memberId);
 
-    const [invite] = await db
-      .insert(memberInvites)
-      .values({
-        memberId,
+      const [invite] = await db
+        .insert(memberInvites)
+        .values({
+          memberId,
+          email: normalizedEmail,
+          clerkInvitationId: invitation.clerkInvitationId,
+          status: "pending",
+          sentByUserId: userId,
+          lastEmailedAt: new Date(),
+        })
+        .returning();
+
+      let emailSent = true;
+      let emailError: string | null = null;
+
+      if (invitation.invitationUrl) {
+        try {
+          await sendMemberInviteEmail(
+            member,
+            invitation.invitationUrl,
+            normalizedEmail,
+          );
+        } catch (error) {
+          emailSent = false;
+          emailError = getClerkErrorMessage(error);
+        }
+      } else {
+        emailSent = false;
+        emailError = "Invite created but no invitation URL was returned.";
+      }
+
+      revalidateMemberPaths(member);
+      return {
+        success: true,
+        type: "invited" as const,
         email: normalizedEmail,
-        clerkInvitationId: invitation.clerkInvitationId,
-        status: "pending",
-        sentByUserId: userId,
-        lastEmailedAt: new Date(),
-      })
-      .returning();
+        invitationUrl: invitation.invitationUrl,
+        emailSent,
+        emailError,
+        inviteId: invite.id,
+      };
+    } catch (inviteError) {
+      const fallbackUser = await getClerkUserByEmail(normalizedEmail);
+      if (!fallbackUser) {
+        throw inviteError;
+      }
 
-    let emailSent = true;
-    let emailError: string | null = null;
+      await linkClerkUserToMember(fallbackUser.id, memberId);
 
-    if (invitation.invitationUrl) {
+      const [invite] = await db
+        .insert(memberInvites)
+        .values({
+          memberId,
+          email: normalizedEmail,
+          status: "accepted",
+          acceptedAt: new Date(),
+          sentByUserId: userId,
+          lastEmailedAt: new Date(),
+        })
+        .returning();
+
+      const inviteUrl = getMyProfileUrl();
+      let emailSent = true;
+      let emailError: string | null = null;
+
       try {
-        await sendMemberInviteEmail(
-          member,
-          invitation.invitationUrl,
-          normalizedEmail,
-        );
+        await sendMemberInviteEmail(member, inviteUrl, normalizedEmail);
       } catch (error) {
         emailSent = false;
         emailError = getClerkErrorMessage(error);
       }
-    } else {
-      emailSent = false;
-      emailError = "Invite created but no invitation URL was returned.";
-    }
 
-    revalidateMemberPaths(member);
-    return {
-      success: true,
-      type: "invited" as const,
-      email: normalizedEmail,
-      invitationUrl: invitation.invitationUrl,
-      emailSent,
-      emailError,
-      inviteId: invite.id,
-    };
+      revalidateMemberPaths(member);
+      return {
+        success: true,
+        type: "linked" as const,
+        email: normalizedEmail,
+        invitationUrl: inviteUrl,
+        emailSent,
+        emailError,
+        inviteId: invite.id,
+      };
+    }
   } catch (error) {
     return { success: false, error: getClerkErrorMessage(error) };
   }

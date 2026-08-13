@@ -1,16 +1,30 @@
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { and, desc, eq, ne } from "drizzle-orm";
+import { and, desc, eq, inArray, ne } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { memberInvites, members, type Member } from "@/db/schema";
-import { getAuthContext, requireAuth } from "@/lib/auth";
+import { requireAuth } from "@/lib/auth";
+
+export type MemberLinkDiagnostics = {
+  signedInEmails: string[];
+  memberIdInMetadata: string | null;
+  pendingInviteEmail: string | null;
+};
 
 export function getMemberIdFromClaims(
   sessionClaims: Record<string, unknown> | null | undefined,
 ): string | null {
   const metadata = sessionClaims?.metadata as { memberId?: string } | undefined;
   return typeof metadata?.memberId === "string" ? metadata.memberId : null;
+}
+
+async function getClerkUserEmails(userId: string) {
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  return user.emailAddresses.map((address) =>
+    address.emailAddress.trim().toLowerCase(),
+  );
 }
 
 async function getMemberIdForUser(
@@ -26,6 +40,30 @@ async function getMemberIdForUser(
     ?.memberId;
 
   return typeof memberId === "string" ? memberId : null;
+}
+
+async function findMemberIdFromInviteEmails(emails: string[]) {
+  if (emails.length === 0) return null;
+
+  const invite = await db.query.memberInvites.findFirst({
+    where: and(
+      inArray(memberInvites.email, emails),
+      inArray(memberInvites.status, ["pending", "accepted"]),
+    ),
+    orderBy: [desc(memberInvites.sentAt)],
+  });
+
+  if (!invite) return null;
+
+  const member = await db.query.members.findFirst({
+    where: eq(members.id, invite.memberId),
+  });
+
+  if (!member || member.clerkUserId) {
+    return null;
+  }
+
+  return invite.memberId;
 }
 
 async function acceptInviteForMember(memberId: string, userId: string) {
@@ -48,9 +86,27 @@ async function acceptInviteForMember(memberId: string, userId: string) {
   }
 }
 
+async function ensureClerkMemberMetadata(userId: string, memberId: string) {
+  const client = await clerkClient();
+  const user = await client.users.getUser(userId);
+  const metadata = (user.publicMetadata ?? {}) as Record<string, unknown>;
+
+  if (metadata.memberId === memberId) {
+    return;
+  }
+
+  await client.users.updateUserMetadata(userId, {
+    publicMetadata: {
+      ...metadata,
+      memberId,
+    },
+  });
+}
+
 async function linkMemberFromClaims(
   userId: string,
   memberId: string,
+  options?: { requireInviteRecord?: boolean },
 ): Promise<Member | null> {
   const member = await db.query.members.findFirst({
     where: eq(members.id, memberId),
@@ -64,16 +120,18 @@ async function linkMemberFromClaims(
     return null;
   }
 
-  const invite = await db.query.memberInvites.findFirst({
-    where: and(
-      eq(memberInvites.memberId, memberId),
-      ne(memberInvites.status, "revoked"),
-    ),
-    orderBy: [desc(memberInvites.sentAt)],
-  });
+  if (options?.requireInviteRecord !== false) {
+    const invite = await db.query.memberInvites.findFirst({
+      where: and(
+        eq(memberInvites.memberId, memberId),
+        ne(memberInvites.status, "revoked"),
+      ),
+      orderBy: [desc(memberInvites.sentAt)],
+    });
 
-  if (!invite) {
-    return null;
+    if (!invite) {
+      return null;
+    }
   }
 
   const [linked] = await db
@@ -85,8 +143,38 @@ async function linkMemberFromClaims(
     .where(eq(members.id, memberId))
     .returning();
 
+  if (!linked) {
+    return null;
+  }
+
+  await ensureClerkMemberMetadata(userId, memberId);
   await acceptInviteForMember(memberId, userId);
-  return linked ?? null;
+  return linked;
+}
+
+export async function getMemberLinkDiagnostics(): Promise<MemberLinkDiagnostics | null> {
+  const { userId, sessionClaims } = await auth();
+  if (!userId) return null;
+
+  const signedInEmails = await getClerkUserEmails(userId);
+  const memberIdInMetadata = await getMemberIdForUser(
+    userId,
+    sessionClaims as Record<string, unknown>,
+  );
+
+  const pendingInvite = await db.query.memberInvites.findFirst({
+    where: and(
+      inArray(memberInvites.email, signedInEmails),
+      eq(memberInvites.status, "pending"),
+    ),
+    orderBy: [desc(memberInvites.sentAt)],
+  });
+
+  return {
+    signedInEmails,
+    memberIdInMetadata,
+    pendingInviteEmail: pendingInvite?.email ?? null,
+  };
 }
 
 export async function getCurrentMember(): Promise<Member | null> {
@@ -98,13 +186,23 @@ export async function getCurrentMember(): Promise<Member | null> {
   });
   if (byClerkId) return byClerkId;
 
-  const memberId = await getMemberIdForUser(
+  const memberIdFromMetadata = await getMemberIdForUser(
     userId,
     sessionClaims as Record<string, unknown>,
   );
-  if (!memberId) return null;
 
-  return linkMemberFromClaims(userId, memberId);
+  if (memberIdFromMetadata) {
+    const linked = await linkMemberFromClaims(userId, memberIdFromMetadata, {
+      requireInviteRecord: false,
+    });
+    if (linked) return linked;
+  }
+
+  const emails = await getClerkUserEmails(userId);
+  const memberIdFromInvite = await findMemberIdFromInviteEmails(emails);
+  if (!memberIdFromInvite) return null;
+
+  return linkMemberFromClaims(userId, memberIdFromInvite);
 }
 
 export async function requireLinkedMember() {
