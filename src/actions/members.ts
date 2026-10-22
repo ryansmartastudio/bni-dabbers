@@ -17,6 +17,10 @@ import {
   memberProfileSchema,
   type MemberProfileFormValues,
 } from "@/lib/member-profile";
+import {
+  revalidateAiDiscovery,
+  revalidateMarkdownForMember,
+} from "@/lib/ai/revalidate-discovery";
 import { resolveProfileVisibility } from "@/lib/profile-visibility";
 import { profileVisibilitySchema } from "@/lib/validations";
 
@@ -28,6 +32,9 @@ function revalidateMemberPaths(member?: { id: string; slug: string | null }) {
   revalidatePath("/exports");
   if (member) {
     revalidatePath(getMemberProfilePath(member));
+    revalidateMarkdownForMember(member);
+  } else {
+    revalidateAiDiscovery();
   }
 }
 
@@ -55,9 +62,37 @@ function normalizeProfileFields(parsed: {
   };
 }
 
-export async function createMember(data: MemberFormValues) {
+type MemberSaveResult = { success: true } | { success: false; error: string };
+
+function parseMemberForm(data: MemberFormValues) {
+  const result = memberSchema.safeParse(data);
+  if (result.success) return { parsed: result.data, error: null };
+  const issue = result.error.issues[0];
+  const field = issue?.path.join(".");
+  return {
+    parsed: null,
+    error: field ? `${field}: ${issue.message}` : (issue?.message ?? "Invalid form data"),
+  };
+}
+
+function getMemberWriteError(error: unknown): string | null {
+  let current: unknown = error;
+  while (current && typeof current === "object") {
+    const { code, constraint } = current as { code?: string; constraint?: string };
+    if (code === "23505") {
+      return constraint?.includes("slug")
+        ? "That public profile slug is already used by another member. Choose a different one or leave it blank."
+        : "A member with these details already exists.";
+    }
+    current = (current as { cause?: unknown }).cause;
+  }
+  return null;
+}
+
+export async function createMember(data: MemberFormValues): Promise<MemberSaveResult> {
   await requireAdmin();
-  const parsed = memberSchema.parse(data);
+  const { parsed, error } = parseMemberForm(data);
+  if (!parsed) return { success: false, error };
   const slug =
     parsed.slug?.trim() ||
     (await buildUniqueMemberSlug({
@@ -66,32 +101,43 @@ export async function createMember(data: MemberFormValues) {
       company: parsed.company,
     }));
 
-  const [created] = await db
-    .insert(members)
-    .values({
-      ...parsed,
-      slug,
-      linkedinUrl: parsed.linkedinUrl || null,
-      websiteUrl: parsed.websiteUrl || null,
-      chapterRoles: parsed.chapterRoles,
-      notes: parsed.notes || null,
-      headshotUrl: parsed.headshotUrl || null,
-      ...normalizeProfileFields(parsed),
-    })
-    .returning({ id: members.id, slug: members.slug });
+  let created: { id: string; slug: string | null };
+  try {
+    [created] = await db
+      .insert(members)
+      .values({
+        ...parsed,
+        slug,
+        linkedinUrl: parsed.linkedinUrl || null,
+        websiteUrl: parsed.websiteUrl || null,
+        chapterRoles: parsed.chapterRoles,
+        notes: parsed.notes || null,
+        headshotUrl: parsed.headshotUrl || null,
+        ...normalizeProfileFields(parsed),
+      })
+      .returning({ id: members.id, slug: members.slug });
+  } catch (writeError) {
+    const message = getMemberWriteError(writeError);
+    if (message) return { success: false, error: message };
+    throw writeError;
+  }
 
   revalidateMemberPaths(created);
   return { success: true };
 }
 
-export async function updateMember(id: string, data: MemberFormValues) {
+export async function updateMember(
+  id: string,
+  data: MemberFormValues,
+): Promise<MemberSaveResult> {
   await requireAdmin();
-  const parsed = memberSchema.parse(data);
+  const { parsed, error } = parseMemberForm(data);
+  if (!parsed) return { success: false, error };
   const existing = await db.query.members.findFirst({
     where: eq(members.id, id),
   });
   if (!existing) {
-    throw new Error("Member not found");
+    return { success: false, error: "Member not found" };
   }
 
   const slug =
@@ -106,20 +152,26 @@ export async function updateMember(id: string, data: MemberFormValues) {
       id,
     ));
 
-  await db
-    .update(members)
-    .set({
-      ...parsed,
-      slug,
-      linkedinUrl: parsed.linkedinUrl || null,
-      websiteUrl: parsed.websiteUrl || null,
-      chapterRoles: parsed.chapterRoles,
-      notes: parsed.notes || null,
-      headshotUrl: parsed.headshotUrl || null,
-      ...normalizeProfileFields(parsed),
-      updatedAt: new Date(),
-    })
-    .where(eq(members.id, id));
+  try {
+    await db
+      .update(members)
+      .set({
+        ...parsed,
+        slug,
+        linkedinUrl: parsed.linkedinUrl || null,
+        websiteUrl: parsed.websiteUrl || null,
+        chapterRoles: parsed.chapterRoles,
+        notes: parsed.notes || null,
+        headshotUrl: parsed.headshotUrl || null,
+        ...normalizeProfileFields(parsed),
+        updatedAt: new Date(),
+      })
+      .where(eq(members.id, id));
+  } catch (writeError) {
+    const message = getMemberWriteError(writeError);
+    if (message) return { success: false, error: message };
+    throw writeError;
+  }
 
   revalidateMemberPaths({ id, slug });
   if (existing.slug && existing.slug !== slug) {

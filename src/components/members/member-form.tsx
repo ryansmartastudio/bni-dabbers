@@ -135,10 +135,12 @@ export function MemberForm({ member, accessState }: MemberFormProps) {
 
     startTransition(async () => {
       try {
-        if (member) {
-          await updateMember(member.id, payload);
-        } else {
-          await createMember(payload);
+        const result = member
+          ? await updateMember(member.id, payload)
+          : await createMember(payload);
+        if (!result.success) {
+          setError(result.error);
+          return;
         }
         router.push("/members");
         router.refresh();

@@ -52,11 +52,20 @@ export const memberSchema = z.object({
   status: z.enum(["active", "on_leave", "former"]),
   sortOrder: z.coerce.number().int().min(0),
   bookletAtBottom: z.boolean().default(false),
-  slug: z
-    .string()
-    .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens")
-    .optional()
-    .or(z.literal("")),
+  slug: z.preprocess(
+    (value) =>
+      typeof value === "string"
+        ? value
+            .toLowerCase()
+            .replace(/[^a-z0-9]+/g, "-")
+            .replace(/^-+|-+$/g, "")
+        : value,
+    z
+      .string()
+      .regex(/^[a-z0-9]+(?:-[a-z0-9]+)*$/, "Use lowercase letters, numbers and hyphens")
+      .optional()
+      .or(z.literal("")),
+  ),
   profileHeadline: z.string().optional(),
   profileSummary: z.string().optional(),
   profileServices: z.array(z.string().trim().min(1)).default([]),
@@ -129,6 +138,57 @@ export const saveAllSettingsSchema = z.object({
   charityLinks: z.array(charityLinkSchema),
 });
 
+const pageSlugSchema = z
+  .string()
+  .min(1, "Slug is required")
+  .regex(
+    /^[a-z0-9]+(?:-[a-z0-9]+)*$/,
+    "Use lowercase letters, numbers and hyphens",
+  );
+
+export const pageSectionSchema = z.object({
+  id: z.string().min(1),
+  heading: z.string().min(1, "Section heading is required"),
+  body: z.string().min(1, "Section body is required"),
+  imageUrl: z.string().optional().nullable(),
+});
+
+export const pageFaqSchema = z.object({
+  question: z.string().min(1, "Question is required"),
+  answer: z.string().min(1, "Answer is required"),
+});
+
+export const pageSchema = z.object({
+  slug: pageSlugSchema,
+  kind: z.enum(["home", "location", "standard", "article"]),
+  locationName: z.string().optional().nullable(),
+  title: z.string().min(1, "Page title is required"),
+  metaTitle: z.string().min(1, "Meta title is required").max(70),
+  metaDescription: z.string().min(1, "Meta description is required").max(160),
+  heroEyebrow: z.string().optional().nullable(),
+  heroImageUrl: z.string().optional().nullable(),
+  intro: z.string().default(""),
+  sections: z.array(pageSectionSchema).default([]),
+  faqs: z.array(pageFaqSchema).default([]),
+  ctaHeading: z.string().optional().nullable(),
+  ctaBody: z.string().optional().nullable(),
+  published: z.boolean().default(false),
+  publishedAt: z.coerce.date().optional().nullable(),
+  excerpt: z.string().optional().nullable(),
+  sortOrder: z.coerce.number().int().min(0).default(0),
+});
+
+export const enquirySchema = z.object({
+  name: z.string().min(1, "Name is required"),
+  email: z.string().email("Valid email required"),
+  phone: z.string().optional().or(z.literal("")),
+  company: z.string().optional().or(z.literal("")),
+  message: z.string().min(1, "Message is required"),
+  sourcePath: z.string().min(1),
+  pageSlug: z.string().optional().or(z.literal("")),
+  website: z.string().max(0).optional().or(z.literal("")),
+});
+
 export type CoreValueFormValues = z.infer<typeof coreValueSchema>;
 export type MemberFormValues = z.infer<typeof memberSchema>;
 export type MemberSelfFormValues = z.infer<typeof memberSelfSchema>;
@@ -136,3 +196,7 @@ export type ProfileVisibilityFormValues = z.infer<typeof profileVisibilitySchema
 export type SettingsFormValues = z.infer<typeof settingsSchema>;
 export type CharityLinkFormValues = z.infer<typeof charityLinkSchema>;
 export type SaveAllSettingsValues = z.infer<typeof saveAllSettingsSchema>;
+export type PageFormValues = z.infer<typeof pageSchema>;
+export type PageSectionFormValues = z.infer<typeof pageSectionSchema>;
+export type PageFaqFormValues = z.infer<typeof pageFaqSchema>;
+export type EnquiryFormValues = z.infer<typeof enquirySchema>;
