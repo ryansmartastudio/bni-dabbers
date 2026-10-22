@@ -38,6 +38,24 @@ export function DirectoryHero({ settings, memberCount }: DirectoryHeroProps) {
             >
               Browse members
             </a>
+            <Link
+              href="/visit"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+            >
+              Visit as a guest
+            </Link>
+            <Link
+              href="/trades"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+            >
+              Browse by trade
+            </Link>
+            <Link
+              href="/networking-groups"
+              className="inline-flex items-center justify-center rounded-md border border-border bg-white px-5 py-3 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+            >
+              Town guides
+            </Link>
             {chapterWebsite ? (
               <a
                 href={chapterWebsite}

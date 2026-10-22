@@ -1,38 +1,59 @@
-import { getActiveMembers } from "@/lib/members";
-import { getChapterSettings } from "@/lib/settings";
-import { DirectoryGrid } from "@/components/directory/directory-grid";
-import { DirectoryHero } from "@/components/directory/directory-hero";
+import type { Metadata } from "next";
+import { MarketingPageView } from "@/components/marketing/marketing-page-view";
 import { DatabaseSetupError } from "@/components/setup/database-error";
+import { loadWithDatabaseSetupFallback } from "@/lib/db-errors";
+import { applyChapterTokensToPage } from "@/lib/chapter-tokens";
+import { buildFallbackHomePage } from "@/lib/marketing/fallback-home";
+import { buildPageMetadata } from "@/lib/marketing/metadata";
+import { getActiveMembers } from "@/lib/members";
 import {
-  getDatabaseSetupMessage,
-  isDatabaseSetupError,
-} from "@/lib/db-errors";
+  getPublishedHomePage,
+  listPublishedLocationPages,
+} from "@/lib/pages";
+import { getChapterSettings } from "@/lib/settings";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 3600;
+
+export async function generateMetadata(): Promise<Metadata> {
+  const [homePage, settings] = await Promise.all([
+    getPublishedHomePage(),
+    getChapterSettings(),
+  ]);
+  const page = applyChapterTokensToPage(
+    homePage ?? buildFallbackHomePage(),
+    settings,
+  );
+  return buildPageMetadata(page, "/");
+}
 
 export default async function HomePage() {
-  let members;
-  let settings;
-
-  try {
-    [members, settings] = await Promise.all([
-      getActiveMembers(),
+  const result = await loadWithDatabaseSetupFallback(async () => {
+    const [settings, members, homePage, locationPages] = await Promise.all([
       getChapterSettings(),
+      getActiveMembers(),
+      getPublishedHomePage(),
+      listPublishedLocationPages(),
     ]);
-  } catch (error) {
-    if (isDatabaseSetupError(error)) {
-      return (
-        <DatabaseSetupError message={getDatabaseSetupMessage(error)} />
-      );
-    }
 
-    throw error;
+    return { settings, members, homePage, locationPages };
+  });
+
+  if (!result.ok) {
+    return <DatabaseSetupError message={result.setupError} />;
   }
 
+  const { settings, members, homePage, locationPages } = result.data;
+  const page = homePage ?? buildFallbackHomePage();
+
   return (
-    <div className="directory-shell">
-      <DirectoryHero settings={settings} memberCount={members.length} />
-      <DirectoryGrid members={members} />
-    </div>
+    <MarketingPageView
+      page={page}
+      settings={settings}
+      members={members}
+      memberCount={members.length}
+      locationPages={locationPages}
+      showLocationsGrid
+      showTyfcbBanner
+    />
   );
 }

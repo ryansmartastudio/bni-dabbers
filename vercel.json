@@ -1,0 +1,8 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/tyfcb",
+      "schedule": "0 7 * * *"
+    }
+  ]
+}

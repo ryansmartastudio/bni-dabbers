@@ -11,6 +11,10 @@
     "db:push": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs push",
     "db:studio": "node --env-file=.env.local node_modules/drizzle-kit/bin.cjs studio",
     "db:seed": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/seed.ts",
+    "db:seed-pages": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/seed-pages.ts",
+    "db:migrate-0010": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0010.ts",
+    "db:migrate-0011": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0011.ts",
+    "db:migrate-0012": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0012.ts",
     "db:backfill-slugs": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/backfill-slugs.ts"
   },
   "dependencies": {
@@ -19,7 +23,9 @@
     "@fortawesome/pro-duotone-svg-icons": "^7.3.1",
     "@neondatabase/serverless": "^1.1.0",
     "@react-pdf/renderer": "^4.6.0",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/blob": "^2.7.0",
+    "@vercel/speed-insights": "^2.0.0",
     "ai": "^7.0.59",
     "drizzle-orm": "^0.45.2",
     "exceljs": "^4.4.0",
@@ -27,7 +33,9 @@
     "qrcode": "^1.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
+    "react-markdown": "^10.1.0",
     "react-qr-code": "^2.2.0",
+    "remark-gfm": "^4.0.1",
     "resend": "^6.19.0",
     "zod": "^4.4.3"
   },

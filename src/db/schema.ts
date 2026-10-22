@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  numeric,
   jsonb,
   pgEnum,
   pgTable,
@@ -26,6 +27,13 @@ export const memberInviteStatusEnum = pgEnum("member_invite_status", [
   "pending",
   "accepted",
   "revoked",
+]);
+
+export const pageKindEnum = pgEnum("page_kind", [
+  "home",
+  "location",
+  "standard",
+  "article",
 ]);
 
 export const members = pgTable("members", {
@@ -101,6 +109,12 @@ export const chapterSettings = pgTable("chapter_settings", {
     .default([])
     .notNull(),
   extras: jsonb("extras").$type<Record<string, unknown>>().default({}),
+  tyfcbAmount: numeric("tyfcb_amount"),
+  tyfcbCurrency: text("tyfcb_currency").default("GBP"),
+  tyfcbCheckedAt: timestamp("tyfcb_checked_at", { withTimezone: true }),
+  tyfcbUpdatedAt: timestamp("tyfcb_updated_at", { withTimezone: true }),
+  tyfcbSourceUrl: text("tyfcb_source_url"),
+  tyfcbEnabled: boolean("tyfcb_enabled").default(true).notNull(),
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -128,12 +142,70 @@ export const charityLinks = pgTable("charity_links", {
   placement: text("placement").$type<"charity" | "cover">().default("charity").notNull(),
 });
 
+export const pages = pgTable("pages", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  slug: text("slug").notNull().unique(),
+  kind: pageKindEnum("kind").default("standard").notNull(),
+  locationName: text("location_name"),
+  title: text("title").notNull(),
+  metaTitle: text("meta_title").notNull(),
+  metaDescription: text("meta_description").notNull(),
+  heroEyebrow: text("hero_eyebrow"),
+  heroImageUrl: text("hero_image_url"),
+  intro: text("intro").default("").notNull(),
+  sections: jsonb("sections").$type<PageSection[]>().default([]).notNull(),
+  faqs: jsonb("faqs").$type<PageFaq[]>().default([]).notNull(),
+  ctaHeading: text("cta_heading"),
+  ctaBody: text("cta_body"),
+  published: boolean("published").default(false).notNull(),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  excerpt: text("excerpt"),
+  sortOrder: integer("sort_order").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const enquiries = pgTable("enquiries", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  email: text("email").notNull(),
+  phone: text("phone"),
+  company: text("company"),
+  message: text("message").notNull(),
+  sourcePath: text("source_path").notNull(),
+  pageSlug: text("page_slug"),
+  emailedAt: timestamp("emailed_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;
 export type MemberInvite = typeof memberInvites.$inferSelect;
 export type NewMemberInvite = typeof memberInvites.$inferInsert;
 export type ChapterSettings = typeof chapterSettings.$inferSelect;
 export type CharityLink = typeof charityLinks.$inferSelect;
+export type Page = typeof pages.$inferSelect;
+export type NewPage = typeof pages.$inferInsert;
+export type Enquiry = typeof enquiries.$inferSelect;
+export type NewEnquiry = typeof enquiries.$inferInsert;
+
+export type PageSection = {
+  id: string;
+  heading: string;
+  body: string;
+  imageUrl?: string | null;
+};
+
+export type PageFaq = {
+  question: string;
+  answer: string;
+};
 
 export type CoreValue = {
   id: string;

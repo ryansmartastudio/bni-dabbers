@@ -27,6 +27,25 @@ export function isDatabaseSetupError(error: unknown): boolean {
   );
 }
 
+export type DatabaseLoadResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; setupError: string };
+
+export async function loadWithDatabaseSetupFallback<T>(
+  loader: () => Promise<T>,
+): Promise<DatabaseLoadResult<T>> {
+  try {
+    const data = await loader();
+    return { ok: true, data };
+  } catch (error) {
+    if (isDatabaseSetupError(error)) {
+      return { ok: false, setupError: getDatabaseSetupMessage(error) };
+    }
+
+    throw error;
+  }
+}
+
 export function getDatabaseSetupMessage(error: unknown): string {
   const message = getNestedMessage(error);
 

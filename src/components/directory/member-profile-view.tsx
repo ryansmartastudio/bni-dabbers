@@ -15,6 +15,7 @@ import {
   hasVisibleContactFields,
   hasVisiblePublishedContent,
 } from "@/lib/profile-visibility";
+import { MemberBacklinkBadgeGate } from "@/components/directory/member-backlink-badge-gate";
 
 type MemberProfileViewProps = {
   member: Member;
@@ -77,7 +78,7 @@ export function MemberProfileView({
         >
           <div>
             <Link
-              href="/"
+              href="/directory"
               className="inline-flex items-center gap-2 text-sm font-medium text-muted transition hover:text-foreground"
             >
               <ChevronIcon direction="left" />
@@ -255,6 +256,8 @@ export function MemberProfileView({
           </div>
         )}
 
+        <MemberBacklinkBadgeGate member={member} />
+
         {relatedMembers.length ? (
           <div className="mt-16 border-t border-border pt-12">
             <div className="flex items-end justify-between gap-4">
@@ -267,7 +270,7 @@ export function MemberProfileView({
                 </p>
               </div>
               <Link
-                href="/"
+                href="/directory"
                 className="text-sm font-semibold text-bni hover:underline"
               >
                 View all

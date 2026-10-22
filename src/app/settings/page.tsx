@@ -5,6 +5,7 @@ import {
   listPendingAdminInvites,
 } from "@/lib/clerk-admins";
 import { SettingsPageClient } from "@/components/settings/settings-page-client";
+import { TyfcbSettingsPanel } from "@/components/settings/tyfcb-settings-panel";
 import { DatabaseSetupError } from "@/components/setup/database-error";
 import {
   getDatabaseSetupMessage,
@@ -54,6 +55,7 @@ export default async function SettingsPage() {
         pendingInvites={pendingInvites}
         currentUserId={userId}
       />
+      <TyfcbSettingsPanel settings={settings} />
     </div>
   );
 }

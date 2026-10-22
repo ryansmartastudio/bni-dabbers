@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { revalidateAiDiscovery } from "@/lib/ai/revalidate-discovery";
 import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { chapterSettings, charityLinks } from "@/db/schema";
@@ -71,5 +72,11 @@ export async function saveAllSettings(data: SaveAllSettingsValues) {
 
   revalidatePath("/settings");
   revalidatePath("/exports");
+  revalidatePath("/");
+  revalidatePath("/networking-groups", "layout");
+  revalidatePath("/visit");
+  revalidatePath("/directory");
+  revalidatePath("/sitemap.xml");
+  revalidateAiDiscovery();
   return { success: true };
 }

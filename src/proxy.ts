@@ -5,6 +5,8 @@ const isAdminRoute = createRouteMatcher([
   "/members/new(.*)",
   "/members/(.*)/edit(.*)",
   "/settings(.*)",
+  "/pages(.*)",
+  "/enquiries(.*)",
 ]);
 
 const isProtectedRoute = createRouteMatcher([
@@ -12,6 +14,8 @@ const isProtectedRoute = createRouteMatcher([
   "/exports(.*)",
   "/settings(.*)",
   "/my-profile(.*)",
+  "/pages(.*)",
+  "/enquiries(.*)",
 ]);
 
 export default clerkMiddleware(

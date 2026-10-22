@@ -31,14 +31,21 @@ type SendEmailInput = {
   subject: string;
   html: string;
   text: string;
+  replyTo?: string;
 };
 
-export async function sendEmail({ to, subject, html, text }: SendEmailInput) {
+export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+  replyTo,
+}: SendEmailInput) {
   const resend = getResendClient();
 
   const { data, error } = await resend.emails.send({
     from: getResendFromEmail(),
-    replyTo: getResendReplyTo(),
+    replyTo: replyTo ?? getResendReplyTo(),
     to,
     subject,
     html,

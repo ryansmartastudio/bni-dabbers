@@ -36,10 +36,100 @@ body {
   font-family: var(--font-sans);
 }
 
-.directory-shell {
+.directory-shell,
+.marketing-shell {
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--color-bni-red) 4%, transparent), transparent 280px),
     var(--color-surface);
+}
+
+.marketing-shell {
+  --marketing-panel-shadow: 0 22px 50px -38px rgba(23, 20, 18, 0.42);
+}
+
+.marketing-eyebrow {
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-ink-muted);
+}
+
+.marketing-fact-card {
+  border-radius: 0.9rem;
+  border: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-surface-elevated) 92%, var(--color-surface-muted));
+  box-shadow: var(--marketing-panel-shadow);
+}
+
+.marketing-section-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: 1.25rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  box-shadow: var(--marketing-panel-shadow);
+  padding: 1.5rem 1.5rem 1.75rem;
+}
+
+.marketing-section-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto auto 0;
+  height: 3px;
+  width: 100%;
+  background: linear-gradient(
+    90deg,
+    var(--color-bni-red),
+    color-mix(in srgb, var(--color-bni-red) 35%, transparent) 42%,
+    transparent 78%
+  );
+}
+
+@media (min-width: 640px) {
+  .marketing-section-card {
+    padding: 1.75rem 2rem 2rem;
+  }
+}
+
+.marketing-primary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  background: var(--color-bni-red);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: white;
+  transition: background-color 150ms ease, transform 150ms ease;
+}
+
+.marketing-primary-button:hover {
+  background: var(--color-bni-red-dark);
+}
+
+.marketing-secondary-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface-elevated);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  transition: background-color 150ms ease, border-color 150ms ease;
+}
+
+.marketing-secondary-button:hover {
+  background: var(--color-surface-muted);
+  border-color: color-mix(in srgb, var(--color-bni-red) 28%, var(--color-border));
+}
+
+.prose-marketing p:first-child {
+  margin-top: 0;
 }
 
 .directory-rule {

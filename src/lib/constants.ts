@@ -1,6 +1,11 @@
 export const BNI_RED = "#cf1f2e";
 export const BNI_GREY = "#6b6b6f";
 
+export const ENQUIRY_TO_EMAIL =
+  process.env.ENQUIRY_TO_EMAIL ?? "ryan@smartastudio.com";
+
+export const DEFAULT_SITE_URL = "https://www.bnidabbers.co.uk";
+
 export const CHAPTER_ROLES = [
   "President",
   "Vice President",

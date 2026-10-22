@@ -5,10 +5,17 @@ import { AuthButtons } from "@/components/layout/auth-buttons";
 import { MobileNav } from "@/components/layout/mobile-nav";
 
 const navLinks = [
-  { href: "/", label: "Directory", public: true },
+  { href: "/", label: "Home", public: true },
+  { href: "/networking-groups", label: "Networking", public: true },
+  { href: "/directory", label: "Directory", public: true },
+  { href: "/trades", label: "Trades", public: true },
+  { href: "/insights", label: "Insights", public: true },
+  { href: "/visit", label: "Visit", public: true },
   { href: "/members", label: "Members", auth: true },
   { href: "/my-profile", label: "My profile", linkedMember: true },
   { href: "/exports", label: "Exports", auth: true },
+  { href: "/pages", label: "Pages", admin: true },
+  { href: "/enquiries", label: "Enquiries", admin: true },
   { href: "/settings", label: "Settings", admin: true },
 ];
 

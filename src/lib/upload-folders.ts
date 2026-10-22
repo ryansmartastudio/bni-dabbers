@@ -5,6 +5,7 @@ export const UPLOAD_FOLDERS = [
   "logos/venue",
   "venue/photos",
   "icons/core-values",
+  "marketing/pages",
 ] as const;
 
 export type UploadFolder = (typeof UPLOAD_FOLDERS)[number];
