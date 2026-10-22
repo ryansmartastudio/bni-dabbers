@@ -143,20 +143,23 @@ export function getTradeCopy(slug: string, seatLabel: string): TradeCopy {
   };
 }
 
-/** Common BNI seats that may be open — extend as chapter grows. */
-export const RECRUITMENT_SEATS = [
-  "Commercial Finance",
-  "Mortgage Adviser",
-  "IT Support",
-  "HR Consultant",
-  "Recruitment",
-  "Digital Marketing",
-  "Commercial Cleaning",
-  "Health & Safety",
+/**
+ * Seats the chapter is recruiting for. A seat is hidden when any active
+ * member's BNI seat contains one of its keywords, since roster seat names
+ * rarely match these labels exactly (e.g. "Mortgages" fills "Mortgage Adviser").
+ */
+export const RECRUITMENT_SEATS: Array<{ label: string; keywords: string[] }> = [
+  { label: "Recruitment", keywords: ["recruit"] },
+  { label: "Commercial Cleaning", keywords: ["cleaning", "cleaner"] },
 ];
 
 export async function getOpenSeatLabels(): Promise<string[]> {
   const groups = await getTradeGroups();
-  const filled = new Set(groups.map((g) => g.seatLabel.toLowerCase()));
-  return RECRUITMENT_SEATS.filter((seat) => !filled.has(seat.toLowerCase()));
+  const filledSeats = groups.map((g) => g.seatLabel.toLowerCase());
+  return RECRUITMENT_SEATS.filter(
+    (seat) =>
+      !filledSeats.some((filled) =>
+        seat.keywords.some((keyword) => filled.includes(keyword)),
+      ),
+  ).map((seat) => seat.label);
 }
