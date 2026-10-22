@@ -47,6 +47,19 @@ body {
   --marketing-panel-shadow: 0 22px 50px -38px rgba(23, 20, 18, 0.42);
 }
 
+.marketing-container {
+  margin-inline: auto;
+  width: 100%;
+  max-width: 80rem;
+  padding-inline: 1rem;
+}
+
+@media (min-width: 640px) {
+  .marketing-container {
+    padding-inline: 1.5rem;
+  }
+}
+
 .marketing-eyebrow {
   letter-spacing: 0.18em;
   text-transform: uppercase;

@@ -89,6 +89,7 @@ export function applyChapterTokensToPage(
       ? replaceChapterTokens(page.heroEyebrow, settings)
       : page.heroEyebrow,
     intro: replaceChapterTokens(page.intro, settings),
+    excerpt: page.excerpt ? replaceChapterTokens(page.excerpt, settings) : page.excerpt,
     ctaHeading: page.ctaHeading
       ? replaceChapterTokens(page.ctaHeading, settings)
       : page.ctaHeading,

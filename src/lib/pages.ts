@@ -76,6 +76,24 @@ export function getPagePublicPath(page: Pick<Page, "kind" | "slug">) {
   return `/${page.slug}`;
 }
 
+export function getArticleReadingMinutes(
+  page: Pick<Page, "intro" | "sections">,
+) {
+  const text = [page.intro, ...page.sections.map((s) => `${s.heading} ${s.body}`)].join(" ");
+  const words = text.split(/\s+/).filter(Boolean).length;
+  return Math.max(1, Math.round(words / 220));
+}
+
+export function formatArticleDate(date: Date | null | undefined) {
+  if (!date) return null;
+  return new Intl.DateTimeFormat("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Europe/London",
+  }).format(date);
+}
+
 /** Slugs reserved by first-party app routes — standard pages must not use these. */
 export const RESERVED_ROOT_SLUGS = new Set([
   "directory",

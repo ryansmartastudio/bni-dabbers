@@ -42,6 +42,11 @@ export function MarkdownContent({ content, className }: MarkdownContentProps) {
               {children}
             </a>
           ),
+          blockquote: ({ children }) => (
+            <blockquote className="mt-6 border-l-[3px] border-bni pl-5 text-lg italic text-foreground [&_p]:text-foreground">
+              {children}
+            </blockquote>
+          ),
           strong: ({ children }) => (
             <strong className="font-semibold text-foreground">{children}</strong>
           ),

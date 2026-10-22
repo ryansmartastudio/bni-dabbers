@@ -1,15 +1,13 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
-import { MarketingPageView } from "@/components/marketing/marketing-page-view";
+import { ArticleView } from "@/components/marketing/article-view";
 import { DatabaseSetupError } from "@/components/setup/database-error";
 import { applyChapterTokensToPage } from "@/lib/chapter-tokens";
 import { loadWithDatabaseSetupFallback } from "@/lib/db-errors";
 import { buildPageMetadata } from "@/lib/marketing/metadata";
-import { getActiveMembers } from "@/lib/members";
 import {
   getPagePublicPath,
   getPublishedPageBySlug,
-  listPublishedLocationPages,
   listPublishedArticlePages,
 } from "@/lib/pages";
 import { getChapterSettings } from "@/lib/settings";
@@ -50,29 +48,18 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
   }
 
   const result = await loadWithDatabaseSetupFallback(async () => {
-    const [settings, members, locationPages] = await Promise.all([
+    const [settings, articles] = await Promise.all([
       getChapterSettings(),
-      getActiveMembers(),
-      listPublishedLocationPages(),
+      listPublishedArticlePages(),
     ]);
-    return { settings, members, locationPages };
+    return { settings, articles };
   });
 
   if (!result.ok) {
     return <DatabaseSetupError message={result.setupError} />;
   }
 
-  const { settings, members, locationPages } = result.data;
+  const { settings, articles } = result.data;
 
-  return (
-    <MarketingPageView
-      page={page}
-      settings={settings}
-      members={members}
-      memberCount={members.length}
-      locationPages={locationPages}
-      showMemberPreview={false}
-      showLocationsGrid={false}
-    />
-  );
+  return <ArticleView page={page} settings={settings} relatedArticles={articles} />;
 }

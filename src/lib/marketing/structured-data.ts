@@ -143,6 +143,22 @@ export function buildBreadcrumbJsonLd(
   };
 }
 
+export function buildArticleJsonLd(page: Page, path: string, settings: ChapterSettings) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BlogPosting",
+    headline: page.title,
+    description: page.metaDescription,
+    url: absoluteUrl(path),
+    mainEntityOfPage: absoluteUrl(path),
+    datePublished: page.publishedAt?.toISOString(),
+    dateModified: page.updatedAt.toISOString(),
+    image: page.heroImageUrl ?? settings.venuePhotoUrl ?? undefined,
+    author: { "@type": "Organization", name: settings.chapterName, url: absoluteUrl("/") },
+    publisher: { "@id": organizationId() },
+  };
+}
+
 export function buildWebPageJsonLd(page: Page, path: string) {
   return {
     "@context": "https://schema.org",
