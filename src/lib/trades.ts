@@ -151,6 +151,17 @@ export function getTradeCopy(slug: string, seatLabel: string): TradeCopy {
 export const RECRUITMENT_SEATS: Array<{ label: string; keywords: string[] }> = [
   { label: "Recruitment", keywords: ["recruit"] },
   { label: "Commercial Cleaning", keywords: ["cleaning", "cleaner"] },
+  { label: "Conveyancing Solicitor", keywords: ["conveyanc"] },
+  { label: "Builder", keywords: ["builder", "construction"] },
+  { label: "Roofer", keywords: ["roof"] },
+  { label: "Landscaper", keywords: ["landscap", "garden"] },
+  { label: "Architect", keywords: ["architect"] },
+  { label: "Photographer & Videographer", keywords: ["photo", "video"] },
+  { label: "Printer", keywords: ["print"] },
+  { label: "Security & CCTV", keywords: ["security", "cctv"] },
+  { label: "Pest Control", keywords: ["pest"] },
+  { label: "Physiotherapist", keywords: ["physio", "chiropract", "osteopath"] },
+  { label: "Event Planner", keywords: ["event"] },
 ];
 
 export async function getOpenSeatLabels(): Promise<string[]> {
