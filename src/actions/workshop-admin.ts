@@ -1,6 +1,6 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { count, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { workshopContacts, workshopParticipants, workshopSessions } from "@/db/schema";
@@ -185,4 +185,27 @@ export async function simulateWorkshopContact(
 
   await bump(session.id, {});
   return { ok: true };
+}
+
+/**
+ * Ends the session from wherever it has got to, jumping straight to the final
+ * reveal.
+ *
+ * Deliberately does not archive: the board stays on the scores while the room
+ * is still in it, and members see the thank-you rather than the join screen.
+ * Starting the next session is a separate, explicit step.
+ */
+export async function endWorkshopSession(
+  secret: string,
+): Promise<Result & { contacts?: number }> {
+  requireAdminSecret(secret);
+  const session = await getLiveSession();
+
+  const [row] = await db
+    .select({ total: count() })
+    .from(workshopContacts)
+    .where(eq(workshopContacts.sessionId, session.id));
+
+  await bump(session.id, { state: "ended" });
+  return { ok: true, contacts: row?.total ?? 0 };
 }
