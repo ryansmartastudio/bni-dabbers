@@ -17,9 +17,12 @@ import {
 export function NetworkSlide({
   contacts,
   constants,
+  revealed,
 }: {
   contacts: number;
   constants: WorkshopConstants;
+  /** 1 contacts · 2 visitors · 3 new members · 4 the web grows · 5 the law. */
+  revealed: number;
 }) {
   const reduced = useReducedMotion() ?? false;
   const p = projectNetwork(contacts, constants);
@@ -32,9 +35,9 @@ export function NetworkSlide({
       : ((liveConnections - p.connectionsToday) / p.connectionsToday) * 100;
 
   const steps = [
-    { value: p.contacts, label: "contacts listed today", delay: 0 },
-    { value: p.visitors, label: "visitors in the room", delay: 0.8 },
-    { value: p.newMembers, label: "new members", delay: 1.6 },
+    { value: p.contacts, label: "contacts listed today" },
+    { value: p.visitors, label: "visitors in the room" },
+    { value: p.newMembers, label: "new members" },
   ];
   const arrows = [
     `${Math.round(constants.visitorRate * 100)}% come along as visitors`,
@@ -47,35 +50,38 @@ export function NetworkSlide({
         <p className="workshop-board-brand">BNI DABBERS · WHY WE GROW</p>
         <h2 className="workshop-slide-title">How today&rsquo;s list grows our network</h2>
 
-        {steps.map((step, index) => (
+        {steps.slice(0, Math.max(0, revealed)).map((step, index) => (
           <div key={step.label}>
-            <motion.div
-              className="workshop-slide-step"
-              initial={reduced ? false : { opacity: 0, x: -24 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: reduced ? 0 : step.delay, type: "spring", stiffness: 280, damping: 30 }}
-            >
-              <CountUp to={step.value} delay={reduced ? 0 : step.delay} />
-              <span className="workshop-slide-step-label">{step.label}</span>
-            </motion.div>
-            {index < arrows.length ? (
+            {index > 0 ? (
               <motion.p
                 className="workshop-slide-arrow"
                 initial={reduced ? false : { opacity: 0 }}
                 animate={{ opacity: 1 }}
-                transition={{ delay: reduced ? 0 : step.delay + 0.4 }}
+                transition={{ duration: reduced ? 0 : 0.35 }}
               >
-                {arrows[index]}
+                {arrows[index - 1]}
               </motion.p>
             ) : null}
+            <motion.div
+              className="workshop-slide-step"
+              initial={reduced ? false : { opacity: 0, x: -24 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ type: "spring", stiffness: 280, damping: 30 }}
+            >
+              <CountUp to={step.value} delay={0} />
+              <span className="workshop-slide-step-label">{step.label}</span>
+            </motion.div>
           </div>
         ))}
 
         <motion.div
           className="workshop-slide-step is-total"
           initial={reduced ? false : { opacity: 0, x: -24 }}
-          animate={{ opacity: 1, x: 0 }}
-          transition={{ delay: reduced ? 0 : 2.4, type: "spring", stiffness: 280, damping: 30 }}
+          animate={{
+            opacity: revealed >= 4 ? 1 : 0,
+            x: revealed >= 4 ? 0 : -24,
+          }}
+          transition={{ type: "spring", stiffness: 280, damping: 30 }}
         >
           <b className="workshop-slide-step-value">{Math.round(liveMembers)}</b>
           <span className="workshop-slide-step-label">
@@ -94,6 +100,7 @@ export function NetworkSlide({
           membersToday={p.membersToday}
           newMembers={p.newMembers}
           reduced={reduced}
+          active={revealed >= 4}
           onProgress={setLiveMembers}
         />
         <div className="workshop-slide-legend">
@@ -107,8 +114,8 @@ export function NetworkSlide({
         <motion.p
           className="workshop-slide-foot"
           initial={reduced ? false : { opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: reduced ? 0 : 4 }}
+          animate={{ opacity: revealed >= 5 ? 1 : 0 }}
+          transition={{ duration: reduced ? 0 : 0.4 }}
         >
           <b>Metcalfe&rsquo;s Law:</b> a network&rsquo;s value grows with the connections
           between its members, n × (n − 1) ÷ 2. Each new member connects to every one of
@@ -123,12 +130,16 @@ export function NetworkSlide({
 export function MembersSlide({
   contacts,
   constants,
+  revealed,
 }: {
   contacts: number;
   constants: WorkshopConstants;
+  /** How many cards to show. Harry advances these one at a time. */
+  revealed: number;
 }) {
   const reduced = useReducedMotion() ?? false;
   const { membersAfter, rows } = projectMemberValue(contacts, constants);
+  const visible = rows.slice(0, Math.max(0, revealed));
 
   return (
     <div className="workshop-members-slide">
@@ -139,11 +150,13 @@ export function MembersSlide({
         With <span>{membersAfter}</span> members, every year we could see…
       </h2>
 
-      <div className="workshop-member-cards">
-        {rows.map((row, index) => {
+      <div className="workshop-member-cards" data-count={rows.length}>
+        {visible.map((row) => {
           const format = row.money ? formatMoney : formatCount;
           const max = Math.max(row.after, row.today) * 1.05 || 1;
-          const delay = reduced ? 0 : 0.3 + index * 0.7;
+          // Each card animates when it arrives, not on a shared timeline, so
+          // the one Harry just revealed is the one that moves.
+          const delay = 0;
 
           return (
             <motion.div
@@ -198,8 +211,8 @@ export function MembersSlide({
       <motion.p
         className="workshop-members-foot"
         initial={reduced ? false : { opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: reduced ? 0 : 2.6 }}
+        animate={{ opacity: revealed > rows.length ? 1 : 0 }}
+        transition={{ duration: reduced ? 0 : 0.4 }}
       >
         <b>If we keep up our momentum.</b> Based on Dabbers PALMS for March to August
         2026: each member gave{" "}

@@ -2,8 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import QRCode from "react-qr-code";
+import { setWorkshopState } from "@/actions/workshop-admin";
+import { Leaderboard } from "@/components/workshop/leaderboard";
+import { useBoardKeys } from "@/components/workshop/use-board-keys";
 import { MembersSlide, NetworkSlide } from "@/components/workshop/slides";
 import { Odometer } from "@/components/workshop/odometer";
 import { formatClock, useSnapshot } from "@/components/workshop/use-snapshot";
@@ -15,6 +18,7 @@ import {
   type WorkshopConstants,
 } from "@/lib/workshop/config";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
+import type { WorkshopState } from "@/lib/workshop/session";
 
 const POLL_MS = 1000;
 
@@ -23,13 +27,94 @@ type BoardProps = {
   joinUrl: string;
   chapterLogoUrl: string | null;
   constants: WorkshopConstants;
+  /** Present when the board was opened with ?key=<admin secret>. */
+  controlSecret: string | null;
 };
 
-export function Board({ initial, joinUrl, chapterLogoUrl, constants }: BoardProps) {
+/** The order the arrow keys walk through. */
+const SEQUENCE: WorkshopState[] = [
+  "waiting",
+  "round1",
+  "break",
+  "round2",
+  "ended",
+  "slide1",
+  "slide2",
+];
+
+/** Steps within each slide, walked through before moving on. */
+const SLIDE_STEPS: Partial<Record<WorkshopState, number>> = {
+  slide1: 5,
+  slide2: 4,
+};
+
+function stepsFor(state: WorkshopState): number {
+  return SLIDE_STEPS[state] ?? 0;
+}
+
+export function Board({
+  initial,
+  joinUrl,
+  chapterLogoUrl,
+  constants,
+  controlSecret,
+}: BoardProps) {
   const reduced = useReducedMotion() ?? false;
   const { snapshot, secondsLeft } = useSnapshot(initial, POLL_MS);
   const [milestone, setMilestone] = useState(false);
   const lastMilestone = useRef(initial.milestones);
+  // Step is held per state, so moving between slides naturally starts each one
+  // at its first step without an effect reconciling it.
+  const [stepByState, setStepByState] = useState<Partial<Record<WorkshopState, number>>>({});
+  const [, startTransition] = useTransition();
+
+  const canControl = Boolean(controlSecret);
+
+  const totalSteps = stepsFor(snapshot.state);
+  // A slide opened from the admin screen rather than the arrow keys still shows
+  // its first step rather than nothing.
+  const slideStep =
+    totalSteps === 0
+      ? 0
+      : Math.min(Math.max(stepByState[snapshot.state] ?? 1, 1), totalSteps);
+
+  const goTo = useCallback(
+    (next: WorkshopState) => {
+      if (!controlSecret) return;
+      startTransition(async () => {
+        await setWorkshopState(controlSecret, next);
+      });
+    },
+    [controlSecret],
+  );
+
+  const forward = useCallback(() => {
+    const state = snapshot.state;
+    // A slide reveals its own steps before the session moves on.
+    if (slideStep < stepsFor(state)) {
+      setStepByState((prev) => ({ ...prev, [state]: slideStep + 1 }));
+      return;
+    }
+    const next = SEQUENCE[SEQUENCE.indexOf(state) + 1];
+    if (next) goTo(next);
+  }, [snapshot.state, slideStep, goTo]);
+
+  const back = useCallback(() => {
+    const state = snapshot.state;
+    if (slideStep > 1) {
+      setStepByState((prev) => ({ ...prev, [state]: slideStep - 1 }));
+      return;
+    }
+    const previous = SEQUENCE[SEQUENCE.indexOf(state) - 1];
+    if (!previous) return;
+    // Stepping back into a slide lands on its last step, ready to review.
+    setStepByState((prev) => ({ ...prev, [previous]: stepsFor(previous) }));
+    goTo(previous);
+  }, [snapshot.state, slideStep, goTo]);
+
+  useBoardKeys({ enabled: canControl, onForward: forward, onBack: back });
+
+
 
   // Every tenth contact gets a celebration that never reveals the running total.
   useEffect(() => {
@@ -227,19 +312,24 @@ export function Board({ initial, joinUrl, chapterLogoUrl, constants }: BoardProp
         </AnimatePresence>
       </div>
 
-      <BoardOverlay
-        snapshot={snapshot}
-        joinUrl={joinUrl}
-        reduced={reduced}
-        leaderPoints={leaderPoints}
-      />
+      <BoardOverlay snapshot={snapshot} joinUrl={joinUrl} reduced={reduced} />
 
       {snapshot.state === "slide1" ? (
-        <NetworkSlide contacts={snapshot.totalContacts ?? 0} constants={constants} />
+        <NetworkSlide
+          contacts={snapshot.totalContacts ?? 0}
+          constants={constants}
+          revealed={slideStep}
+        />
       ) : null}
       {snapshot.state === "slide2" ? (
-        <MembersSlide contacts={snapshot.totalContacts ?? 0} constants={constants} />
+        <MembersSlide
+          contacts={snapshot.totalContacts ?? 0}
+          constants={constants}
+          revealed={slideStep}
+        />
       ) : null}
+
+      {canControl ? <ControlHint /> : null}
 
       <AnimatePresence>
         {milestone ? <Milestone reduced={reduced} /> : null}
@@ -252,12 +342,10 @@ function BoardOverlay({
   snapshot,
   joinUrl,
   reduced,
-  leaderPoints,
 }: {
   snapshot: WorkshopSnapshot;
   joinUrl: string;
   reduced: boolean;
-  leaderPoints: number;
 }) {
   const show =
     snapshot.state === "waiting" ||
@@ -266,9 +354,6 @@ function BoardOverlay({
   if (!show) return null;
 
   const ended = snapshot.state === "ended";
-  const winner = TEAMS.slice().sort(
-    (a, b) => (snapshot.points[b.id] ?? 0) - (snapshot.points[a.id] ?? 0),
-  )[0];
 
   return (
     <motion.div
@@ -290,15 +375,10 @@ function BoardOverlay({
         <>
           <Odometer
             value={snapshot.totalContacts ?? 0}
-            className="workshop-board-total"
+            className="workshop-board-total is-compact"
           />
           <p className="workshop-board-total-label">potential new visitors to invite</p>
-          <h2>
-            {winner?.name} win with {leaderPoints} points
-          </h2>
-          <p>
-            {TEAMS.map((t) => `${t.name} ${snapshot.points[t.id] ?? 0}`).join("  ·  ")}
-          </p>
+          <Leaderboard points={snapshot.points} reduced={reduced} />
         </>
       ) : null}
     </motion.div>
@@ -420,5 +500,30 @@ function Lobby({
         )}
       </div>
     </div>
+  );
+}
+
+/** A quiet reminder that the arrow keys drive this screen. */
+function ControlHint() {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const id = setTimeout(() => setVisible(false), 6000);
+    return () => clearTimeout(id);
+  }, []);
+
+  return (
+    <AnimatePresence>
+      {visible ? (
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          className="workshop-board-hint"
+        >
+          ← → to move through the session
+        </motion.div>
+      ) : null}
+    </AnimatePresence>
   );
 }

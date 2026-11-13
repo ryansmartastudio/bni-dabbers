@@ -1,5 +1,6 @@
 import { Board } from "@/components/workshop/board";
 import { getWorkshopJoinUrl } from "@/lib/workshop";
+import { isValidAdminSecret } from "@/lib/workshop/admin";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
 import { listParticipants } from "@/lib/workshop/participants";
@@ -18,7 +19,14 @@ export const metadata = {
   title: "Board",
 };
 
-export default async function WorkshopBoardPage() {
+export default async function WorkshopBoardPage({
+  searchParams,
+}: PageProps<"/workshop/board">) {
+  const query = await searchParams;
+  // The projector laptop drives the session when opened with the admin key.
+  const key = typeof query.key === "string" ? query.key : "";
+  const controlSecret = isValidAdminSecret(key) ? key : null;
+
   const session = await getLiveSession();
   const resolved = resolveState(session);
   await settleExpiredState(session, resolved);
@@ -52,6 +60,7 @@ export default async function WorkshopBoardPage() {
       joinUrl={getWorkshopJoinUrl()}
       chapterLogoUrl={settings.chapterLogoUrl}
       constants={sessionConstants(session)}
+      controlSecret={controlSecret}
     />
   );
 }

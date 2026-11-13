@@ -6,6 +6,8 @@ type NetworkWebProps = {
   membersToday: number;
   newMembers: number;
   reduced: boolean;
+  /** The web holds at today's chapter until Harry reaches the growth step. */
+  active: boolean;
   /** Called with the current member count as the web grows. */
   onProgress: (members: number) => void;
 };
@@ -25,6 +27,7 @@ export function NetworkWeb({
   membersToday,
   newMembers,
   reduced,
+  active,
   onProgress,
 }: NetworkWebProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -44,8 +47,12 @@ export function NetworkWeb({
 
     let frame = 0;
     let stopped = false;
-    const start = performance.now() + (reduced ? 0 : 900);
-    const duration = reduced ? 0 : Math.max(2600, newMembers * 420);
+    // Before the growth step the web is just today's chapter, drawn once and
+    // held, so the slide has something on it while Harry talks.
+    const grow = active && newMembers > 0;
+    const start = performance.now() + (reduced || !grow ? 0 : 250);
+    const duration = reduced || !grow ? 0 : Math.max(2600, newMembers * 420);
+    const growBy = grow ? newMembers : 0;
 
     function measure() {
       const rect = canvas!.getBoundingClientRect();
@@ -74,7 +81,7 @@ export function NetworkWeb({
       const t = Math.min(1, Math.max(0, raw));
       const eased = t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2;
 
-      const shown = membersToday + newMembers * eased;
+      const shown = membersToday + growBy * eased;
       const count = Math.ceil(shown - 1e-9);
       const cx = w / 2;
       const cy = h / 2;
@@ -139,7 +146,7 @@ export function NetworkWeb({
       stopped = true;
       cancelAnimationFrame(frame);
     };
-  }, [membersToday, newMembers, reduced]);
+  }, [membersToday, newMembers, reduced, active]);
 
   return (
     <canvas
