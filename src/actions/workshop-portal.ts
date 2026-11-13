@@ -3,6 +3,7 @@
 import { getLiveSession } from "@/lib/workshop/session";
 import {
   claimContact,
+  getPortalSessionId,
   getPortalStats,
   listPortalContacts,
   releaseContact,
@@ -27,7 +28,9 @@ async function authorise(password: string) {
   if (!verifyPortalPassword(session.portalPassword, password)) {
     throw new Error("PORTAL_DENIED");
   }
-  return session;
+  // The password belongs to the live session, which is what admin controls;
+  // the contacts belong to the most recent run that has any.
+  return { session, contactsSessionId: await getPortalSessionId(session.id) };
 }
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -43,8 +46,9 @@ export async function openPortal(
     return { ok: false, error: "That password isn't right." };
   }
 
+  const contactsSessionId = await getPortalSessionId(session.id);
   const [contacts, roster] = await Promise.all([
-    listPortalContacts(session.id),
+    listPortalContacts(contactsSessionId),
     getWorkshopRoster(),
   ]);
   return { ok: true, data: { contacts, names: roster.map((m) => m.name) } };
@@ -55,10 +59,10 @@ export async function refreshPortal(
   memberName: string | null,
 ): Promise<Result<{ contacts: PortalContact[]; stats: PortalStats }>> {
   try {
-    const session = await authorise(password);
+    const { contactsSessionId } = await authorise(password);
     const [contacts, stats] = await Promise.all([
-      listPortalContacts(session.id),
-      getPortalStats(session.id, memberName),
+      listPortalContacts(contactsSessionId),
+      getPortalStats(contactsSessionId, memberName),
     ]);
     return { ok: true, data: { contacts, stats } };
   } catch {
@@ -80,9 +84,9 @@ export async function claimForMe(
   memberName: string,
 ): Promise<Result<PortalContact>> {
   try {
-    const session = await authorise(password);
+    const { contactsSessionId } = await authorise(password);
     const name = await requireMember(memberName);
-    const result = await claimContact(session.id, contactId, name);
+    const result = await claimContact(contactsSessionId, contactId, name);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch (error) {
     return {
@@ -101,8 +105,8 @@ export async function releaseMine(
   memberName: string,
 ): Promise<Result<PortalContact>> {
   try {
-    const session = await authorise(password);
-    const result = await releaseContact(session.id, contactId, memberName);
+    const { contactsSessionId } = await authorise(password);
+    const result = await releaseContact(contactsSessionId, contactId, memberName);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {
     return { ok: false, error: "Signed out. Enter the password again." };
@@ -116,8 +120,8 @@ export async function saveContactEdits(
   edits: ContactEdits,
 ): Promise<Result<PortalContact>> {
   try {
-    const session = await authorise(password);
-    const result = await updateContact(session.id, contactId, memberName, edits);
+    const { contactsSessionId } = await authorise(password);
+    const result = await updateContact(contactsSessionId, contactId, memberName, edits);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {
     return { ok: false, error: "Signed out. Enter the password again." };
@@ -131,8 +135,8 @@ export async function markInvited(
   invited: boolean,
 ): Promise<Result<PortalContact>> {
   try {
-    const session = await authorise(password);
-    const result = await setInvited(session.id, contactId, memberName, invited);
+    const { contactsSessionId } = await authorise(password);
+    const result = await setInvited(contactsSessionId, contactId, memberName, invited);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {
     return { ok: false, error: "Signed out. Enter the password again." };

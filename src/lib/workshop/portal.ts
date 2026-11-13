@@ -1,7 +1,11 @@
-import { and, asc, eq, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, sql } from "drizzle-orm";
 import { timingSafeEqual } from "node:crypto";
 import { db } from "@/db";
-import { workshopContacts, type WorkshopContact } from "@/db/schema";
+import {
+  workshopContacts,
+  workshopSessions,
+  type WorkshopContact,
+} from "@/db/schema";
 import { OTHER_SEAT, getTeam, isTeamId, type TeamId } from "@/lib/workshop/config";
 import { normaliseText } from "@/lib/workshop/normalise";
 import { memberKey } from "@/lib/workshop/roster";
@@ -13,6 +17,27 @@ import { memberKey } from "@/lib/workshop/roster";
  * in a room together, not strangers, and a password everyone can be told from
  * the front is the difference between a tool people use and one they don't.
  */
+
+/**
+ * The session the portal works from: the most recent run that actually has
+ * contacts, falling back to the live one.
+ *
+ * Not simply the live session. Ending a session leaves it live, so the usual
+ * case is the same either way — but the moment Harry starts a new session the
+ * live one is empty, and members would open the portal to a blank list with
+ * the names they are meant to be inviting nowhere to be seen.
+ */
+export async function getPortalSessionId(liveSessionId: string): Promise<string> {
+  const [row] = await db
+    .select({ id: workshopSessions.id })
+    .from(workshopSessions)
+    .innerJoin(workshopContacts, eq(workshopContacts.sessionId, workshopSessions.id))
+    .groupBy(workshopSessions.id, workshopSessions.createdAt)
+    .orderBy(desc(workshopSessions.createdAt))
+    .limit(1);
+
+  return row?.id ?? liveSessionId;
+}
 
 export function verifyPortalPassword(
   stored: string | null | undefined,

@@ -99,6 +99,9 @@ export async function resetWorkshop(secret: string): Promise<Result> {
     round1Seconds: session.round1Seconds,
     round2Seconds: session.round2Seconds,
     constants: session.constants,
+    // Carried over so starting a new session doesn't lock members out of the
+    // portal while they are still working the previous run's list.
+    portalPassword: session.portalPassword,
   });
 
   revalidatePath("/workshop/board");
