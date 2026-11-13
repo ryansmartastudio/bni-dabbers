@@ -216,6 +216,8 @@ export const workshopSessions = pgTable("workshop_sessions", {
     .notNull(),
   /** Bumped on every write so clients can skip unchanged poll responses. */
   version: integer("version").default(0).notNull(),
+  /** Shared password members use to reach the portal. Set from admin. */
+  portalPassword: text("portal_password"),
   isLive: boolean("is_live").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -254,6 +256,15 @@ export const workshopContacts = pgTable(
     points: integer("points").notNull(),
     /** Which member suggested this contact, so the right person invites them. */
     submitterName: text("submitter_name"),
+    /** The member who has taken on inviting them. One at a time. */
+    claimedBy: text("claimed_by"),
+    claimedByKey: text("claimed_by_key"),
+    claimedAt: timestamp("claimed_at", { withTimezone: true }),
+    /** Details the claimant can correct from the portal. */
+    website: text("website"),
+    notes: text("notes"),
+    invitedAt: timestamp("invited_at", { withTimezone: true }),
+    updatedAt: timestamp("updated_at", { withTimezone: true }),
     /** Lower-cased, whitespace-collapsed keys backing the dedupe indexes. */
     nameKey: text("name_key").notNull(),
     companyKey: text("company_key").notNull(),
@@ -276,6 +287,7 @@ export const workshopContacts = pgTable(
       .on(table.sessionId, table.emailKey)
       .where(sql`${table.emailKey} is not null`),
     index("workshop_contacts_session_idx").on(table.sessionId, table.createdAt),
+    index("workshop_contacts_claimed_idx").on(table.sessionId, table.claimedByKey),
   ],
 );
 

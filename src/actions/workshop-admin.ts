@@ -209,3 +209,25 @@ export async function endWorkshopSession(
   await bump(session.id, { state: "ended" });
   return { ok: true, contacts: row?.total ?? 0 };
 }
+
+/**
+ * Sets the password members use to reach the portal.
+ *
+ * Clearing it closes the portal, which is the right default between sessions:
+ * a new run starts with no password until Harry sets one.
+ */
+export async function setPortalPassword(
+  secret: string,
+  password: string,
+): Promise<Result> {
+  requireAdminSecret(secret);
+  const session = await getLiveSession();
+  const cleaned = password.trim().slice(0, 64);
+
+  if (cleaned !== "" && cleaned.length < 4) {
+    return { ok: false, error: "Use at least 4 characters." };
+  }
+
+  await bump(session.id, { portalPassword: cleaned === "" ? null : cleaned });
+  return { ok: true };
+}

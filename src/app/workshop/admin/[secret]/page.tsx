@@ -84,6 +84,7 @@ export default async function WorkshopAdminPage({
       totalContacts={board.totalContacts}
       joinUrl={getWorkshopJoinUrl()}
       showSimulation={sim}
+      portalPassword={session.portalPassword ?? ""}
       basePath={basePath}
     />
   );

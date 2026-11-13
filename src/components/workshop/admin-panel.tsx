@@ -7,6 +7,7 @@ import {
   endRoundEarly,
   endWorkshopSession,
   resetWorkshop,
+  setPortalPassword,
   setWorkshopState,
   simulateWorkshopContact,
   updateRoundLengths,
@@ -30,6 +31,7 @@ type AdminPanelProps = {
   showSimulation: boolean;
   /** "" on the workshop subdomain, "/workshop" on the main-domain fallback. */
   basePath: string;
+  portalPassword: string;
 };
 
 const STATE_LABEL: Record<WorkshopState, string> = {
@@ -50,6 +52,7 @@ export function AdminPanel({
   joinUrl,
   showSimulation,
   basePath,
+  portalPassword,
 }: AdminPanelProps) {
   const { snapshot, secondsLeft } = useSnapshot(initial, POLL_MS);
   const [isPending, startTransition] = useTransition();
@@ -336,6 +339,19 @@ export function AdminPanel({
 
         <RoundLengths secret={secret} snapshot={snapshot} disabled={isPending} onRun={run} />
         <Constants secret={secret} constants={constants} disabled={isPending} onRun={run} />
+      </Section>
+
+      <Section
+        title="The members' portal"
+        hint="Where members claim the contacts they'll invite. Set a password to open it; clear it to close it again."
+      >
+        <PortalPassword
+          secret={secret}
+          current={portalPassword}
+          basePath={basePath}
+          disabled={isPending}
+          onRun={run}
+        />
       </Section>
 
       <Section
@@ -668,5 +684,68 @@ function Simulation({
       </p>
       {note ? <p className="mt-2 text-sm font-semibold text-bni">{note}</p> : null}
     </section>
+  );
+}
+
+/** Opens or closes the members' portal, and shows where to send them. */
+function PortalPassword({
+  secret,
+  current,
+  basePath,
+  disabled,
+  onRun,
+}: {
+  secret: string;
+  current: string;
+  basePath: string;
+  disabled: boolean;
+  onRun: (label: string, action: () => Promise<{ ok: boolean; error?: string }>) => void;
+}) {
+  const [value, setValue] = useState(current);
+
+  return (
+    <div className="rounded-2xl border border-border bg-white p-5">
+      <div className="flex flex-wrap items-end gap-3">
+        <label className="block">
+          <span className="mb-1 block text-xs font-semibold text-muted">
+            Portal password
+          </span>
+          <input
+            value={value}
+            onChange={(e) => setValue(e.target.value)}
+            placeholder="not set — portal closed"
+            className="w-56 rounded-lg border border-border px-3 py-2 text-sm"
+          />
+        </label>
+        <button
+          type="button"
+          disabled={disabled}
+          onClick={() =>
+            onRun(
+              value.trim() === "" ? "Portal closed" : "Portal password saved",
+              () => setPortalPassword(secret, value),
+            )
+          }
+          className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-white disabled:opacity-60"
+        >
+          Save
+        </button>
+      </div>
+
+      {current ? (
+        <p className="mt-3 text-sm text-muted">
+          Members go to{" "}
+          <strong className="text-foreground">
+            {typeof window === "undefined" ? "" : window.location.host}
+            {basePath}/portal
+          </strong>{" "}
+          and enter this password.
+        </p>
+      ) : (
+        <p className="mt-3 text-sm text-muted">
+          The portal is closed until a password is set.
+        </p>
+      )}
+    </div>
   );
 }
