@@ -131,60 +131,137 @@ export function AdminPanel({
           type="button"
           disabled={isPending}
           onClick={() => run(next.label, () => setWorkshopState(secret, next.state))}
-          className="mt-5 w-full rounded-2xl bg-bni px-6 py-5 text-xl font-bold text-white disabled:opacity-60"
+          className="mt-5 w-full rounded-2xl bg-bni px-6 py-6 text-xl font-bold text-white disabled:opacity-60"
         >
           {next.label}
         </button>
       ) : null}
 
-      <div className="mt-3 grid gap-2 sm:grid-cols-2">
-        {roundOpen ? (
-          <AdminButton
-            label="End this round early"
-            disabled={isPending}
-            onClick={() => run("Round ended", () => endRoundEarly(secret))}
-          />
-        ) : null}
-        {state === "slide2" || state === "slide1" ? (
-          <AdminButton
-            label="Back to final scores"
-            disabled={isPending}
-            onClick={() => run("Back to scores", () => setWorkshopState(secret, "ended"))}
-          />
-        ) : null}
-        {state !== "waiting" ? (
+      {roundOpen || state !== "waiting" ? (
+        <div className="mt-2 grid gap-2 sm:grid-cols-2">
+          {roundOpen ? (
+            <AdminButton
+              label="End this round early"
+              disabled={isPending}
+              onClick={() => run("Round ended", () => endRoundEarly(secret))}
+            />
+          ) : null}
+          {state === "slide1" || state === "slide2" ? (
+            <AdminButton
+              label="Back to the final scores"
+              disabled={isPending}
+              onClick={() => run("Back to scores", () => setWorkshopState(secret, "ended"))}
+            />
+          ) : null}
           <AdminButton
             label="Back to the holding screen"
             disabled={isPending}
             onClick={() => run("Holding screen", () => setWorkshopState(secret, "waiting"))}
           />
-        ) : null}
-        <AdminButton label="Open the board" href={`${basePath}/board`} newTab />
-        <AdminButton label="Open the member page" href={`${basePath}/`} newTab />
-        <AdminButton label="Download the export (.xlsx)" href={`${basePath}/admin/${secret}/export`} />
-        <AdminButton
-          label="Previous sessions"
-          href={`${basePath}/admin/${secret}?tab=sessions${showSimulation ? "&sim=1" : ""}`}
-        />
-        <AdminButton label="Print the QR poster (PDF)" href={`${basePath}/admin/${secret}/poster`} newTab />
-      </div>
+        </div>
+      ) : null}
 
-      <section className="mt-6 rounded-2xl border border-border bg-white p-5">
-        <h2 className="text-lg font-bold text-foreground">Run it again</h2>
-        <p className="mt-1 text-sm text-muted">
-          Starts a clean session: empty board, nobody signed in, back to the holding
-          screen. The previous run is archived, not deleted, so you can still export it
-          from the database if you need to.
+      {message ? (
+        <p className="mt-3 rounded-xl bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
+          {message}
         </p>
-        {confirming === "reset" ? (
-          <div className="mt-3 flex flex-wrap gap-2">
+      ) : null}
+
+      <Section
+        title="Open on the screens"
+        hint="The board link includes this key, so the arrow keys drive the session from the projector laptop."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          <AdminButton
+            label="Open the board →"
+            href={`${basePath}/board?key=${secret}`}
+            newTab
+          />
+          <AdminButton label="Open the member page →" href={`${basePath}/`} newTab />
+        </div>
+      </Section>
+
+      <Section
+        title="Before you start"
+        hint="Set these up once. Changing the round lengths takes effect the next time a round starts."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          <AdminButton
+            label="Print the QR poster (PDF)"
+            href={`${basePath}/admin/${secret}/poster`}
+            newTab
+          />
+          {confirming === "reset" ? (
             <button
               type="button"
               disabled={isPending}
               onClick={() => run("New session started", () => resetWorkshop(secret))}
-              className="rounded-lg bg-bni px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+              className="rounded-xl bg-bni px-4 py-3.5 text-sm font-bold text-white"
             >
               Yes, start a new session
+            </button>
+          ) : (
+            <AdminButton
+              label="Start a new session"
+              onClick={() => setConfirming("reset")}
+            />
+          )}
+        </div>
+        {confirming === "reset" ? (
+          <p className="mt-2 text-xs text-muted">
+            Clears the board and signs everyone out. The current run is archived, not
+            deleted.{" "}
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className="font-semibold underline"
+            >
+              Cancel
+            </button>
+          </p>
+        ) : null}
+
+        <RoundLengths secret={secret} snapshot={snapshot} disabled={isPending} onRun={run} />
+        <Constants secret={secret} constants={constants} disabled={isPending} onRun={run} />
+      </Section>
+
+      <Section
+        title="After the session"
+        hint="The export has a sheet per round and a totals sheet showing who added each contact."
+      >
+        <div className="grid gap-2 sm:grid-cols-2">
+          <AdminButton
+            label="Download the export (.xlsx)"
+            href={`${basePath}/admin/${secret}/export`}
+          />
+          <AdminButton
+            label="Previous sessions"
+            href={`${basePath}/admin/${secret}?tab=sessions${showSimulation ? "&sim=1" : ""}`}
+          />
+        </div>
+      </Section>
+
+      {showSimulation ? (
+        <Simulation secret={secret} state={state} disabled={isPending} />
+      ) : null}
+
+      <details className="mt-6 rounded-2xl border-2 border-bni bg-[#FDECEE] p-5">
+        <summary className="cursor-pointer text-sm font-bold text-[#A51A26]">
+          Delete everything, permanently
+        </summary>
+        <p className="mt-2 text-xs text-[#A51A26]">
+          Removes every contact from every session and cannot be undone. Take the export
+          first. For use once the invitations have gone out.
+        </p>
+        {confirming === "delete" ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => run("All data deleted", () => deleteAllWorkshopData(secret))}
+              className="rounded-lg bg-[#A51A26] px-4 py-2.5 text-sm font-bold text-white"
+            >
+              Yes, permanently delete every contact
             </button>
             <button
               type="button"
@@ -197,72 +274,40 @@ export function AdminPanel({
         ) : (
           <button
             type="button"
-            onClick={() => setConfirming("reset")}
-            className="mt-3 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-white"
+            onClick={() => setConfirming("delete")}
+            className="mt-3 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
           >
-            Start a new session
+            Delete all data
           </button>
         )}
-      </section>
-
-      {message ? (
-        <p className="mt-4 rounded-xl bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
-          {message}
-        </p>
-      ) : null}
-
-      {showSimulation ? (
-        <Simulation secret={secret} state={state} disabled={isPending} />
-      ) : null}
-
-      <RoundLengths secret={secret} snapshot={snapshot} disabled={isPending} onRun={run} />
-      <Constants secret={secret} constants={constants} disabled={isPending} onRun={run} />
-
-      <div className="mt-8 rounded-2xl border-2 border-bni bg-[#FDECEE] p-5">
-        <h2 className="text-lg font-bold text-[#A51A26]">Careful with these</h2>
-
-        <div className="mt-3 space-y-3">
-          <div>
-            {confirming === "delete" ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => run("All data deleted", () => deleteAllWorkshopData(secret))}
-                  className="rounded-lg bg-[#A51A26] px-4 py-2.5 text-sm font-bold text-white"
-                >
-                  Yes, permanently delete every contact
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(null)}
-                  className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming("delete")}
-                className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
-              >
-                Delete all data permanently
-              </button>
-            )}
-            <p className="mt-1.5 text-xs text-[#A51A26]">
-              Removes every contact from every session and cannot be undone. Take the export
-              first. For use once the invitations have been sent.
-            </p>
-          </div>
-        </div>
-      </div>
+      </details>
 
       <p className="mt-8 text-xs text-ink-muted">
         Members join at <strong className="text-foreground">{joinUrl.replace("https://", "")}</strong>.
         Keep this page to yourself: anyone with the link can control the session.
       </p>
     </div>
+  );
+}
+
+/** A titled group, so the page reads as three stages rather than one long list. */
+function Section({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <section className="mt-7">
+      <h2 className="text-sm font-bold uppercase tracking-[0.1em] text-ink-muted">
+        {title}
+      </h2>
+      {hint ? <p className="mt-1 mb-3 text-sm text-muted">{hint}</p> : <div className="mb-3" />}
+      {children}
+    </section>
   );
 }
 
@@ -311,11 +356,8 @@ function RoundLengths({
   const [r2, setR2] = useState(String(snapshot.round2Seconds));
 
   return (
-    <section className="mt-6 rounded-2xl border border-border bg-white p-5">
-      <h2 className="text-lg font-bold text-foreground">Round lengths</h2>
-      <p className="mt-1 text-sm text-muted">
-        In seconds. Takes effect the next time a round starts.
-      </p>
+    <div className="mt-3 rounded-2xl border border-border bg-white p-5">
+      <h3 className="text-base font-bold text-foreground">Round lengths</h3>
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <label className="block">
           <span className="mb-1 block text-xs font-semibold text-muted">Round 1</span>
@@ -348,7 +390,7 @@ function RoundLengths({
           Save
         </button>
       </div>
-    </section>
+    </div>
   );
 }
 
@@ -377,8 +419,8 @@ function Constants({
   );
 
   return (
-    <section className="mt-6 rounded-2xl border border-border bg-white p-5">
-      <h2 className="text-lg font-bold text-foreground">Closing slide numbers</h2>
+    <div className="mt-3 rounded-2xl border border-border bg-white p-5">
+      <h3 className="text-base font-bold text-foreground">Closing slide numbers</h3>
       <p className="mt-1 text-sm text-muted">
         These drive both closing slides. They come from Harry&rsquo;s Growth Plan and
         deliberately differ from the live figures on bnidabbers.co.uk.
@@ -416,7 +458,7 @@ function Constants({
       >
         Save slide numbers
       </button>
-    </section>
+    </div>
   );
 }
 

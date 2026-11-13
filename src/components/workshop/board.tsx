@@ -73,10 +73,11 @@ export function Board({
   const totalSteps = stepsFor(snapshot.state);
   // A slide opened from the admin screen rather than the arrow keys still shows
   // its first step rather than nothing.
+  // Slides open on an empty frame; the first press reveals the first element.
   const slideStep =
     totalSteps === 0
       ? 0
-      : Math.min(Math.max(stepByState[snapshot.state] ?? 1, 1), totalSteps);
+      : Math.min(Math.max(stepByState[snapshot.state] ?? 0, 0), totalSteps);
 
   const goTo = useCallback(
     (next: WorkshopState) => {
@@ -101,7 +102,7 @@ export function Board({
 
   const back = useCallback(() => {
     const state = snapshot.state;
-    if (slideStep > 1) {
+    if (slideStep > 0) {
       setStepByState((prev) => ({ ...prev, [state]: slideStep - 1 }));
       return;
     }
