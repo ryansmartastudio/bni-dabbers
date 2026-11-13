@@ -179,6 +179,19 @@ export function MemberApp({
     }));
     setError(null);
     buzz(8);
+
+    // The phone's contact picker cannot return a company — the spec has no
+    // such property — so an import from it always leaves that one field
+    // empty. Put the cursor there, so the only thing left to do is obvious.
+    if (!contact.company) {
+      requestAnimationFrame(() => {
+        const field = document.getElementById("workshop-contact-company");
+        if (field instanceof HTMLInputElement) {
+          field.focus();
+          field.scrollIntoView({ block: "center", behavior: reduced ? "auto" : "smooth" });
+        }
+      });
+    }
   }
 
   const statusLabel = {
@@ -293,9 +306,9 @@ export function MemberApp({
               <p className="mt-3 text-xs text-ink-muted">Or type the details below.</p>
 
               <div className="mt-2 space-y-3">
-                <Field label="Contact name" value={form.name} autoComplete="name"
+                <Field id="workshop-contact-name" label="Contact name" value={form.name} autoComplete="name"
                   onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
-                <Field label="Company" value={form.company} autoComplete="organization"
+                <Field id="workshop-contact-company" label="Company" value={form.company} autoComplete="organization"
                   onChange={(v) => setForm((f) => ({ ...f, company: v }))} />
                 {chosen.index === OTHER_SEAT ? (
                   <Field label="Category" hint="e.g. Plumber, Dentist" value={form.category}
@@ -639,6 +652,7 @@ function ChosenSeat({
 }
 
 function Field({
+  id,
   label,
   hint,
   value,
@@ -647,6 +661,7 @@ function Field({
   inputMode,
   autoComplete,
 }: {
+  id?: string;
   label: string;
   hint?: string;
   value: string;
@@ -662,6 +677,7 @@ function Field({
         {hint ? <em className="ml-1 font-normal not-italic text-muted">({hint})</em> : null}
       </span>
       <input
+        id={id}
         type={type}
         inputMode={inputMode}
         autoComplete={autoComplete}

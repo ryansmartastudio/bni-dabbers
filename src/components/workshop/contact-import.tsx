@@ -58,6 +58,14 @@ function getContactsApi(): ContactsApi | null {
  */
 export function ContactImport({ onImport }: ContactImportProps) {
   const hasPicker = useSyncExternalStore(subscribeNoop, hasContactsApi, () => false);
+  // ?diag=1 reports what this handset actually offers, so a device we can't
+  // test here can tell us itself rather than us inferring from the symptom.
+  const showDiagnostics = useSyncExternalStore(
+    subscribeNoop,
+    () => new URLSearchParams(window.location.search).has("diag"),
+    () => false,
+  );
+  const [reported, setReported] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -73,11 +81,16 @@ export function ContactImport({ onImport }: ContactImportProps) {
     void (async () => {
       try {
         const props = await getContactsApi()?.getProperties?.();
-        if (!cancelled && Array.isArray(props) && props.length > 0) {
+        if (cancelled) return;
+        if (Array.isArray(props) && props.length > 0) {
           supported.current = props;
+          setReported(props.join(", "));
+        } else {
+          setReported("getProperties() returned nothing");
         }
-      } catch {
+      } catch (error) {
         // Keep the defaults; select() will tell us if they're wrong.
+        setReported(`getProperties() failed: ${String(error)}`);
       }
     })();
 
@@ -157,6 +170,14 @@ export function ContactImport({ onImport }: ContactImportProps) {
         <input ref={fileRef} type="file" onChange={readVCard} className="sr-only" />
         {hasPicker ? "Or use a contact card" : "Import a contact card"}
       </label>
+
+      {showDiagnostics ? (
+        <p className="rounded-lg bg-surface-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground">
+          Picker: {hasPicker ? "available" : "not available"}
+          <br />
+          Fields: {reported ?? (hasPicker ? "checking…" : "—")}
+        </p>
+      ) : null}
 
       {note ? (
         <p className="text-xs font-semibold leading-relaxed text-bni">{note}</p>
