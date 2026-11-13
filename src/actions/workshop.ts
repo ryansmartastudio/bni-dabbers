@@ -97,3 +97,43 @@ export async function leaveWorkshopSession(
   await leaveWorkshop(session.id, trimmed);
   return { ok: true };
 }
+
+
+/** Trims, collapses whitespace and strips control characters. */
+function cleanField(value: string, max: number): string {
+  return value
+    .replace(/[\u0000-\u001f\u007f]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, max);
+}
+
+/**
+ * Signs a visitor in. They are not on the roster, so they give their own name
+ * and company and pick a team.
+ *
+ * Both fields are cleaned rather than trusted: this is the one place where
+ * free text a stranger typed ends up projected on the wall, so control
+ * characters go and the length is capped at something that still fits the
+ * lobby.
+ */
+export async function joinWorkshopAsGuest(
+  name: string,
+  company: string,
+  team: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const cleanName = cleanField(name, 40);
+  const cleanCompany = cleanField(company, 40);
+
+  if (cleanName.length < 2) {
+    return { ok: false, error: "Please add your name." };
+  }
+  if (cleanCompany.length < 2) {
+    return { ok: false, error: "Please add your company." };
+  }
+
+  const session = await getLiveSession();
+  // Company rides along in the display name: the lobby and the export both
+  // want it, and it saves a column that only visitors would ever fill in.
+  return joinWorkshop(session.id, `${cleanName} (${cleanCompany})`, team);
+}

@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useTransition } from "react";
 import {
   addWorkshopContact,
+  joinWorkshopAsGuest,
   joinWorkshopSession,
   leaveWorkshopSession,
 } from "@/actions/workshop";
@@ -140,6 +141,23 @@ export function MemberApp({
     });
   }
 
+  function joinAsGuest(name: string, company: string, team: TeamId) {
+    buzz(10);
+    setJoinError(null);
+    startTransition(async () => {
+      const result = await joinWorkshopAsGuest(name, company, team);
+      if (!result.ok) {
+        setJoinError(result.error ?? "Couldn't sign you in. Try again.");
+        return;
+      }
+      setIdentity({
+        name: `${name.trim()} (${company.trim()})`,
+        team,
+        sessionId: snapshot.sessionId,
+      });
+    });
+  }
+
   function notMe() {
     const previous = identity;
     setIdentity(null);
@@ -207,6 +225,7 @@ export function MemberApp({
                   pending={isPending}
                   error={joinError}
                   onJoin={join}
+                  onJoinAsGuest={joinAsGuest}
                 />
               </div>
             </Step>

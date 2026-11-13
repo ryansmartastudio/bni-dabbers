@@ -1104,3 +1104,33 @@ body:has(#workshop-root) {
   font-weight: 700;
   pointer-events: none;
 }
+
+/* The contact-card option is a label wrapping a hidden input, so it needs the
+   button styling and a tap target of its own. */
+label.workshop-import {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.workshop-import.is-secondary {
+  border-style: solid;
+  border-color: var(--color-border);
+  background: #ffffff;
+  font-size: 0.85rem;
+  min-height: 2.75rem;
+}
+
+/* Visually hidden but still focusable and clickable, unlike display:none. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border-width: 0;
+}
