@@ -11,6 +11,7 @@ import {
   updateRoundLengths,
   updateWorkshopConstants,
 } from "@/actions/workshop-admin";
+import { AdminTabs } from "@/components/workshop/admin-tabs";
 import { formatClock, useSnapshot } from "@/components/workshop/use-snapshot";
 import { TEAMS, type WorkshopConstants } from "@/lib/workshop/config";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
@@ -85,9 +86,15 @@ export function AdminPanel({
   return (
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
       <p className="marketing-eyebrow">BNI Dabbers · Growth Workshop</p>
-      <h1 className="mt-2 text-3xl font-bold tracking-[-0.02em] text-foreground">
+      <h1 className="mt-2 mb-5 text-3xl font-bold tracking-[-0.02em] text-foreground">
         Session controls
       </h1>
+      <AdminTabs
+        active="live"
+        secret={secret}
+        basePath={basePath}
+        sim={showSimulation}
+      />
 
       <div className="mt-6 rounded-2xl border border-border bg-white p-5">
         <div className="flex flex-wrap items-baseline justify-between gap-3">
@@ -155,6 +162,10 @@ export function AdminPanel({
         <AdminButton label="Open the board" href={`${basePath}/board`} newTab />
         <AdminButton label="Open the member page" href={`${basePath}/`} newTab />
         <AdminButton label="Download the export (.xlsx)" href={`${basePath}/admin/${secret}/export`} />
+        <AdminButton
+          label="Previous sessions"
+          href={`${basePath}/admin/${secret}?tab=sessions${showSimulation ? "&sim=1" : ""}`}
+        />
         <AdminButton label="Print the QR poster (PDF)" href={`${basePath}/admin/${secret}/poster`} newTab />
       </div>
 

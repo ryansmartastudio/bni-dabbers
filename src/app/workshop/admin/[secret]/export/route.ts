@@ -1,7 +1,11 @@
 import ExcelJS from "exceljs";
 import { asc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { workshopContacts, type WorkshopContact } from "@/db/schema";
+import {
+  workshopContacts,
+  workshopSessions,
+  type WorkshopContact,
+} from "@/db/schema";
 import { isValidAdminSecret } from "@/lib/workshop/admin";
 import { OTHER_SEAT, TEAMS, getTeam } from "@/lib/workshop/config";
 import { getLiveSession } from "@/lib/workshop/session";
@@ -9,6 +13,7 @@ import { getLiveSession } from "@/lib/workshop/session";
 export const dynamic = "force-dynamic";
 
 const UNKNOWN_MEMBER = "Not recorded";
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /**
  * The workbook Harry and Matt work the follow-up from.
@@ -99,7 +104,7 @@ function addContactSheet(
 }
 
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ secret: string }> },
 ) {
   const { secret } = await params;
@@ -107,7 +112,24 @@ export async function GET(
     return new Response("Not found", { status: 404 });
   }
 
-  const session = await getLiveSession();
+  // ?session=<id> exports an archived run; without it, the live one.
+  const requested = new URL(request.url).searchParams.get("session");
+  const sessionId = requested ?? (await getLiveSession()).id;
+
+  if (!UUID.test(sessionId)) {
+    return new Response("Not found", { status: 404 });
+  }
+
+  const [session] = await db
+    .select()
+    .from(workshopSessions)
+    .where(eq(workshopSessions.id, sessionId))
+    .limit(1);
+
+  if (!session) {
+    return new Response("Not found", { status: 404 });
+  }
+
   const rows = await db
     .select()
     .from(workshopContacts)
@@ -205,7 +227,7 @@ export async function GET(
   }
 
   const buffer = await book.xlsx.writeBuffer();
-  const stamp = new Date().toISOString().slice(0, 10);
+  const stamp = session.createdAt.toISOString().slice(0, 10);
 
   return new Response(buffer as ArrayBuffer, {
     headers: {

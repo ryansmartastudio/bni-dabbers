@@ -1,12 +1,15 @@
 import { headers } from "next/headers";
 import { notFound } from "next/navigation";
 import { AdminPanel } from "@/components/workshop/admin-panel";
+import { AdminTabs, type AdminTabId } from "@/components/workshop/admin-tabs";
+import { SessionHistory } from "@/components/workshop/session-history";
 import { getWorkshopJoinUrl, isWorkshopHost } from "@/lib/workshop";
 import { isValidAdminSecret } from "@/lib/workshop/admin";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
 import {
   getLiveSession,
+  listWorkshopSessions,
   resolveState,
   sessionConstants,
   settleExpiredState,
@@ -36,6 +39,23 @@ export default async function WorkshopAdminPage({
   const host = (await headers()).get("host");
   const basePath = isWorkshopHost(host) ? "" : "/workshop";
 
+  const sim = query.sim === "1";
+  const tab: AdminTabId = query.tab === "sessions" ? "sessions" : "live";
+
+  if (tab === "sessions") {
+    const sessions = await listWorkshopSessions();
+    return (
+      <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+        <p className="marketing-eyebrow">BNI Dabbers · Growth Workshop</p>
+        <h1 className="mt-2 mb-5 text-3xl font-bold tracking-[-0.02em] text-foreground">
+          Previous sessions
+        </h1>
+        <AdminTabs active="sessions" secret={secret} basePath={basePath} sim={sim} />
+        <SessionHistory sessions={sessions} secret={secret} basePath={basePath} />
+      </div>
+    );
+  }
+
   const session = await getLiveSession();
   const resolved = resolveState(session);
   await settleExpiredState(session, resolved);
@@ -62,7 +82,7 @@ export default async function WorkshopAdminPage({
       constants={sessionConstants(session)}
       totalContacts={board.totalContacts}
       joinUrl={getWorkshopJoinUrl()}
-      showSimulation={query.sim === "1"}
+      showSimulation={sim}
       basePath={basePath}
     />
   );

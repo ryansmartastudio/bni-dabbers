@@ -223,7 +223,13 @@ export const workshopSessions = pgTable("workshop_sessions", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
-});
+}, (table) => [
+  // Only one session may be live, so a cold start under load cannot split
+  // contacts across several.
+  uniqueIndex("workshop_sessions_one_live_idx")
+    .on(table.isLive)
+    .where(sql`${table.isLive}`),
+]);
 
 export const workshopContacts = pgTable(
   "workshop_contacts",

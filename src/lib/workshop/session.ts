@@ -1,6 +1,11 @@
-import { desc, eq } from "drizzle-orm";
+import { count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { workshopSessions, type WorkshopSession } from "@/db/schema";
+import {
+  workshopContacts,
+  workshopParticipants,
+  workshopSessions,
+  type WorkshopSession,
+} from "@/db/schema";
 import {
   DEFAULT_CONSTANTS,
   ROUND_DURATIONS,
@@ -27,25 +32,40 @@ export function roundNumber(state: WorkshopState): 1 | 2 | null {
   return null;
 }
 
-export async function getLiveSession(): Promise<WorkshopSession> {
-  const [existing] = await db
+async function newestLiveSession(): Promise<WorkshopSession | undefined> {
+  const [row] = await db
     .select()
     .from(workshopSessions)
     .where(eq(workshopSessions.isLive, true))
     .orderBy(desc(workshopSessions.createdAt))
     .limit(1);
+  return row;
+}
 
+/**
+ * The session everything reads and writes, created on first use.
+ *
+ * A unique index allows only one live session, so a room full of phones
+ * hitting a cold database cannot each create their own and scatter the
+ * contacts between them. Losers of that race swallow the conflict and read
+ * back the session that won.
+ */
+export async function getLiveSession(): Promise<WorkshopSession> {
+  const existing = await newestLiveSession();
   if (existing) return existing;
 
-  const [created] = await db
-    .insert(workshopSessions)
-    .values({
+  try {
+    await db.insert(workshopSessions).values({
       round1Seconds: ROUND_DURATIONS.round1,
       round2Seconds: ROUND_DURATIONS.round2,
-    })
-    .returning();
+    });
+  } catch {
+    // Someone else won the race; the unique index on is_live rejected ours.
+  }
 
-  return created!;
+  const settled = await newestLiveSession();
+  if (!settled) throw new Error("Could not create a workshop session.");
+  return settled;
 }
 
 export type TimedState = {
@@ -114,4 +134,70 @@ export async function settleExpiredState(
 
 export function sessionConstants(session: WorkshopSession): WorkshopConstants {
   return { ...DEFAULT_CONSTANTS, ...(session.constants ?? {}) };
+}
+
+export type ArchivedSession = {
+  id: string;
+  createdAt: Date;
+  updatedAt: Date;
+  state: WorkshopState;
+  isLive: boolean;
+  contacts: number;
+  participants: number;
+  round1Contacts: number;
+  round2Contacts: number;
+};
+
+/**
+ * Every run, newest first, with its headline counts.
+ *
+ * Reset archives a session rather than deleting it, so the chapter can run the
+ * workshop again without losing the last set of names before the export is
+ * taken.
+ */
+export async function listWorkshopSessions(): Promise<ArchivedSession[]> {
+  const rows = await db
+    .select({
+      id: workshopSessions.id,
+      createdAt: workshopSessions.createdAt,
+      updatedAt: workshopSessions.updatedAt,
+      state: workshopSessions.state,
+      isLive: workshopSessions.isLive,
+    })
+    .from(workshopSessions)
+    .orderBy(desc(workshopSessions.createdAt));
+
+  if (rows.length === 0) return [];
+
+  const contactCounts = await db
+    .select({
+      sessionId: workshopContacts.sessionId,
+      round: workshopContacts.round,
+      total: count(),
+    })
+    .from(workshopContacts)
+    .groupBy(workshopContacts.sessionId, workshopContacts.round);
+
+  const participantCounts = await db
+    .select({
+      sessionId: workshopParticipants.sessionId,
+      total: count(),
+    })
+    .from(workshopParticipants)
+    .groupBy(workshopParticipants.sessionId);
+
+  return rows.map((row) => {
+    const mine = contactCounts.filter((c) => c.sessionId === row.id);
+    const round1 = mine.find((c) => c.round === 1)?.total ?? 0;
+    const round2 = mine.find((c) => c.round === 2)?.total ?? 0;
+    return {
+      ...row,
+      state: row.state as WorkshopState,
+      contacts: round1 + round2,
+      round1Contacts: round1,
+      round2Contacts: round2,
+      participants:
+        participantCounts.find((p) => p.sessionId === row.id)?.total ?? 0,
+    };
+  });
 }
