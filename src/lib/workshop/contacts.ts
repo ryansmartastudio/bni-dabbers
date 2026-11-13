@@ -267,7 +267,14 @@ export type BoardSnapshot = {
   seats: Record<TeamId, number[]>;
   /** Uncapped counts, so the admin and export can see the real numbers. */
   seatsRaw: Record<TeamId, number[]>;
-  recent: Array<{ id: string; category: string; byTeam: TeamId; points: number }>;
+  recent: Array<{
+    id: string;
+    category: string;
+    byTeam: TeamId;
+    seatTeam: TeamId;
+    seatIndex: number;
+    points: number;
+  }>;
 };
 
 export async function getBoardSnapshot(sessionId: string): Promise<BoardSnapshot> {
@@ -305,6 +312,8 @@ export async function getBoardSnapshot(sessionId: string): Promise<BoardSnapshot
       id: row.id,
       category: row.category,
       byTeam: row.submitterTeam as TeamId,
+      seatTeam: row.seatTeam as TeamId,
+      seatIndex: row.seatIndex,
       points: row.points,
     }));
 

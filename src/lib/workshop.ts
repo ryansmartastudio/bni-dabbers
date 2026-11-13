@@ -42,3 +42,8 @@ export function toWorkshopPath(pathname: string): string {
   if (pathname === "/") return WORKSHOP_PATH_PREFIX;
   return `${WORKSHOP_PATH_PREFIX}${pathname}`;
 }
+
+/** Public URL members scan to join. Used on the board and the printed poster. */
+export function getWorkshopJoinUrl(): string {
+  return `https://${WORKSHOP_HOST}`;
+}

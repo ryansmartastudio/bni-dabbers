@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
 import {
   getLiveSession,
@@ -35,6 +36,7 @@ export async function GET() {
     points: board.points,
     seats: board.seats,
     recent: board.recent,
+    milestones: Math.floor(board.totalContacts / MILESTONE_EVERY),
   };
 
   return NextResponse.json(snapshot, {

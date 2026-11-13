@@ -17,5 +17,17 @@ export type WorkshopSnapshot = {
   totalContacts: number | null;
   points: Record<TeamId, number>;
   seats: Record<TeamId, number[]>;
-  recent: Array<{ id: string; category: string; byTeam: TeamId; points: number }>;
+  recent: Array<{
+    id: string;
+    category: string;
+    byTeam: TeamId;
+    seatTeam: TeamId;
+    seatIndex: number;
+    points: number;
+  }>;
+  /**
+   * How many groups of ten have landed. Lets the board fire its celebration
+   * without being told the running total, which stays hidden until the end.
+   */
+  milestones: number;
 };

@@ -219,3 +219,401 @@ body:has(#workshop-root) > footer {
 body:has(#workshop-root) {
   background: var(--color-surface);
 }
+
+/* Rolling digits, used for every number on the board. */
+.workshop-odo-window {
+  display: inline-block;
+  height: 1em;
+  overflow: hidden;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.workshop-odo-strip {
+  display: flex;
+  flex-direction: column;
+}
+
+.workshop-odo-cell {
+  display: block;
+  height: 1em;
+  line-height: 1;
+  text-align: center;
+}
+
+/* ---------- Board (projector, 16:9) ----------
+   Sized in container-query units so every element scales with the projector
+   rather than being tuned to one resolution. */
+
+.workshop-board {
+  container-type: inline-size;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100dvh;
+  overflow: hidden;
+  background: #ffffff;
+  color: var(--color-text-primary);
+}
+
+.workshop-board-rule {
+  height: 1.1cqi;
+  background: var(--color-bni-red);
+  flex: none;
+}
+
+.workshop-board-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 2cqi;
+  padding: 1.5cqi 2.4cqi 0.8cqi;
+  flex: none;
+}
+
+.workshop-board-brand {
+  font-size: 1.05cqi;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  color: var(--color-ink-muted);
+  text-transform: uppercase;
+}
+
+.workshop-board-title {
+  margin: 0.3cqi 0 0;
+  font-size: 2.9cqi;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+
+.workshop-board-pill {
+  display: inline-block;
+  margin: 0.7cqi 0 0;
+  border-radius: 2cqi;
+  border: 0.18cqi solid #c9a227;
+  background: #fff6d6;
+  padding: 0.35cqi 1.1cqi;
+  font-size: 1.15cqi;
+  font-weight: 700;
+}
+
+.workshop-board-pill b {
+  color: var(--color-bni-red);
+}
+
+.workshop-board-round {
+  margin: 0;
+  font-size: 1.3cqi;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--color-bni-red-dark);
+}
+
+.workshop-board-clock {
+  margin: 0.1cqi 0 0;
+  font-size: 5.4cqi;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.workshop-board-cols {
+  flex: 1;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.2cqi;
+  padding: 0.8cqi 2.4cqi;
+  min-height: 0;
+}
+
+.workshop-board-col {
+  position: relative;
+  border-radius: 1cqi;
+  border: 0.2cqi solid transparent;
+  padding: 1.1cqi 1.2cqi;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqi;
+  min-height: 0;
+}
+
+.workshop-board-leader {
+  position: absolute;
+  inset: -0.35cqi;
+  border-radius: 1.3cqi;
+  border: 0.4cqi solid #c9a227;
+  pointer-events: none;
+}
+
+.workshop-board-team {
+  margin: 0;
+  font-size: 1.5cqi;
+  font-weight: 700;
+  line-height: 1.15;
+  color: var(--color-text-primary);
+}
+
+.workshop-board-points {
+  font-size: 3.8cqi;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.workshop-board-points-label {
+  font-size: 1cqi;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  opacity: 0.55;
+}
+
+.workshop-board-bar {
+  height: 1.1cqi;
+  border-radius: 2cqi;
+  background: #ffffff;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  overflow: hidden;
+  flex: none;
+}
+
+.workshop-board-bar > b {
+  display: block;
+  height: 100%;
+  border-radius: 2cqi;
+}
+
+.workshop-board-progress {
+  margin: 0;
+  font-size: 0.95cqi;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  opacity: 0.6;
+}
+
+.workshop-board-slots {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4cqi;
+  flex: 1;
+  min-height: 0;
+}
+
+.workshop-board-slot {
+  background: #ffffff;
+  border: 0.2cqi dashed #c9a227;
+  border-radius: 0.6cqi;
+  padding: 0.42cqi 0.7cqi;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.6cqi;
+  color: var(--color-text-primary);
+}
+
+.workshop-board-slot.is-full {
+  border-style: solid;
+  border-color: var(--color-bni-red);
+  background: #fff6d6;
+}
+
+.workshop-board-slot span:first-child {
+  font-size: 0.98cqi;
+  font-weight: 700;
+  line-height: 1.15;
+}
+
+.workshop-board-pips {
+  display: flex;
+  gap: 0.28cqi;
+  flex: none;
+}
+
+.workshop-board-pips i {
+  display: block;
+  width: 0.85cqi;
+  height: 0.85cqi;
+  border-radius: 50%;
+  border: 0.16cqi solid #c9a227;
+}
+
+.workshop-board-pips i.is-on {
+  background: #c9a227;
+}
+
+.workshop-board-triple {
+  background: var(--color-bni-red);
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.82cqi;
+  border-radius: 2cqi;
+  padding: 0.16cqi 0.6cqi;
+  white-space: nowrap;
+  animation: workshop-pulse 1.6s ease-in-out infinite;
+}
+
+@keyframes workshop-pulse {
+  50% {
+    transform: scale(1.12);
+  }
+}
+
+.workshop-board-allfull {
+  margin: 0;
+  background: var(--color-bni-red);
+  color: #ffffff;
+  border-radius: 0.6cqi;
+  padding: 0.45cqi 0.6cqi;
+  font-size: 0.95cqi;
+  font-weight: 800;
+  text-align: center;
+  animation: workshop-pulse 1.6s ease-in-out infinite;
+}
+
+.workshop-board-ticker {
+  display: flex;
+  gap: 0.8cqi;
+  align-items: center;
+  padding: 0.6cqi 2.4cqi 1.1cqi;
+  overflow: hidden;
+  white-space: nowrap;
+  flex: none;
+}
+
+.workshop-board-ticker-key {
+  font-size: 0.95cqi;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  color: var(--color-ink-muted);
+  flex: none;
+}
+
+.workshop-board-chip {
+  font-size: 1cqi;
+  background: var(--color-surface-muted);
+  border-radius: 2cqi;
+  padding: 0.38cqi 0.9cqi;
+  flex: none;
+}
+
+.workshop-board-chip b {
+  color: var(--color-bni-red-dark);
+}
+
+.workshop-board-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(255, 255, 255, 0.96);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1cqi;
+  padding: 3cqi;
+  z-index: 5;
+}
+
+.workshop-board-overlay h2 {
+  margin: 0;
+  font-size: 4cqi;
+  font-weight: 700;
+  color: var(--color-bni-red);
+  letter-spacing: -0.02em;
+}
+
+.workshop-board-overlay p {
+  margin: 0;
+  font-size: 1.6cqi;
+  max-width: 62%;
+  color: var(--color-text-secondary);
+}
+
+.workshop-board-qr {
+  width: 15cqi;
+  height: 15cqi;
+  background: #ffffff;
+  padding: 0.8cqi;
+  border: 0.25cqi solid var(--color-text-primary);
+  border-radius: 1cqi;
+}
+
+.workshop-board-url {
+  font-size: 1.4cqi !important;
+  font-weight: 800;
+  color: var(--color-text-primary) !important;
+  letter-spacing: 0.01em;
+}
+
+.workshop-board-total {
+  font-size: 15cqi;
+  font-weight: 800;
+  line-height: 0.9;
+  color: var(--color-bni-red);
+}
+
+.workshop-board-total-label {
+  font-size: 2.4cqi !important;
+  font-weight: 800;
+  color: var(--color-text-primary) !important;
+}
+
+.workshop-board-milestone {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 8;
+}
+
+.workshop-board-milestone-card {
+  background: var(--color-bni-red);
+  color: #ffffff;
+  border-radius: 2cqi;
+  padding: 2.4cqi 4cqi;
+  text-align: center;
+  box-shadow: 0 1cqi 3cqi rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5cqi;
+}
+
+.workshop-board-milestone-card b {
+  font-size: 5cqi;
+  line-height: 1;
+}
+
+.workshop-board-milestone-card span {
+  font-size: 1.8cqi;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+.workshop-board-milestone-piece {
+  position: absolute;
+  top: -3cqi;
+  width: 0.9cqi;
+  height: 1.5cqi;
+  animation: workshop-milestone-fall 2.6s ease-in forwards;
+}
+
+@keyframes workshop-milestone-fall {
+  to {
+    transform: translateY(110dvh) rotate(720deg);
+    opacity: 0.3;
+  }
+}
+
+/* The board owns the whole screen; the workshop footer would steal a strip
+   of a 16:9 projector and introduce a scrollbar. */
+#workshop-root:has(.workshop-board) > footer {
+  display: none;
+}
+
+#workshop-root:has(.workshop-board) {
+  min-height: 0;
+}

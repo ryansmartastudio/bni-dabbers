@@ -25,6 +25,7 @@ export default async function WorkshopMemberPage() {
     points: board.points,
     seats: board.seats,
     recent: [],
+    milestones: 0,
   };
 
   return <MemberApp initial={initial} />;
