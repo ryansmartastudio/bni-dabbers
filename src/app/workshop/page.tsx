@@ -1,5 +1,6 @@
 import { MemberApp } from "@/components/workshop/member-app";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
+import { getWorkshopRoster } from "@/lib/workshop/roster";
 import { getLiveSession, resolveState, settleExpiredState } from "@/lib/workshop/session";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
 
@@ -13,7 +14,10 @@ export default async function WorkshopMemberPage() {
   const session = await getLiveSession();
   const resolved = resolveState(session);
   await settleExpiredState(session, resolved);
-  const board = await getBoardSnapshot(session.id);
+  const [board, roster] = await Promise.all([
+    getBoardSnapshot(session.id),
+    getWorkshopRoster(),
+  ]);
 
   const initial: WorkshopSnapshot = {
     version: session.version,
@@ -25,8 +29,9 @@ export default async function WorkshopMemberPage() {
     points: board.points,
     seats: board.seats,
     recent: [],
+    participants: [],
     milestones: 0,
   };
 
-  return <MemberApp initial={initial} />;
+  return <MemberApp initial={initial} roster={roster} />;
 }

@@ -617,3 +617,89 @@ body:has(#workshop-root) {
 #workshop-root:has(.workshop-board) {
   min-height: 0;
 }
+
+/* Lobby: QR on the left, who has signed in on the right. */
+.workshop-lobby {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  gap: 3cqi;
+  align-items: center;
+  width: 100%;
+  max-width: 86cqi;
+}
+
+.workshop-lobby-left {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1cqi;
+  text-align: center;
+}
+
+.workshop-lobby-right {
+  min-width: 0;
+}
+
+.workshop-lobby-head {
+  display: flex;
+  align-items: baseline;
+  gap: 1cqi;
+  border-bottom: 0.2cqi solid var(--color-border);
+  padding-bottom: 0.8cqi;
+}
+
+.workshop-lobby-count {
+  font-size: 5cqi;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-bni-red);
+}
+
+.workshop-lobby-label {
+  font-size: 1.5cqi;
+  font-weight: 700;
+  color: var(--color-text-primary);
+}
+
+.workshop-lobby-empty {
+  margin-top: 1.4cqi !important;
+  font-size: 1.4cqi !important;
+  max-width: none !important;
+  text-align: left;
+}
+
+.workshop-lobby-teams {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1cqi 1.6cqi;
+  margin-top: 1.2cqi;
+}
+
+.workshop-lobby-team-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin: 0 0 0.3cqi;
+  font-size: 1.1cqi;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 0.25cqi;
+}
+
+.workshop-lobby-team ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15cqi;
+}
+
+.workshop-lobby-team li {
+  font-size: 1.15cqi;
+  font-weight: 600;
+  color: var(--color-text-primary);
+  line-height: 1.35;
+}

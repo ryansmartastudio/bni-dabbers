@@ -2,6 +2,7 @@ import { Board } from "@/components/workshop/board";
 import { getWorkshopJoinUrl } from "@/lib/workshop";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
+import { listParticipants } from "@/lib/workshop/participants";
 import { getLiveSession, resolveState, settleExpiredState } from "@/lib/workshop/session";
 import { getChapterSettings } from "@/lib/workshop/settings";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
@@ -17,9 +18,10 @@ export default async function WorkshopBoardPage() {
   const resolved = resolveState(session);
   await settleExpiredState(session, resolved);
 
-  const [board, settings] = await Promise.all([
+  const [board, settings, participants] = await Promise.all([
     getBoardSnapshot(session.id),
     getChapterSettings(),
+    listParticipants(session.id),
   ]);
 
   const revealed =
@@ -35,6 +37,7 @@ export default async function WorkshopBoardPage() {
     points: board.points,
     seats: board.seats,
     recent: board.recent,
+    participants,
     milestones: Math.floor(board.totalContacts / MILESTONE_EVERY),
   };
 

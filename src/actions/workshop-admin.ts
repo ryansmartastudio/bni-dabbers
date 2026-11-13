@@ -3,7 +3,7 @@
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
-import { workshopContacts, workshopSessions } from "@/db/schema";
+import { workshopContacts, workshopParticipants, workshopSessions } from "@/db/schema";
 import { requireAdminSecret } from "@/lib/workshop/admin";
 import { ROUND_DURATIONS, type WorkshopConstants } from "@/lib/workshop/config";
 import { getLiveSession, resolveState, type WorkshopState } from "@/lib/workshop/session";
@@ -114,6 +114,7 @@ export async function resetWorkshop(secret: string): Promise<Result> {
 export async function deleteAllWorkshopData(secret: string): Promise<Result> {
   requireAdminSecret(secret);
   await db.delete(workshopContacts);
+  await db.delete(workshopParticipants);
   await db.delete(workshopSessions);
   revalidatePath("/workshop/board");
   revalidatePath("/workshop");

@@ -51,6 +51,8 @@ export async function getBlockedNames(): Promise<string[]> {
 }
 
 export type SubmitInput = {
+  /** The member who suggested this contact; they make the invitation. */
+  submitterName?: string;
   submitterTeam: string;
   seatTeam: string;
   seatIndex: number;
@@ -207,6 +209,7 @@ export async function submitContact(
         company: value.company,
         phone: value.phone.trim() || null,
         email: value.email.trim() || null,
+        submitterName: value.submitterName?.trim() || null,
         points: pointsExpr as unknown as number,
         nameKey,
         companyKey,

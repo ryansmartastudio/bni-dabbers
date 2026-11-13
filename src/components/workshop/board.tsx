@@ -267,17 +267,7 @@ function BoardOverlay({
       className="workshop-board-overlay"
     >
       {snapshot.state === "waiting" ? (
-        <>
-          <div className="workshop-board-qr">
-            <QRCode value={joinUrl} size={256} style={{ width: "100%", height: "100%" }} />
-          </div>
-          <h2>Scan to join</h2>
-          <p>
-            Pick your power team, then add the people you know for your team&rsquo;s key
-            seats. People outside BNI only.
-          </p>
-          <p className="workshop-board-url">{joinUrl.replace("https://", "")}</p>
-        </>
+        <Lobby snapshot={snapshot} joinUrl={joinUrl} reduced={reduced} />
       ) : snapshot.state === "break" ? (
         <>
           <h2>Round 2: any seat</h2>
@@ -339,5 +329,86 @@ function Milestone({ reduced }: { reduced: boolean }) {
           ))
         : null}
     </motion.div>
+  );
+}
+
+/**
+ * The holding screen before kick-off.
+ *
+ * The joined list is the point: Harry needs to see the room signing in so he
+ * knows when to start, rather than guessing from a show of hands.
+ */
+function Lobby({
+  snapshot,
+  joinUrl,
+  reduced,
+}: {
+  snapshot: WorkshopSnapshot;
+  joinUrl: string;
+  reduced: boolean;
+}) {
+  const joined = snapshot.participants;
+
+  return (
+    <div className="workshop-lobby">
+      <div className="workshop-lobby-left">
+        <div className="workshop-board-qr">
+          <QRCode value={joinUrl} size={256} style={{ width: "100%", height: "100%" }} />
+        </div>
+        <h2>Scan to join</h2>
+        <p>
+          Find your name, then add the people you know for your team&rsquo;s key seats.
+          People outside BNI only.
+        </p>
+        <p className="workshop-board-url">{joinUrl.replace("https://", "")}</p>
+      </div>
+
+      <div className="workshop-lobby-right">
+        <div className="workshop-lobby-head">
+          <span className="workshop-lobby-count">
+            <Odometer value={joined.length} />
+          </span>
+          <span className="workshop-lobby-label">
+            {joined.length === 1 ? "member is in" : "members are in"}
+          </span>
+        </div>
+
+        {joined.length === 0 ? (
+          <p className="workshop-lobby-empty">
+            Nobody has scanned yet. Names appear here as they join.
+          </p>
+        ) : (
+          <div className="workshop-lobby-teams">
+            {TEAMS.map((team) => {
+              const mine = joined.filter((p) => p.team === team.id);
+              return (
+                <div key={team.id} className="workshop-lobby-team">
+                  <p className="workshop-lobby-team-head" style={{ color: team.accent }}>
+                    {team.name}
+                    <span>{mine.length}</span>
+                  </p>
+                  <ul>
+                    <AnimatePresence initial={false}>
+                      {mine.map((person) => (
+                        <motion.li
+                          key={person.name}
+                          layout={!reduced}
+                          initial={reduced ? false : { opacity: 0, x: -10 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, transition: { duration: 0.12 } }}
+                          transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                        >
+                          {person.name}
+                        </motion.li>
+                      ))}
+                    </AnimatePresence>
+                  </ul>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }

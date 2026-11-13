@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
+import { listParticipants } from "@/lib/workshop/participants";
 import {
   getLiveSession,
   resolveState,
@@ -22,7 +23,10 @@ export async function GET() {
   const resolved = resolveState(session);
   await settleExpiredState(session, resolved);
 
-  const board = await getBoardSnapshot(session.id);
+  const [board, participants] = await Promise.all([
+    getBoardSnapshot(session.id),
+    listParticipants(session.id),
+  ]);
   const revealed = resolved.state === "ended" || resolved.state === "slide1" || resolved.state === "slide2";
 
   const snapshot: WorkshopSnapshot = {
@@ -36,6 +40,7 @@ export async function GET() {
     points: board.points,
     seats: board.seats,
     recent: board.recent,
+    participants,
     milestones: Math.floor(board.totalContacts / MILESTONE_EVERY),
   };
 

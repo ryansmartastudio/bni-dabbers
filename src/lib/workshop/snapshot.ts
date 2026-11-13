@@ -25,6 +25,8 @@ export type WorkshopSnapshot = {
     seatIndex: number;
     points: number;
   }>;
+  /** Who has signed in, so Harry can see the room filling before he starts. */
+  participants: Array<{ name: string; team: TeamId }>;
   /**
    * How many groups of ten have landed. Lets the board fire its celebration
    * without being told the running total, which stays hidden until the end.

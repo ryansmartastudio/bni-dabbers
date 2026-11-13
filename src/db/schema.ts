@@ -246,6 +246,8 @@ export const workshopContacts = pgTable(
     phone: text("phone"),
     email: text("email"),
     points: integer("points").notNull(),
+    /** Which member suggested this contact, so the right person invites them. */
+    submitterName: text("submitter_name"),
     /** Lower-cased, whitespace-collapsed keys backing the dedupe indexes. */
     nameKey: text("name_key").notNull(),
     companyKey: text("company_key").notNull(),
@@ -271,6 +273,27 @@ export const workshopContacts = pgTable(
   ],
 );
 
+/** Who is in the room, so the board can show a lobby before kick-off. */
+export const workshopParticipants = pgTable(
+  "workshop_participants",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => workshopSessions.id, { onDelete: "cascade" }),
+    memberName: text("member_name").notNull(),
+    /** Normalised name, so a reload cannot create a second entry. */
+    memberKey: text("member_key").notNull(),
+    team: text("team").notNull(),
+    joinedAt: timestamp("joined_at", { withTimezone: true }).defaultNow().notNull(),
+  },
+  (table) => [
+    uniqueIndex("workshop_participants_member_idx").on(table.sessionId, table.memberKey),
+    index("workshop_participants_session_idx").on(table.sessionId, table.joinedAt),
+  ],
+);
+
+export type WorkshopParticipant = typeof workshopParticipants.$inferSelect;
 export type WorkshopSession = typeof workshopSessions.$inferSelect;
 export type WorkshopContact = typeof workshopContacts.$inferSelect;
 export type NewWorkshopContact = typeof workshopContacts.$inferInsert;

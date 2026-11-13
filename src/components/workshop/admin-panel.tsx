@@ -158,6 +158,42 @@ export function AdminPanel({
         <AdminButton label="Print the QR poster (PDF)" href={`${basePath}/admin/${secret}/poster`} newTab />
       </div>
 
+      <section className="mt-6 rounded-2xl border border-border bg-white p-5">
+        <h2 className="text-lg font-bold text-foreground">Run it again</h2>
+        <p className="mt-1 text-sm text-muted">
+          Starts a clean session: empty board, nobody signed in, back to the holding
+          screen. The previous run is archived, not deleted, so you can still export it
+          from the database if you need to.
+        </p>
+        {confirming === "reset" ? (
+          <div className="mt-3 flex flex-wrap gap-2">
+            <button
+              type="button"
+              disabled={isPending}
+              onClick={() => run("New session started", () => resetWorkshop(secret))}
+              className="rounded-lg bg-bni px-4 py-2.5 text-sm font-bold text-white disabled:opacity-60"
+            >
+              Yes, start a new session
+            </button>
+            <button
+              type="button"
+              onClick={() => setConfirming(null)}
+              className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
+            >
+              Cancel
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setConfirming("reset")}
+            className="mt-3 rounded-lg bg-foreground px-4 py-2.5 text-sm font-semibold text-white"
+          >
+            Start a new session
+          </button>
+        )}
+      </section>
+
       {message ? (
         <p className="mt-4 rounded-xl bg-surface-muted px-4 py-3 text-sm font-semibold text-foreground">
           {message}
@@ -175,40 +211,6 @@ export function AdminPanel({
         <h2 className="text-lg font-bold text-[#A51A26]">Careful with these</h2>
 
         <div className="mt-3 space-y-3">
-          <div>
-            {confirming === "reset" ? (
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  disabled={isPending}
-                  onClick={() => run("Session reset", () => resetWorkshop(secret))}
-                  className="rounded-lg bg-bni px-4 py-2.5 text-sm font-bold text-white"
-                >
-                  Yes, clear the board and start fresh
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setConfirming(null)}
-                  className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
-                >
-                  Cancel
-                </button>
-              </div>
-            ) : (
-              <button
-                type="button"
-                onClick={() => setConfirming("reset")}
-                className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold"
-              >
-                Reset for a fresh session
-              </button>
-            )}
-            <p className="mt-1.5 text-xs text-[#A51A26]">
-              Clears the board and starts a new session. The old contacts are archived, not
-              deleted, so this is recoverable.
-            </p>
-          </div>
-
           <div>
             {confirming === "delete" ? (
               <div className="flex flex-wrap gap-2">

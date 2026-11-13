@@ -51,6 +51,7 @@ export default async function WorkshopAdminPage({
     points: board.points,
     seats: board.seats,
     recent: board.recent,
+    participants: [],
     milestones: Math.floor(board.totalContacts / MILESTONE_EVERY),
   };
 

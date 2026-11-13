@@ -2,10 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useTransition } from "react";
-import { addWorkshopContact } from "@/actions/workshop";
+import { addWorkshopContact, joinWorkshopSession } from "@/actions/workshop";
 import { Confetti } from "@/components/workshop/confetti";
 import { ContactImport } from "@/components/workshop/contact-import";
-import { useStoredTeam } from "@/components/workshop/team-store";
+import { JoinStep } from "@/components/workshop/join-step";
+import { useStoredIdentity } from "@/components/workshop/team-store";
 import { formatClock, useSnapshot } from "@/components/workshop/use-snapshot";
 import {
   NAMES_PER_SEAT,
@@ -15,6 +16,7 @@ import {
   type TeamId,
 } from "@/lib/workshop/config";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
+import type { RosterMember } from "@/lib/workshop/roster";
 import type { ParsedContact } from "@/lib/workshop/vcard";
 
 const POLL_MS = 2500;
@@ -34,11 +36,20 @@ function buzz(pattern: number | number[]) {
   }
 }
 
-export function MemberApp({ initial }: { initial: WorkshopSnapshot }) {
+export function MemberApp({
+  initial,
+  roster,
+}: {
+  initial: WorkshopSnapshot;
+  roster: RosterMember[];
+}) {
   const reduced = useReducedMotion() ?? false;
   const { snapshot, secondsLeft } = useSnapshot(initial, POLL_MS);
 
-  const [myTeam, setMyTeam] = useStoredTeam();
+  const [identity, setIdentity] = useStoredIdentity();
+  const myTeam = identity?.team ?? null;
+  const [joinError, setJoinError] = useState<string | null>(null);
+  const [movingTeam, setMovingTeam] = useState(false);
   const [picked, setPicked] = useState<Chosen | null>(null);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
   const [error, setError] = useState<string | null>(null);
@@ -47,9 +58,20 @@ export function MemberApp({ initial }: { initial: WorkshopSnapshot }) {
   const [confettiKey, setConfettiKey] = useState(0);
   const [isPending, startTransition] = useTransition();
 
-  function chooseTeam(id: TeamId) {
+  function join(name: string, team: TeamId) {
     buzz(10);
-    setMyTeam(id);
+    setJoinError(null);
+    startTransition(async () => {
+      const result = await joinWorkshopSession(name, team);
+      if (!result.ok) {
+        setJoinError(result.error ?? "Couldn't sign you in. Try again.");
+        return;
+      }
+      // Only remember the identity once the server has it, so a failed join
+      // doesn't leave the phone thinking it is signed in.
+      setIdentity({ name, team });
+      setMovingTeam(false);
+    });
   }
 
   const roundOpen = snapshot.state === "round1" || snapshot.state === "round2";
@@ -72,6 +94,7 @@ export function MemberApp({ initial }: { initial: WorkshopSnapshot }) {
 
     startTransition(async () => {
       const result = await addWorkshopContact({
+        submitterName: identity?.name,
         submitterTeam: myTeam,
         seatTeam: chosen.team,
         seatIndex: chosen.index,
@@ -153,39 +176,42 @@ export function MemberApp({ initial }: { initial: WorkshopSnapshot }) {
       <main className="px-5 py-5">
         <AnimatePresence initial={false}>
           {!myTeam ? (
-            <Step key="team" reduced={reduced}>
-              <h2 className="text-xl font-bold text-foreground">Which power team are you in?</h2>
-              <p className="mt-1 text-sm text-muted">
-                You only pick once. Every contact you add is tagged to your team.
-              </p>
+            <Step key="join" reduced={reduced}>
               <OutsideBniNote />
-              <div className="mt-4 space-y-3">
-                {TEAMS.map((t, i) => (
-                  <motion.button
-                    key={t.id}
-                    type="button"
-                    onClick={() => chooseTeam(t.id)}
-                    whileTap={reduced ? undefined : { scale: 0.975 }}
-                    initial={reduced ? false : { opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: reduced ? 0 : i * 0.06, type: "spring", stiffness: 420, damping: 32 }}
-                    className="flex w-full items-center justify-between rounded-2xl px-5 py-5 text-left text-lg font-bold text-white shadow-[0_14px_30px_-22px_rgba(23,20,18,0.8)]"
-                    style={{ background: t.accent }}
-                  >
-                    {t.name}
-                    <span className="text-xs font-semibold opacity-85">5 key seats</span>
-                  </motion.button>
-                ))}
+              <div className="mt-4">
+                <JoinStep
+                  roster={roster}
+                  reduced={reduced}
+                  pending={isPending}
+                  error={joinError}
+                  onJoin={join}
+                />
               </div>
             </Step>
           ) : !roundOpen ? (
             <Step key="hold" reduced={reduced}>
-              <TeamChip team={myTeam} onChange={() => setMyTeam(null)} />
+              <TeamChip
+                identity={identity}
+                moving={movingTeam}
+                pending={isPending}
+                reduced={reduced}
+                onNotYou={() => setIdentity(null)}
+                onMove={() => setMovingTeam((v) => !v)}
+                onPickTeam={(team) => identity && join(identity.name, team)}
+              />
               <HoldingScreen state={snapshot.state} points={snapshot.points[myTeam] ?? 0} round1Seconds={snapshot.round1Seconds} />
             </Step>
           ) : !chosen ? (
             <Step key="seats" reduced={reduced}>
-              <TeamChip team={myTeam} onChange={() => setMyTeam(null)} />
+              <TeamChip
+                identity={identity}
+                moving={movingTeam}
+                pending={isPending}
+                reduced={reduced}
+                onNotYou={() => setIdentity(null)}
+                onMove={() => setMovingTeam((v) => !v)}
+                onPickTeam={(team) => identity && join(identity.name, team)}
+              />
               <OutsideBniNote />
               <h2 className="mt-4 text-xl font-bold text-foreground">Step 1: pick a key seat</h2>
               <p className="mt-1 text-sm text-muted">
@@ -324,18 +350,81 @@ function OutsideBniNote({ compact = false }: { compact?: boolean }) {
   );
 }
 
-function TeamChip({ team, onChange }: { team: TeamId; onChange: () => void }) {
-  const t = getTeam(team);
-  if (!t) return null;
+/**
+ * Who this phone belongs to, plus the way out if either is wrong.
+ *
+ * Moving team is deliberately a two-step with a nudge to speak to Harry
+ * first: teams need to stay roughly even, and he is standing right there.
+ * The nudge is social rather than enforced — blocking it in software would
+ * just mean someone sitting on the wrong team all session.
+ */
+function TeamChip({
+  identity,
+  moving,
+  pending,
+  reduced,
+  onNotYou,
+  onMove,
+  onPickTeam,
+}: {
+  identity: { name: string; team: TeamId } | null;
+  moving: boolean;
+  pending: boolean;
+  reduced: boolean;
+  onNotYou: () => void;
+  onMove: () => void;
+  onPickTeam: (team: TeamId) => void;
+}) {
+  const t = identity ? getTeam(identity.team) : null;
+  if (!identity || !t) return null;
+
   return (
-    <div className="flex items-center justify-between rounded-xl bg-surface-muted px-4 py-2.5 text-sm">
-      <span className="flex items-center gap-2 font-bold text-foreground">
-        <span className="h-2.5 w-2.5 rounded-full" style={{ background: t.accent }} />
-        {t.name}
-      </span>
-      <button type="button" onClick={onChange} className="text-xs text-muted underline">
-        Wrong team?
-      </button>
+    <div className="rounded-xl bg-surface-muted px-4 py-2.5 text-sm">
+      <div className="flex items-center justify-between gap-3">
+        <span className="min-w-0">
+          <span className="block truncate font-bold text-foreground">{identity.name}</span>
+          <span className="flex items-center gap-1.5 text-xs text-muted">
+            <span className="h-2 w-2 rounded-full" style={{ background: t.accent }} />
+            {t.name}
+          </span>
+        </span>
+        <span className="flex shrink-0 gap-3">
+          <button type="button" onClick={onMove} className="text-xs text-muted underline">
+            {moving ? "Cancel" : "Move team"}
+          </button>
+          <button type="button" onClick={onNotYou} className="text-xs text-muted underline">
+            Not you?
+          </button>
+        </span>
+      </div>
+
+      {moving ? (
+        <motion.div
+          initial={reduced ? false : { opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="overflow-hidden"
+        >
+          <p className="mt-3 rounded-lg border border-[#C9A227] bg-[#FFFBEF] px-3 py-2 text-xs font-semibold text-foreground">
+            Have a quick word with Harry before you move — he&rsquo;s keeping the teams
+            even.
+          </p>
+          <div className="mt-2 grid gap-1.5">
+            {TEAMS.filter((team) => team.id !== identity.team).map((team) => (
+              <button
+                key={team.id}
+                type="button"
+                disabled={pending}
+                onClick={() => onPickTeam(team.id)}
+                className="flex items-center justify-between rounded-lg px-3 py-2.5 text-left text-sm font-bold text-white disabled:opacity-60"
+                style={{ background: team.accent }}
+              >
+                {team.name}
+                <span className="text-[11px] font-semibold opacity-85">Move here</span>
+              </button>
+            ))}
+          </div>
+        </motion.div>
+      ) : null}
     </div>
   );
 }

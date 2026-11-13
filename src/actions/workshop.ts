@@ -5,6 +5,7 @@ import {
   submitContact,
   type SubmitInput,
 } from "@/lib/workshop/contacts";
+import { joinWorkshop } from "@/lib/workshop/participants";
 import { getLiveSession, resolveState, roundNumber } from "@/lib/workshop/session";
 
 export type SubmitResponse = {
@@ -48,4 +49,14 @@ export async function addWorkshopContact(
     seatTeam: result.contact.seatTeam,
     category: result.contact.category,
   };
+}
+
+
+/** Signs a member into the room so the board can show who is here. */
+export async function joinWorkshopSession(
+  name: string,
+  team: string,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await getLiveSession();
+  return joinWorkshop(session.id, name, team);
 }
