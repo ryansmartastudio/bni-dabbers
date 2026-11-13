@@ -167,6 +167,8 @@ export async function simulateWorkshopContact(
     session.id,
     round,
     {
+      // Marked so rehearsal rows are obvious in the export's "Added by" column.
+      submitterName: "(simulated)",
       submitterTeam: by.id,
       seatTeam: seatTeam.id,
       seatIndex: seatIndex === 5 ? other : seatIndex,
