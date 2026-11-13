@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { parseVCard, type ParsedContact } from "@/lib/workshop/vcard";
 
 type ContactImportProps = {
@@ -12,41 +12,79 @@ type ContactsApi = {
     props: string[],
     options?: { multiple?: boolean },
   ) => Promise<Array<{ name?: string[]; tel?: string[]; email?: string[] }>>;
+  getProperties?: () => Promise<string[]>;
 };
+
+/** What we would like, in the order we would like it. */
+const WANTED = ["name", "tel", "email"] as const;
 
 /** The picker's availability never changes within a session. */
 function subscribeNoop() {
   return () => {};
 }
 
+/**
+ * The canonical feature test from the spec.
+ *
+ * Checks ContactsManager as well as navigator.contacts: Safari behind its
+ * feature flag, Chrome on Android and Samsung Internet have each at times
+ * exposed one without a working other.
+ */
+function hasContactsApi(): boolean {
+  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
+  return (
+    "contacts" in navigator &&
+    "ContactsManager" in window &&
+    typeof (navigator as Navigator & { contacts?: ContactsApi }).contacts?.select ===
+      "function"
+  );
+}
+
 function getContactsApi(): ContactsApi | null {
-  if (typeof navigator === "undefined") return null;
-  const api = (navigator as Navigator & { contacts?: ContactsApi }).contacts;
-  return api && typeof api.select === "function" ? api : null;
+  if (!hasContactsApi()) return null;
+  return (navigator as Navigator & { contacts?: ContactsApi }).contacts ?? null;
 }
 
 /**
  * Two ways in, because the platforms are not equal.
  *
- * Android Chrome gets the real Contact Picker — one tap, no permission prompt,
- * because the picker runs out of process. Apple has never shipped that API in
- * WebKit, and every iOS browser is WebKit, so iPhones fall back to a contact
- * card from Files.
+ * Android Chrome has the picker outright. Safari has it too, but only once the
+ * Contact Picker API flag is switched on in Settings, so it appears for some
+ * iPhones and not others — which is why this is a feature test rather than a
+ * check of the platform.
  *
- * The card option is offered on every device, not only where the picker is
- * missing: detection is a feature test, and a browser that reports no picker
- * but is perfectly capable of reading a file would otherwise be left with
- * nothing. Typing stays the prominent path either way — on a phone it is
- * genuinely the quickest of the three.
+ * The contact-card option stays on every device: a browser that reports no
+ * picker but reads files perfectly well should not be left with no import.
  */
 export function ContactImport({ onImport }: ContactImportProps) {
-  const hasPicker = useSyncExternalStore(
-    subscribeNoop,
-    () => getContactsApi() !== null,
-    () => false,
-  );
+  const hasPicker = useSyncExternalStore(subscribeNoop, hasContactsApi, () => false);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  // Which properties this browser will actually return. Safari's
+  // implementation supports fewer than Chrome's, and asking for one it does
+  // not know about makes select() reject outright.
+  const supported = useRef<string[]>([...WANTED]);
+
+  useEffect(() => {
+    if (!hasPicker) return;
+    let cancelled = false;
+
+    void (async () => {
+      try {
+        const props = await getContactsApi()?.getProperties?.();
+        if (!cancelled && Array.isArray(props) && props.length > 0) {
+          supported.current = props;
+        }
+      } catch {
+        // Keep the defaults; select() will tell us if they're wrong.
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [hasPicker]);
 
   async function pickFromPhone() {
     const api = getContactsApi();
@@ -54,8 +92,14 @@ export function ContactImport({ onImport }: ContactImportProps) {
       setNote("This browser won't open your contacts. Use a contact card or type below.");
       return;
     }
+
+    // Resolved from a cached list rather than awaiting getProperties() here:
+    // an await before select() breaks the user-gesture chain the picker needs.
+    const props = WANTED.filter((p) => supported.current.includes(p));
+    if (props.length === 0) props.push("name");
+
     try {
-      const results = await api.select(["name", "tel", "email"], { multiple: false });
+      const results = await api.select(props, { multiple: false });
       const first = results[0];
       // An empty result means they backed out, which is not an error.
       if (!first) return;
@@ -66,7 +110,8 @@ export function ContactImport({ onImport }: ContactImportProps) {
         email: first.email?.[0] ?? "",
       });
       setNote(null);
-    } catch {
+    } catch (error) {
+      console.error("Contact picker failed", error);
       setNote("Couldn't open your contacts. Type the details below instead.");
     }
   }
@@ -78,8 +123,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
     if (!file) return;
 
     try {
-      const text = await file.text();
-      const parsed = parseVCard(text);
+      const parsed = parseVCard(await file.text());
       if (!parsed) {
         setNote(
           `"${file.name}" isn't a contact card. In Contacts, share the person and choose Save to Files, then pick that file.`,
@@ -105,17 +149,12 @@ export function ContactImport({ onImport }: ContactImportProps) {
         A label wrapping a visually hidden input, rather than display:none plus
         a programmatic click. A file input hidden with display:none is skipped
         by some mobile browsers, so the chooser either never opened or never
-        returned the file — which is what "it did nothing" looks like.
-        No `accept` filter either: a strict one greys out the card people are
-        trying to pick, and the file is validated by parsing it anyway.
+        returned the file. No `accept` filter either: a strict one greys out
+        the card people are trying to pick, and the file is validated by
+        parsing it anyway.
       */}
       <label className={hasPicker ? "workshop-import is-secondary" : "workshop-import"}>
-        <input
-          ref={fileRef}
-          type="file"
-          onChange={readVCard}
-          className="sr-only"
-        />
+        <input ref={fileRef} type="file" onChange={readVCard} className="sr-only" />
         {hasPicker ? "Or use a contact card" : "Import a contact card"}
       </label>
 
