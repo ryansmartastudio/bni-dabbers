@@ -5,7 +5,7 @@ import {
   submitContact,
   type SubmitInput,
 } from "@/lib/workshop/contacts";
-import { joinWorkshop } from "@/lib/workshop/participants";
+import { joinWorkshop, leaveWorkshop } from "@/lib/workshop/participants";
 import { getWorkshopRoster } from "@/lib/workshop/roster";
 import { isSamePerson, normaliseText } from "@/lib/workshop/normalise";
 import { getLiveSession, resolveState, roundNumber } from "@/lib/workshop/session";
@@ -78,4 +78,22 @@ export async function joinWorkshopSession(
 
   const session = await getLiveSession();
   return joinWorkshop(session.id, match.name, team);
+}
+
+
+/**
+ * Signs a member out of the room.
+ *
+ * Used by "Not you?", so a phone handed to the wrong person, or picked from
+ * the list by mistake, takes that name off Harry's lobby rather than leaving a
+ * ghost in the count he is reading to decide when to start.
+ */
+export async function leaveWorkshopSession(
+  name: string,
+): Promise<{ ok: boolean }> {
+  const trimmed = name.trim();
+  if (!trimmed) return { ok: true };
+  const session = await getLiveSession();
+  await leaveWorkshop(session.id, trimmed);
+  return { ok: true };
 }

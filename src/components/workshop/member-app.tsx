@@ -2,7 +2,11 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, useTransition } from "react";
-import { addWorkshopContact, joinWorkshopSession } from "@/actions/workshop";
+import {
+  addWorkshopContact,
+  joinWorkshopSession,
+  leaveWorkshopSession,
+} from "@/actions/workshop";
 import { Confetti } from "@/components/workshop/confetti";
 import { ContactImport } from "@/components/workshop/contact-import";
 import { JoinStep } from "@/components/workshop/join-step";
@@ -46,7 +50,14 @@ export function MemberApp({
   const reduced = useReducedMotion() ?? false;
   const { snapshot, secondsLeft } = useSnapshot(initial, POLL_MS);
 
-  const [identity, setIdentity] = useStoredIdentity();
+  const [storedIdentity, setIdentity] = useStoredIdentity();
+  // A phone that signed in to an earlier session starts again from the list.
+  // Carrying it over would have put someone on Harry's lobby for merely
+  // opening the page, rather than for being in the room.
+  const identity =
+    storedIdentity && storedIdentity.sessionId === snapshot.sessionId
+      ? storedIdentity
+      : null;
   const myTeam = identity?.team ?? null;
   const [joinError, setJoinError] = useState<string | null>(null);
   const [movingTeam, setMovingTeam] = useState(false);
@@ -73,31 +84,6 @@ export function MemberApp({
       setMovingTeam(false);
     });
   }
-
-  // A phone remembers who it belongs to, so when a new session starts it has
-  // to sign in again or Harry's lobby would be missing people who are sitting
-  // right there. Done silently: they already told us who they are.
-  const staleIdentity = Boolean(identity) && identity!.sessionId !== snapshot.sessionId;
-
-  useEffect(() => {
-    if (!identity || !staleIdentity) return;
-    let cancelled = false;
-
-    void (async () => {
-      const result = await joinWorkshopSession(identity.name, identity.team);
-      if (cancelled) return;
-      if (result.ok) {
-        setIdentity({ ...identity, sessionId: snapshot.sessionId });
-      } else {
-        // They are no longer on the roster, so send them back to the list.
-        setIdentity(null);
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [staleIdentity, identity, snapshot.sessionId, setIdentity]);
 
   const roundOpen = snapshot.state === "round1" || snapshot.state === "round2";
 
@@ -151,6 +137,17 @@ export function MemberApp({
       setForm(EMPTY_FORM);
       setChosen(null);
       window.scrollTo({ top: 0, behavior: reduced ? "auto" : "smooth" });
+    });
+  }
+
+  function notMe() {
+    const previous = identity;
+    setIdentity(null);
+    setMovingTeam(false);
+    if (!previous) return;
+    // Take them off the board as well, or the lobby keeps counting them.
+    startTransition(async () => {
+      await leaveWorkshopSession(previous.name);
     });
   }
 
@@ -220,7 +217,7 @@ export function MemberApp({
                 moving={movingTeam}
                 pending={isPending}
                 reduced={reduced}
-                onNotYou={() => setIdentity(null)}
+                onNotYou={notMe}
                 onMove={() => setMovingTeam((v) => !v)}
                 onPickTeam={(team) => identity && join(identity.name, team)}
               />
@@ -233,7 +230,7 @@ export function MemberApp({
                 moving={movingTeam}
                 pending={isPending}
                 reduced={reduced}
-                onNotYou={() => setIdentity(null)}
+                onNotYou={notMe}
                 onMove={() => setMovingTeam((v) => !v)}
                 onPickTeam={(team) => identity && join(identity.name, team)}
               />

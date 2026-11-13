@@ -1,4 +1,4 @@
-import { asc, eq } from "drizzle-orm";
+import { and, asc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { workshopParticipants } from "@/db/schema";
 import { isTeamId, type TeamId } from "@/lib/workshop/config";
@@ -43,4 +43,19 @@ export async function listParticipants(sessionId: string): Promise<Participant[]
   return rows
     .filter((row) => isTeamId(row.team))
     .map((row) => ({ name: row.name, team: row.team as TeamId }));
+}
+
+/** Removes a member from the room, so the board stops counting them. */
+export async function leaveWorkshop(
+  sessionId: string,
+  name: string,
+): Promise<void> {
+  await db
+    .delete(workshopParticipants)
+    .where(
+      and(
+        eq(workshopParticipants.sessionId, sessionId),
+        eq(workshopParticipants.memberKey, memberKey(name)),
+      ),
+    );
 }
