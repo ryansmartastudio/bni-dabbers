@@ -166,3 +166,14 @@ body {
     scroll-behavior: auto !important;
   }
 }
+
+/*
+ * The visitor workshop supplies its own header and footer (see
+ * `src/app/workshop/layout.tsx`). Hiding the site chrome in CSS keeps the root
+ * layout free of `headers()`, which would otherwise drop the statically
+ * generated location, article and member profile routes into dynamic rendering.
+ */
+body:has(#workshop-root) > header,
+body:has(#workshop-root) > footer {
+  display: none;
+}

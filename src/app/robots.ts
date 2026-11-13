@@ -11,6 +11,7 @@ const DISALLOW = [
   "/api/",
   "/sign-in",
   "/sign-up",
+  "/workshop",
 ];
 
 export default function robots(): MetadataRoute.Robots {
