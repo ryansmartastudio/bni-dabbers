@@ -2,7 +2,7 @@
 
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
-import { TEAMS, getTeam, type TeamId } from "@/lib/workshop/config";
+import { getTeam, type TeamId } from "@/lib/workshop/config";
 import { normaliseText } from "@/lib/workshop/normalise";
 import type { RosterMember } from "@/lib/workshop/roster";
 
@@ -23,7 +23,6 @@ type JoinStepProps = {
  */
 export function JoinStep({ roster, reduced, pending, error, onJoin }: JoinStepProps) {
   const [query, setQuery] = useState("");
-  const [picked, setPicked] = useState<RosterMember | null>(null);
 
   const matches = useMemo(() => {
     const q = normaliseText(query);
@@ -34,51 +33,7 @@ export function JoinStep({ roster, reduced, pending, error, onJoin }: JoinStepPr
   }, [roster, query]);
 
   function choose(member: RosterMember) {
-    setPicked(member);
-    // Everyone in the Growth Plan goes straight through; only the members who
-    // joined after it was written are asked to pick.
-    if (member.team) onJoin(member.name, member.team);
-  }
-
-  if (picked && !picked.team) {
-    return (
-      <div>
-        <h2 className="text-xl font-bold text-foreground">
-          Which power team are you in, {picked.name.split(" ")[0]}?
-        </h2>
-        <p className="mt-1 text-sm text-muted">
-          You joined after the Growth Plan was written, so we don&rsquo;t have you on a
-          team yet.
-        </p>
-        <div className="mt-4 space-y-3">
-          {TEAMS.map((t, i) => (
-            <motion.button
-              key={t.id}
-              type="button"
-              disabled={pending}
-              onClick={() => onJoin(picked.name, t.id)}
-              whileTap={reduced ? undefined : { scale: 0.975 }}
-              initial={reduced ? false : { opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: reduced ? 0 : i * 0.05, type: "spring", stiffness: 420, damping: 32 }}
-              className="flex w-full items-center justify-between rounded-2xl px-5 py-5 text-left text-lg font-bold text-white disabled:opacity-60"
-              style={{ background: t.accent }}
-            >
-              {t.name}
-              <span className="text-xs font-semibold opacity-85">5 key seats</span>
-            </motion.button>
-          ))}
-        </div>
-        <button
-          type="button"
-          onClick={() => setPicked(null)}
-          className="mt-4 w-full py-3 text-sm text-muted underline"
-        >
-          That&rsquo;s not me
-        </button>
-        {error ? <p className="mt-3 text-sm font-semibold text-bni">{error}</p> : null}
-      </div>
-    );
+    onJoin(member.name, member.team);
   }
 
   return (
@@ -113,7 +68,7 @@ export function JoinStep({ roster, reduced, pending, error, onJoin }: JoinStepPr
           </p>
         ) : (
           matches.map((member) => {
-            const t = member.team ? getTeam(member.team) : null;
+            const t = getTeam(member.team);
             return (
               <motion.button
                 key={member.name}

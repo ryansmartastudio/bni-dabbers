@@ -43,15 +43,14 @@ const TEAM_BY_MEMBER: Array<{ team: TeamId; names: string[] }> = [
 ];
 
 /** The 34 from the plan, used if the live roster can't be read. */
-const FALLBACK_ROSTER = TEAM_BY_MEMBER.flatMap((group) =>
+const FALLBACK_ROSTER: RosterMember[] = TEAM_BY_MEMBER.flatMap((group) =>
   group.names.map((name) => ({ name, seat: "", team: group.team })),
 );
 
 export type RosterMember = {
   name: string;
   seat: string;
-  /** Null when the member joined after the Growth Plan was written. */
-  team: TeamId | null;
+  team: TeamId;
 };
 
 export function teamForMember(name: string): TeamId | null {
@@ -86,9 +85,12 @@ export async function getWorkshopRoster(): Promise<RosterMember[]> {
     if (rows.length === 0) return FALLBACK_ROSTER;
 
     return rows
-      .map((row) => {
+      .flatMap((row) => {
         const name = `${row.first} ${row.last}`.trim();
-        return { name, seat: row.seat ?? "", team: teamForMember(name) };
+        const team = teamForMember(name);
+        // Anyone the Growth Plan doesn't place on a power team is left out, so
+        // the sign-in list is exactly Harry's 34.
+        return team ? [{ name, seat: row.seat ?? "", team }] : [];
       })
       .sort((a, b) => a.name.localeCompare(b.name, "en-GB"));
   } catch {
