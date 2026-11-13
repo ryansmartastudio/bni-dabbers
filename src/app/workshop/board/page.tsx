@@ -3,7 +3,12 @@ import { getWorkshopJoinUrl } from "@/lib/workshop";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
 import { listParticipants } from "@/lib/workshop/participants";
-import { getLiveSession, resolveState, settleExpiredState } from "@/lib/workshop/session";
+import {
+  getLiveSession,
+  resolveState,
+  sessionConstants,
+  settleExpiredState,
+} from "@/lib/workshop/session";
 import { getChapterSettings } from "@/lib/workshop/settings";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
 
@@ -46,6 +51,7 @@ export default async function WorkshopBoardPage() {
       initial={initial}
       joinUrl={getWorkshopJoinUrl()}
       chapterLogoUrl={settings.chapterLogoUrl}
+      constants={sessionConstants(session)}
     />
   );
 }

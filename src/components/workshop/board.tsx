@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import Image from "next/image";
 import { useEffect, useRef, useState } from "react";
 import QRCode from "react-qr-code";
+import { MembersSlide, NetworkSlide } from "@/components/workshop/slides";
 import { Odometer } from "@/components/workshop/odometer";
 import { formatClock, useSnapshot } from "@/components/workshop/use-snapshot";
 import {
@@ -11,6 +12,7 @@ import {
   TEAMS,
   TEAM_TARGET,
   getTeam,
+  type WorkshopConstants,
 } from "@/lib/workshop/config";
 import type { WorkshopSnapshot } from "@/lib/workshop/snapshot";
 
@@ -20,9 +22,10 @@ type BoardProps = {
   initial: WorkshopSnapshot;
   joinUrl: string;
   chapterLogoUrl: string | null;
+  constants: WorkshopConstants;
 };
 
-export function Board({ initial, joinUrl, chapterLogoUrl }: BoardProps) {
+export function Board({ initial, joinUrl, chapterLogoUrl, constants }: BoardProps) {
   const reduced = useReducedMotion() ?? false;
   const { snapshot, secondsLeft } = useSnapshot(initial, POLL_MS);
   const [milestone, setMilestone] = useState(false);
@@ -230,6 +233,13 @@ export function Board({ initial, joinUrl, chapterLogoUrl }: BoardProps) {
         reduced={reduced}
         leaderPoints={leaderPoints}
       />
+
+      {snapshot.state === "slide1" ? (
+        <NetworkSlide contacts={snapshot.totalContacts ?? 0} constants={constants} />
+      ) : null}
+      {snapshot.state === "slide2" ? (
+        <MembersSlide contacts={snapshot.totalContacts ?? 0} constants={constants} />
+      ) : null}
 
       <AnimatePresence>
         {milestone ? <Milestone reduced={reduced} /> : null}

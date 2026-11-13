@@ -718,3 +718,252 @@ body:has(#workshop-root) {
   color: var(--color-text-primary);
   line-height: 1.35;
 }
+
+/* ---------- Closing slides ---------- */
+
+.workshop-slide,
+.workshop-members-slide {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  background: #ffffff;
+  border-top: 1.1cqi solid var(--color-bni-red);
+}
+
+.workshop-slide {
+  display: grid;
+  grid-template-columns: 42% 1fr;
+  gap: 2.4cqi;
+  padding: 2.4cqi 2.8cqi;
+  align-items: center;
+}
+
+.workshop-slide-left {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.5cqi;
+  min-width: 0;
+}
+
+.workshop-slide-title {
+  margin: 0.3cqi 0 0.8cqi;
+  font-size: 2.5cqi;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.workshop-slide-step {
+  background: var(--color-surface-muted);
+  border-radius: 0.9cqi;
+  padding: 0.7cqi 1.3cqi;
+  display: flex;
+  align-items: center;
+  gap: 1.3cqi;
+}
+
+.workshop-slide-step.is-total {
+  background: var(--color-bni-red);
+  color: #ffffff;
+}
+
+.workshop-slide-step-value {
+  font-size: 3.4cqi;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-bni-red);
+  min-width: 6.5cqi;
+}
+
+.workshop-slide-step.is-total .workshop-slide-step-value {
+  color: #ffffff;
+}
+
+.workshop-slide-step-label {
+  font-size: 1.45cqi;
+  font-weight: 800;
+}
+
+.workshop-slide-step-sub {
+  display: block;
+  font-size: 1.2cqi;
+  font-weight: 700;
+  margin-top: 0.25cqi;
+  opacity: 0.92;
+}
+
+.workshop-slide-arrow {
+  margin: 0;
+  font-size: 1.1cqi;
+  font-weight: 800;
+  padding: 0.5cqi 0 0.5cqi 3.4cqi;
+  position: relative;
+}
+
+.workshop-slide-arrow::before {
+  content: "";
+  position: absolute;
+  left: 1.8cqi;
+  top: 0;
+  bottom: 0;
+  width: 0.28cqi;
+  background: #c9a227;
+}
+
+.workshop-slide-right {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.workshop-web-canvas {
+  flex: 1;
+  width: 100%;
+  min-height: 0;
+  display: block;
+}
+
+.workshop-slide-legend {
+  display: flex;
+  gap: 2cqi;
+  justify-content: center;
+  font-size: 1.15cqi;
+  font-weight: 700;
+  margin: 0.4cqi 0;
+}
+
+.workshop-slide-legend span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5cqi;
+}
+
+.workshop-slide-legend i {
+  width: 1.1cqi;
+  height: 1.1cqi;
+  border-radius: 50%;
+  background: #64666a;
+}
+
+.workshop-slide-legend i.is-new {
+  background: var(--color-bni-red);
+}
+
+.workshop-slide-foot {
+  margin: 0;
+  font-size: 1.15cqi;
+  line-height: 1.45;
+  text-align: center;
+  color: #333333;
+}
+
+/* Slide 2 */
+
+.workshop-members-slide {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.3cqi;
+  padding: 2.4cqi 3cqi;
+}
+
+.workshop-members-title {
+  margin: 0;
+  font-size: 3cqi;
+  font-weight: 700;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.workshop-members-title span {
+  color: var(--color-bni-red);
+}
+
+.workshop-member-cards {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.25fr;
+  gap: 1.5cqi;
+}
+
+.workshop-member-card {
+  background: var(--color-surface-muted);
+  border-radius: 1.1cqi;
+  border-top: 0.55cqi solid var(--color-bni-red);
+  padding: 1.5cqi 1.7cqi;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4cqi;
+}
+
+.workshop-member-card.is-headline {
+  background: #fff6d6;
+  border-top-color: #c9a227;
+}
+
+.workshop-member-label {
+  font-size: 1.3cqi;
+  font-weight: 800;
+}
+
+.workshop-member-value {
+  font-size: 4.6cqi;
+  font-weight: 800;
+  line-height: 1;
+  color: var(--color-bni-red);
+  font-variant-numeric: tabular-nums;
+}
+
+.workshop-member-delta {
+  font-size: 1.6cqi;
+  font-weight: 800;
+  color: #1f7a3e;
+}
+
+.workshop-member-bars {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqi;
+  margin-top: 0.8cqi;
+}
+
+.workshop-member-bars div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.22cqi;
+}
+
+.workshop-member-bars i {
+  display: block;
+  height: 1.3cqi;
+  border-radius: 1cqi;
+}
+
+.workshop-member-bars i.is-today {
+  background: #9a9ca0;
+}
+
+.workshop-member-bars i.is-after {
+  background: var(--color-bni-red);
+}
+
+.workshop-member-bars span {
+  font-size: 1.05cqi;
+  font-weight: 700;
+  color: var(--color-text-secondary);
+}
+
+.workshop-member-bars em {
+  font-style: normal;
+  color: var(--color-text-primary);
+}
+
+.workshop-members-foot {
+  margin: 0;
+  font-size: 1.2cqi;
+  line-height: 1.45;
+  color: #333333;
+  max-width: 86%;
+}
