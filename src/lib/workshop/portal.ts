@@ -39,6 +39,82 @@ export async function getPortalSessionId(liveSessionId: string): Promise<string>
   return row?.id ?? liveSessionId;
 }
 
+/**
+ * The session a portal link is asking for, or the default one.
+ *
+ * An unknown id falls back rather than erroring: these links get pasted into
+ * the chapter WhatsApp group and will be opened months later, by which time a
+ * truncated or mangled one should still land somewhere useful.
+ */
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+export async function resolvePortalSessionId(
+  liveSessionId: string,
+  requested: string | null,
+): Promise<string> {
+  // Checked before it reaches the query: the column is a uuid, so Postgres
+  // raises on anything that isn't one, and a link mangled on its way through
+  // WhatsApp would take the whole portal down rather than falling back.
+  if (requested && UUID.test(requested)) {
+    const [row] = await db
+      .select({ id: workshopSessions.id })
+      .from(workshopSessions)
+      .where(eq(workshopSessions.id, requested))
+      .limit(1);
+    if (row) return row.id;
+  }
+  return getPortalSessionId(liveSessionId);
+}
+
+export async function getSessionPassword(sessionId: string): Promise<string | null> {
+  const [row] = await db
+    .select({ password: workshopSessions.portalPassword })
+    .from(workshopSessions)
+    .where(eq(workshopSessions.id, sessionId))
+    .limit(1);
+  return row?.password ?? null;
+}
+
+export type PortalSessionSummary = {
+  id: string;
+  createdAt: string;
+  contacts: number;
+  claimed: number;
+  invited: number;
+  isLive: boolean;
+};
+
+/**
+ * Every run that has names in it, newest first.
+ *
+ * Only runs with contacts: an empty session is a portal with nothing in it,
+ * and offering it in the switcher would only look broken.
+ */
+export async function listPortalSessions(): Promise<PortalSessionSummary[]> {
+  const rows = await db
+    .select({
+      id: workshopSessions.id,
+      createdAt: workshopSessions.createdAt,
+      isLive: workshopSessions.isLive,
+      contacts: sql<number>`count(${workshopContacts.id})::int`,
+      claimed: sql<number>`count(${workshopContacts.claimedBy})::int`,
+      invited: sql<number>`count(${workshopContacts.invitedAt})::int`,
+    })
+    .from(workshopSessions)
+    .innerJoin(workshopContacts, eq(workshopContacts.sessionId, workshopSessions.id))
+    .groupBy(workshopSessions.id, workshopSessions.createdAt, workshopSessions.isLive)
+    .orderBy(desc(workshopSessions.createdAt));
+
+  return rows.map((row) => ({
+    id: row.id,
+    createdAt: row.createdAt.toISOString(),
+    isLive: row.isLive,
+    contacts: row.contacts,
+    claimed: row.claimed,
+    invited: row.invited,
+  }));
+}
+
 export function verifyPortalPassword(
   stored: string | null | undefined,
   given: string | null | undefined,

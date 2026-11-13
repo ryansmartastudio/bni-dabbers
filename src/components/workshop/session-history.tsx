@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CopyPortalLink } from "@/components/workshop/copy-portal-link";
 import type { ArchivedSession } from "@/lib/workshop/session";
 
 const STATE_LABEL: Record<string, string> = {
@@ -87,12 +88,26 @@ export function SessionHistory({
               </p>
             </div>
 
-            <Link
-              href={`${basePath}/admin/${secret}/export?session=${session.id}`}
-              className="shrink-0 rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
-            >
-              Download export
-            </Link>
+            <div className="flex shrink-0 flex-wrap items-center gap-2">
+              <Link
+                href={`${basePath}/admin/${secret}/export?session=${session.id}`}
+                className="rounded-lg border border-border bg-white px-4 py-2.5 text-sm font-semibold text-foreground transition hover:bg-surface-muted"
+              >
+                Download export
+              </Link>
+              {session.contacts > 0 ? (
+                <>
+                  <Link
+                    href={`${basePath}/portal?s=${session.id}`}
+                    target="_blank"
+                    className="rounded-lg bg-foreground px-4 py-2.5 text-sm font-bold text-white transition hover:opacity-90"
+                  >
+                    Go to portal →
+                  </Link>
+                  <CopyPortalLink path={`${basePath}/portal?s=${session.id}`} />
+                </>
+              ) : null}
+            </div>
           </div>
 
           <dl className="mt-4 grid grid-cols-3 gap-2 text-center">
@@ -125,3 +140,4 @@ export function SessionHistory({
     </div>
   );
 }
+

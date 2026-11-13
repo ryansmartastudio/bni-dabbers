@@ -3,15 +3,18 @@
 import { getLiveSession } from "@/lib/workshop/session";
 import {
   claimContact,
-  getPortalSessionId,
+  getSessionPassword,
   getPortalStats,
   listPortalContacts,
+  listPortalSessions,
   releaseContact,
+  resolvePortalSessionId,
   setInvited,
   updateContact,
   verifyPortalPassword,
   type ContactEdits,
   type PortalContact,
+  type PortalSessionSummary,
   type PortalStats,
 } from "@/lib/workshop/portal";
 import { getWorkshopRoster, memberKey } from "@/lib/workshop/roster";
@@ -22,55 +25,93 @@ import { getWorkshopRoster, memberKey } from "@/lib/workshop/roster";
  * The portal sends it with each request rather than holding a session, which
  * keeps it to one shared secret Harry can read out from the front. Guarding
  * only the page would guard nothing: these are ordinary POST endpoints.
+ *
+ * The live session's password opens every run, so starting a new session never
+ * locks members out of the list they are still working through; an older run's
+ * own password opens that run too, so a link shared on the night keeps working
+ * after the password has been changed.
  */
-async function authorise(password: string) {
-  const session = await getLiveSession();
-  if (!verifyPortalPassword(session.portalPassword, password)) {
-    throw new Error("PORTAL_DENIED");
+async function authorise(password: string, requestedSessionId: string | null) {
+  const live = await getLiveSession();
+  const contactsSessionId = await resolvePortalSessionId(live.id, requestedSessionId);
+
+  let allowed = verifyPortalPassword(live.portalPassword, password);
+  if (!allowed && contactsSessionId !== live.id) {
+    allowed = verifyPortalPassword(await getSessionPassword(contactsSessionId), password);
   }
-  // The password belongs to the live session, which is what admin controls;
-  // the contacts belong to the most recent run that has any.
-  return { session, contactsSessionId: await getPortalSessionId(session.id) };
+  if (!allowed) throw new Error("PORTAL_DENIED");
+
+  return { session: live, contactsSessionId };
 }
 
 type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
+export type PortalPayload = {
+  contacts: PortalContact[];
+  names: string[];
+  sessionId: string;
+  sessions: PortalSessionSummary[];
+};
+
 export async function openPortal(
   password: string,
-): Promise<Result<{ contacts: PortalContact[]; names: string[] }>> {
-  const session = await getLiveSession();
-  if (!session.portalPassword) {
+  requestedSessionId: string | null = null,
+): Promise<Result<PortalPayload>> {
+  const live = await getLiveSession();
+  const contactsSessionId = await resolvePortalSessionId(live.id, requestedSessionId);
+
+  const stored =
+    contactsSessionId === live.id
+      ? live.portalPassword
+      : ((await getSessionPassword(contactsSessionId)) ?? live.portalPassword);
+
+  if (!live.portalPassword && !stored) {
     return { ok: false, error: "The portal isn't open yet. Ask Harry for the password." };
   }
-  if (!verifyPortalPassword(session.portalPassword, password)) {
+  if (
+    !verifyPortalPassword(live.portalPassword, password) &&
+    !verifyPortalPassword(stored, password)
+  ) {
     return { ok: false, error: "That password isn't right." };
   }
 
-  const contactsSessionId = await getPortalSessionId(session.id);
-  const [contacts, roster] = await Promise.all([
+  const [contacts, roster, sessions] = await Promise.all([
     listPortalContacts(contactsSessionId),
     getWorkshopRoster(),
+    listPortalSessions(),
   ]);
-  return { ok: true, data: { contacts, names: roster.map((m) => m.name) } };
+  return {
+    ok: true,
+    data: { contacts, names: roster.map((m) => m.name), sessionId: contactsSessionId, sessions },
+  };
 }
 
 export async function refreshPortal(
   password: string,
   memberName: string | null,
-): Promise<
-  Result<{ contacts: PortalContact[]; stats: PortalStats; names: string[] }>
-> {
+  requestedSessionId: string | null = null,
+): Promise<Result<PortalPayload & { stats: PortalStats }>> {
   try {
-    const { contactsSessionId } = await authorise(password);
+    const { contactsSessionId } = await authorise(password, requestedSessionId);
     // The roster comes back on every refresh, not only on sign-in: a member
     // returning days later has a stored password and no roster, and was being
     // offered a name list scraped off the contacts instead.
-    const [contacts, stats, roster] = await Promise.all([
+    const [contacts, stats, roster, sessions] = await Promise.all([
       listPortalContacts(contactsSessionId),
       getPortalStats(contactsSessionId, memberName),
       getWorkshopRoster(),
+      listPortalSessions(),
     ]);
-    return { ok: true, data: { contacts, stats, names: roster.map((m) => m.name) } };
+    return {
+      ok: true,
+      data: {
+        contacts,
+        stats,
+        names: roster.map((m) => m.name),
+        sessionId: contactsSessionId,
+        sessions,
+      },
+    };
   } catch {
     return { ok: false, error: "Signed out. Enter the password again." };
   }
@@ -88,9 +129,10 @@ export async function claimForMe(
   password: string,
   contactId: string,
   memberName: string,
+  requestedSessionId: string | null = null,
 ): Promise<Result<PortalContact>> {
   try {
-    const { contactsSessionId } = await authorise(password);
+    const { contactsSessionId } = await authorise(password, requestedSessionId);
     const name = await requireMember(memberName);
     const result = await claimContact(contactsSessionId, contactId, name);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
@@ -109,9 +151,10 @@ export async function releaseMine(
   password: string,
   contactId: string,
   memberName: string,
+  requestedSessionId: string | null = null,
 ): Promise<Result<PortalContact>> {
   try {
-    const { contactsSessionId } = await authorise(password);
+    const { contactsSessionId } = await authorise(password, requestedSessionId);
     const result = await releaseContact(contactsSessionId, contactId, memberName);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {
@@ -124,9 +167,10 @@ export async function saveContactEdits(
   contactId: string,
   memberName: string,
   edits: ContactEdits,
+  requestedSessionId: string | null = null,
 ): Promise<Result<PortalContact>> {
   try {
-    const { contactsSessionId } = await authorise(password);
+    const { contactsSessionId } = await authorise(password, requestedSessionId);
     const result = await updateContact(contactsSessionId, contactId, memberName, edits);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {
@@ -139,9 +183,10 @@ export async function markInvited(
   contactId: string,
   memberName: string,
   invited: boolean,
+  requestedSessionId: string | null = null,
 ): Promise<Result<PortalContact>> {
   try {
-    const { contactsSessionId } = await authorise(password);
+    const { contactsSessionId } = await authorise(password, requestedSessionId);
     const result = await setInvited(contactsSessionId, contactId, memberName, invited);
     return result.ok ? { ok: true, data: result.contact } : { ok: false, error: result.error };
   } catch {

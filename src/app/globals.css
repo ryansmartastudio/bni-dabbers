@@ -1137,3 +1137,54 @@ label.workshop-import {
   white-space: nowrap;
   border-width: 0;
 }
+
+/* ---------------------------------------------------------------------------
+   The portal's invite map.
+
+   The entrance runs in CSS rather than through Motion: there is one element
+   per contact and a session can hold well over a hundred, so a hundred extra
+   React components animating at once is a cost the browser doesn't need to
+   pay for something that plays exactly once.
+   --------------------------------------------------------------------------- */
+
+@keyframes workshop-map-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes workshop-map-pop {
+  from {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* SVG groups scale from their own box, not the viewBox origin. */
+.workshop-map svg g[data-leaf] {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workshop-map svg * {
+    animation: none !important;
+    stroke-dashoffset: 0 !important;
+  }
+}
+
+@keyframes workshop-map-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}

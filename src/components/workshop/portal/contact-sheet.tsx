@@ -25,6 +25,7 @@ export function ContactSheet({
   contact,
   me,
   password,
+  sessionId,
   constants,
   meetingLabel,
   reduced,
@@ -34,6 +35,7 @@ export function ContactSheet({
   contact: PortalContact;
   me: string;
   password: string;
+  sessionId: string | null;
   constants: WorkshopConstants;
   meetingLabel: string;
   reduced: boolean;
@@ -108,6 +110,7 @@ export function ContactSheet({
               contact={contact}
               mine={mine}
               password={password}
+              sessionId={sessionId}
               me={me}
               onChanged={onChanged}
             />
@@ -126,12 +129,14 @@ function Details({
   contact,
   mine,
   password,
+  sessionId,
   me,
   onChanged,
 }: {
   contact: PortalContact;
   mine: boolean;
   password: string;
+  sessionId: string | null;
   me: string;
   onChanged: (c: PortalContact) => void;
 }) {
@@ -148,7 +153,7 @@ function Details({
   function save() {
     setMessage(null);
     startTransition(async () => {
-      const result = await saveContactEdits(password, contact.id, me, form);
+      const result = await saveContactEdits(password, contact.id, me, form, sessionId);
       if (!result.ok) {
         setMessage(result.error);
         return;
@@ -160,7 +165,7 @@ function Details({
 
   function toggleInvited() {
     startTransition(async () => {
-      const result = await markInvited(password, contact.id, me, !contact.invitedAt);
+      const result = await markInvited(password, contact.id, me, !contact.invitedAt, sessionId);
       if (result.ok) onChanged(result.data);
       else setMessage(result.error);
     });

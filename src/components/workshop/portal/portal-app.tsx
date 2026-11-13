@@ -8,11 +8,16 @@ import {
   refreshPortal,
   releaseMine,
 } from "@/actions/workshop-portal";
+import { ContactMap } from "@/components/workshop/portal/contact-map";
 import { ContactSheet } from "@/components/workshop/portal/contact-sheet";
 import { usePortalSession } from "@/components/workshop/portal/portal-store";
-import { getTeam } from "@/lib/workshop/config";
+import { TEAMS, getTeam } from "@/lib/workshop/config";
 import { normaliseText } from "@/lib/workshop/normalise";
-import type { PortalContact, PortalStats } from "@/lib/workshop/portal";
+import type {
+  PortalContact,
+  PortalSessionSummary,
+  PortalStats,
+} from "@/lib/workshop/portal";
 import type { WorkshopConstants } from "@/lib/workshop/config";
 
 const REFRESH_MS = 6000;
@@ -26,19 +31,42 @@ const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "all", label: "Everyone" },
 ];
 
+const UNSEATED = "__unseated__";
+
+function seatKeyOf(contact: PortalContact): string {
+  return `${contact.seatTeam ?? UNSEATED}:${contact.seat || "Other"}`;
+}
+
+function formatSessionLabel(iso: string): string {
+  return new Intl.DateTimeFormat("en-GB", {
+    weekday: "short",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  }).format(new Date(iso));
+}
+
 export function PortalApp({
   constants,
   meetingLabel,
+  requestedSessionId,
 }: {
   constants: WorkshopConstants;
   meetingLabel: string;
+  requestedSessionId: string | null;
 }) {
   const reduced = useReducedMotion() ?? false;
   const [session, setSession] = usePortalSession();
   const [contacts, setContacts] = useState<PortalContact[]>([]);
   const [names, setNames] = useState<string[]>([]);
   const [stats, setStats] = useState<PortalStats | null>(null);
+  const [sessions, setSessions] = useState<PortalSessionSummary[]>([]);
+  // What the server resolved; `wanted` is what this page is asking for, which
+  // starts as whatever the link carried.
+  const [wanted, setWanted] = useState<string | null>(requestedSessionId);
+  const [resolvedId, setResolvedId] = useState<string | null>(null);
   const [filter, setFilter] = useState<Filter>("unclaimed");
+  const [activeSeat, setActiveSeat] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -49,13 +77,15 @@ export function PortalApp({
 
   const refresh = useCallback(async () => {
     if (!password) return;
-    const result = await refreshPortal(password, me);
+    const result = await refreshPortal(password, me, wanted);
     if (result.ok) {
       setContacts(result.data.contacts);
       setStats(result.data.stats);
       setNames(result.data.names);
+      setSessions(result.data.sessions);
+      setResolvedId(result.data.sessionId);
     }
-  }, [password, me]);
+  }, [password, me, wanted]);
 
   // Claims change under members' feet, so the list keeps itself current.
   // Self-scheduling rather than setInterval, and deferred out of the effect
@@ -80,13 +110,15 @@ export function PortalApp({
   function signIn(given: string) {
     setError(null);
     startTransition(async () => {
-      const result = await openPortal(given);
+      const result = await openPortal(given, wanted);
       if (!result.ok) {
         setError(result.error);
         return;
       }
       setContacts(result.data.contacts);
       setNames(result.data.names);
+      setSessions(result.data.sessions);
+      setResolvedId(result.data.sessionId);
       setSession({ password: given, memberName: null });
     });
   }
@@ -110,9 +142,24 @@ export function PortalApp({
     });
   }
 
+  /** Switching run keeps the password; only the contacts change. */
+  function switchSession(id: string) {
+    setWanted(id);
+    setActiveSeat(null);
+    setOpenId(null);
+    setContacts([]);
+    setStats(null);
+    try {
+      window.history.replaceState(null, "", `?s=${id}`);
+    } catch {
+      // Not worth failing the switch over.
+    }
+  }
+
   const visible = useMemo(() => {
     const q = normaliseText(query);
     return contacts.filter((c) => {
+      if (activeSeat && seatKeyOf(c) !== activeSeat) return false;
       if (filter === "unclaimed" && c.claimedBy) return false;
       if (filter === "invited" && !c.invitedAt) return false;
       if (filter === "mine" && (!me || normaliseText(c.claimedBy ?? "") !== normaliseText(me)))
@@ -122,7 +169,16 @@ export function PortalApp({
         `${c.contactName} ${c.company} ${c.seat} ${c.claimedBy ?? ""} ${c.submitterName ?? ""}`,
       ).includes(q);
     });
-  }, [contacts, filter, query, me]);
+  }, [contacts, filter, query, me, activeSeat]);
+
+  const teamCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const contact of contacts) {
+      const key = contact.seatTeam ?? UNSEATED;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return counts;
+  }, [contacts]);
 
   if (!password) {
     return <PasswordGate onSubmit={signIn} pending={isPending} error={error} />;
@@ -139,9 +195,13 @@ export function PortalApp({
   }
 
   const open = contacts.find((c) => c.id === openId) ?? null;
+  const current = sessions.find((s) => s.id === resolvedId) ?? null;
+  const seatLabel = activeSeat
+    ? (contacts.find((c) => seatKeyOf(c) === activeSeat)?.seat ?? null)
+    : null;
 
   return (
-    <div className="mx-auto max-w-3xl px-4 pb-24 pt-6 sm:px-6">
+    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-6 sm:px-6 lg:max-w-[1480px] lg:px-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="marketing-eyebrow">BNI Dabbers · Visitor list</p>
@@ -149,82 +209,192 @@ export function PortalApp({
             Who are we inviting?
           </h1>
         </div>
-        <button
-          type="button"
-          onClick={() => setSession({ password, memberName: null })}
-          className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground"
-        >
-          {me} · switch
-        </button>
-      </div>
 
-      {stats ? (
-        <div className="mt-4 grid grid-cols-4 gap-2">
-          <Stat label="Contacts" value={stats.total} />
-          <Stat label="Claimed" value={stats.claimed} />
-          <Stat label="Yours" value={stats.mine} accent />
-          <Stat label="Invited" value={stats.invited} />
-        </div>
-      ) : null}
-
-      <label className="mt-4 block">
-        <span className="sr-only">Search the list</span>
-        <input
-          type="search"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-          placeholder="Search name, company, seat or who claimed it…"
-          className="w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-4 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
-        />
-      </label>
-
-      <div className="mt-3 flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
+        <div className="flex flex-wrap items-center gap-2">
+          {sessions.length > 1 ? (
+            <label className="flex items-center gap-2">
+              <span className="sr-only">Which workshop</span>
+              <select
+                value={resolvedId ?? ""}
+                onChange={(e) => switchSession(e.target.value)}
+                className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground"
+              >
+                {sessions.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {formatSessionLabel(s.createdAt)} · {s.contacts} names
+                    {s.isLive ? " (current)" : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
           <button
-            key={f.id}
             type="button"
-            onClick={() => setFilter(f.id)}
-            className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
-              filter === f.id
-                ? "bg-bni text-white"
-                : "border border-border bg-white text-muted hover:text-foreground"
-            }`}
+            onClick={() => setSession({ password, memberName: null })}
+            className="rounded-lg border border-border bg-white px-3 py-2 text-xs font-semibold text-foreground"
           >
-            {f.label}
+            {me} · switch
           </button>
-        ))}
+        </div>
       </div>
 
-      {error ? (
-        <p className="mt-3 rounded-xl bg-[#FDECEE] px-4 py-3 text-sm font-semibold text-[#A51A26]">
-          {error}
+      {current && !current.isLive ? (
+        <p className="mt-3 rounded-xl border border-border bg-surface-muted px-4 py-2.5 text-sm text-muted">
+          You&rsquo;re looking at the workshop from{" "}
+          <strong className="font-bold text-foreground">
+            {formatSessionLabel(current.createdAt)}
+          </strong>
+          . Everything still works — claims, edits and the toolkit.
         </p>
       ) : null}
 
-      <p className="mt-4 text-sm text-muted">
-        {visible.length} {visible.length === 1 ? "contact" : "contacts"}
-        {filter === "unclaimed" ? " nobody has taken on yet" : ""}
-      </p>
+      <div className="mt-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] lg:items-start lg:gap-8">
+        {/* The map is desktop-only: a hundred radial labels on a phone is just
+            a worse list. */}
+        <div className="hidden lg:block">
+          <div className="rounded-3xl border border-border bg-white p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-foreground">The invite map</p>
+                <p className="text-xs text-muted">
+                  Hover for the full name, click to open. Scroll to zoom, drag to move,
+                  double-click to reset.
+                </p>
+              </div>
+              {activeSeat ? (
+                <button
+                  type="button"
+                  onClick={() => setActiveSeat(null)}
+                  className="rounded-full bg-foreground px-3 py-1.5 text-xs font-bold text-white"
+                >
+                  {seatLabel} ✕
+                </button>
+              ) : null}
+            </div>
 
-      <div className="mt-3 space-y-2.5">
-        {visible.length === 0 ? (
-          <p className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center text-sm text-muted">
-            Nothing here. Try another filter.
-          </p>
-        ) : (
-          visible.map((contact) => (
-            <ContactRow
-              key={contact.id}
-              contact={contact}
-              me={me}
-              reduced={reduced}
-              pending={isPending}
-              onOpen={() => setOpenId(contact.id)}
-              onClaim={() => act(() => claimForMe(password, contact.id, me))}
-              onRelease={() => act(() => releaseMine(password, contact.id, me))}
+            <div className="mt-2">
+              <ContactMap
+                contacts={contacts}
+                me={me}
+                activeSeat={activeSeat}
+                onSeat={setActiveSeat}
+                onOpen={setOpenId}
+                reduced={reduced}
+              />
+            </div>
+
+            <div className="mt-2 space-y-2 border-t border-border pt-4">
+              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+                {TEAMS.map((team) => (
+                  <span key={team.id} className="flex items-center gap-1.5 text-xs">
+                    <span
+                      className="inline-block h-2.5 w-2.5 rounded-full"
+                      style={{ background: team.accent }}
+                    />
+                    <span className="font-semibold text-foreground">{team.name}</span>
+                    <span className="text-ink-muted">{teamCounts.get(team.id) ?? 0}</span>
+                  </span>
+                ))}
+              </div>
+              <span className="flex flex-wrap items-center gap-4 text-xs text-muted">
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#9A9CA1] bg-white" />
+                  Up for grabs
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full bg-bni" />
+                  Yours
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="inline-block h-2.5 w-2.5 rounded-full border-2 border-[#1F7A3E]" />
+                  Invited
+                </span>
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <div className="lg:min-w-0">
+          {stats ? (
+            <div className="grid grid-cols-4 gap-2">
+              <Stat label="Contacts" value={stats.total} />
+              <Stat label="Claimed" value={stats.claimed} />
+              <Stat label="Yours" value={stats.mine} accent />
+              <Stat label="Invited" value={stats.invited} />
+            </div>
+          ) : null}
+
+          <label className="mt-4 block">
+            <span className="sr-only">Search the list</span>
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name, company, seat or who claimed it…"
+              className="w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-4 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
             />
-          ))
-        )}
+          </label>
+
+          <div className="mt-3 flex flex-wrap gap-2">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                onClick={() => setFilter(f.id)}
+                className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                  filter === f.id
+                    ? "bg-bni text-white"
+                    : "border border-border bg-white text-muted hover:text-foreground"
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+
+          {activeSeat && seatLabel ? (
+            <button
+              type="button"
+              onClick={() => setActiveSeat(null)}
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-white px-3.5 py-2 text-sm font-semibold text-foreground"
+            >
+              Category: {seatLabel}
+              <span className="text-muted">✕</span>
+            </button>
+          ) : null}
+
+          {error ? (
+            <p className="mt-3 rounded-xl bg-[#FDECEE] px-4 py-3 text-sm font-semibold text-[#A51A26]">
+              {error}
+            </p>
+          ) : null}
+
+          <p className="mt-4 text-sm text-muted">
+            {visible.length} {visible.length === 1 ? "contact" : "contacts"}
+            {filter === "unclaimed" ? " nobody has taken on yet" : ""}
+          </p>
+
+          <div className="mt-3 space-y-2.5">
+            {visible.length === 0 ? (
+              <p className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center text-sm text-muted">
+                Nothing here. Try another filter.
+              </p>
+            ) : (
+              visible.map((contact) => (
+                <ContactRow
+                  key={contact.id}
+                  contact={contact}
+                  me={me}
+                  reduced={reduced}
+                  pending={isPending}
+                  onOpen={() => setOpenId(contact.id)}
+                  onClaim={() => act(() => claimForMe(password, contact.id, me, wanted))}
+                  onRelease={() => act(() => releaseMine(password, contact.id, me, wanted))}
+                />
+              ))
+            )}
+          </div>
+        </div>
       </div>
 
       <AnimatePresence>
@@ -234,6 +404,7 @@ export function PortalApp({
             contact={open}
             me={me}
             password={password}
+            sessionId={wanted}
             constants={constants}
             meetingLabel={meetingLabel}
             reduced={reduced}
@@ -285,7 +456,7 @@ function ContactRow({
   return (
     <motion.div
       layout={!reduced}
-      className={`rounded-2xl border-2 bg-white p-4 ${
+      className={`rounded-2xl border-2 bg-white p-4 transition-shadow hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] ${
         mine ? "border-bni" : contact.claimedBy ? "border-border opacity-80" : "border-border"
       }`}
     >
