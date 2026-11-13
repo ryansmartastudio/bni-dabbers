@@ -384,8 +384,8 @@ function Lobby({
               return (
                 <div key={team.id} className="workshop-lobby-team">
                   <p className="workshop-lobby-team-head" style={{ color: team.accent }}>
-                    {team.name}
-                    <span>{mine.length}</span>
+                    <span className="workshop-lobby-team-name">{team.name}</span>
+                    <span className="workshop-lobby-team-count">{mine.length}</span>
                   </p>
                   <ul>
                     <AnimatePresence initial={false}>

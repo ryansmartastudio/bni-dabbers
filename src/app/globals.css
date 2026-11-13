@@ -675,17 +675,32 @@ body:has(#workshop-root) {
   margin-top: 1.2cqi;
 }
 
-.workshop-lobby-team-head {
+/* Specificity has to beat `.workshop-board-overlay p`, whose prose max-width
+   would otherwise cap these headings at 62% and overlap the count. */
+.workshop-lobby .workshop-lobby-team-head {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
+  gap: 0.6cqi;
   margin: 0 0 0.3cqi;
-  font-size: 1.1cqi;
+  font-size: 1.05cqi;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  max-width: none;
   border-bottom: 1px solid var(--color-border);
   padding-bottom: 0.25cqi;
+}
+
+/* The team name owns the wrapping; the count never joins it mid-phrase. */
+.workshop-lobby-team-name {
+  min-width: 0;
+}
+
+.workshop-lobby-team-count {
+  flex: none;
+  font-variant-numeric: tabular-nums;
 }
 
 .workshop-lobby-team ul {

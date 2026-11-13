@@ -6,6 +6,8 @@ import {
   type SubmitInput,
 } from "@/lib/workshop/contacts";
 import { joinWorkshop } from "@/lib/workshop/participants";
+import { getWorkshopRoster } from "@/lib/workshop/roster";
+import { isSamePerson, normaliseText } from "@/lib/workshop/normalise";
 import { getLiveSession, resolveState, roundNumber } from "@/lib/workshop/session";
 
 export type SubmitResponse = {
@@ -52,11 +54,28 @@ export async function addWorkshopContact(
 }
 
 
-/** Signs a member into the room so the board can show who is here. */
+/**
+ * Signs a member into the room so the board can show who is here.
+ *
+ * The submitted name is resolved back to the roster and stored in the roster's
+ * own spelling. The lobby is projected to the room, so nothing reaches it
+ * straight from a request body — and it keeps one member's display name stable
+ * however they typed it or whichever device they used.
+ */
 export async function joinWorkshopSession(
   name: string,
   team: string,
 ): Promise<{ ok: boolean; error?: string }> {
+  const roster = await getWorkshopRoster();
+  const key = normaliseText(name);
+  const match =
+    roster.find((member) => normaliseText(member.name) === key) ??
+    roster.find((member) => isSamePerson(member.name, name));
+
+  if (!match) {
+    return { ok: false, error: "Pick your name from the list." };
+  }
+
   const session = await getLiveSession();
-  return joinWorkshop(session.id, name, team);
+  return joinWorkshop(session.id, match.name, team);
 }
