@@ -30,6 +30,7 @@ export async function GET() {
   const revealed = resolved.state === "ended" || resolved.state === "slide1" || resolved.state === "slide2";
 
   const snapshot: WorkshopSnapshot = {
+    sessionId: session.id,
     version: session.version,
     state: resolved.state,
     secondsLeft: resolved.secondsLeft,

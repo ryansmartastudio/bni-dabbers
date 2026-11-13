@@ -69,10 +69,35 @@ export function MemberApp({
       }
       // Only remember the identity once the server has it, so a failed join
       // doesn't leave the phone thinking it is signed in.
-      setIdentity({ name, team });
+      setIdentity({ name, team, sessionId: snapshot.sessionId });
       setMovingTeam(false);
     });
   }
+
+  // A phone remembers who it belongs to, so when a new session starts it has
+  // to sign in again or Harry's lobby would be missing people who are sitting
+  // right there. Done silently: they already told us who they are.
+  const staleIdentity = Boolean(identity) && identity!.sessionId !== snapshot.sessionId;
+
+  useEffect(() => {
+    if (!identity || !staleIdentity) return;
+    let cancelled = false;
+
+    void (async () => {
+      const result = await joinWorkshopSession(identity.name, identity.team);
+      if (cancelled) return;
+      if (result.ok) {
+        setIdentity({ ...identity, sessionId: snapshot.sessionId });
+      } else {
+        // They are no longer on the roster, so send them back to the list.
+        setIdentity(null);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [staleIdentity, identity, snapshot.sessionId, setIdentity]);
 
   const roundOpen = snapshot.state === "round1" || snapshot.state === "round2";
 

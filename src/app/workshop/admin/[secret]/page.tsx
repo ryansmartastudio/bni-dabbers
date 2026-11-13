@@ -62,6 +62,7 @@ export default async function WorkshopAdminPage({
   const board = await getBoardSnapshot(session.id);
 
   const initial: WorkshopSnapshot = {
+    sessionId: session.id,
     version: session.version,
     state: resolved.state,
     secondsLeft: resolved.secondsLeft,

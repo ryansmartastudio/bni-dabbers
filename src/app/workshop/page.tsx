@@ -20,6 +20,7 @@ export default async function WorkshopMemberPage() {
   ]);
 
   const initial: WorkshopSnapshot = {
+    sessionId: session.id,
     version: session.version,
     state: resolved.state,
     secondsLeft: resolved.secondsLeft,

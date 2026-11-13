@@ -41,6 +41,7 @@ export default async function WorkshopBoardPage({
     resolved.state === "ended" || resolved.state === "slide1" || resolved.state === "slide2";
 
   const initial: WorkshopSnapshot = {
+    sessionId: session.id,
     version: session.version,
     state: resolved.state,
     secondsLeft: resolved.secondsLeft,

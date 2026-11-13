@@ -5,7 +5,7 @@ import { TEAMS, type TeamId } from "@/lib/workshop/config";
 
 const STORAGE_KEY = "bni-workshop-identity";
 
-export type Identity = { name: string; team: TeamId };
+export type Identity = { name: string; team: TeamId; sessionId: string };
 
 const listeners = new Set<() => void>();
 let cached: Identity | null | undefined;
@@ -17,7 +17,8 @@ function read(): Identity | null {
     const parsed = JSON.parse(raw) as Partial<Identity>;
     if (!parsed?.name || !parsed?.team) return null;
     if (!TEAMS.some((t) => t.id === parsed.team)) return null;
-    return { name: parsed.name, team: parsed.team };
+    // An identity saved before sessions were tracked counts as stale.
+    return { name: parsed.name, team: parsed.team, sessionId: parsed.sessionId ?? "" };
   } catch {
     // Private browsing, or stale data from an earlier build.
     return null;

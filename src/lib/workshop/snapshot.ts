@@ -8,6 +8,11 @@ import type { WorkshopState } from "@/lib/workshop/session";
  * and nothing in it should be unsafe to project onto a wall.
  */
 export type WorkshopSnapshot = {
+  /**
+   * Which run this is. Phones remember who they are, so they need to notice
+   * when a new session has started and sign in again.
+   */
+  sessionId: string;
   version: number;
   state: WorkshopState;
   secondsLeft: number | null;
