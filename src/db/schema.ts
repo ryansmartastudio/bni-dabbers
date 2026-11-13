@@ -1,5 +1,7 @@
+import { sql } from "drizzle-orm";
 import {
   boolean,
+  index,
   integer,
   numeric,
   jsonb,
@@ -7,6 +9,7 @@ import {
   pgTable,
   text,
   timestamp,
+  uniqueIndex,
   uuid,
 } from "drizzle-orm/pg-core";
 
@@ -183,6 +186,103 @@ export const enquiries = pgTable("enquiries", {
     .defaultNow()
     .notNull(),
 });
+
+export const workshopStateEnum = pgEnum("workshop_state", [
+  "waiting",
+  "round1",
+  "break",
+  "round2",
+  "ended",
+  "slide1",
+  "slide2",
+]);
+
+/**
+ * One row per run of the Contact Collector. A fresh row is created on reset so
+ * test data from the rehearsal never mixes with the live session.
+ */
+export const workshopSessions = pgTable("workshop_sessions", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  state: workshopStateEnum("state").default("waiting").notNull(),
+  /** Server clock is authoritative; every client derives its countdown from these. */
+  round1StartedAt: timestamp("round1_started_at", { withTimezone: true }),
+  round2StartedAt: timestamp("round2_started_at", { withTimezone: true }),
+  round1Seconds: integer("round1_seconds").default(240).notNull(),
+  round2Seconds: integer("round2_seconds").default(120).notNull(),
+  /** Overrides for the closing-slide constants, editable by Harry on the day. */
+  constants: jsonb("constants")
+    .$type<Partial<WorkshopConstantsShape>>()
+    .default({})
+    .notNull(),
+  /** Bumped on every write so clients can skip unchanged poll responses. */
+  version: integer("version").default(0).notNull(),
+  isLive: boolean("is_live").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
+export const workshopContacts = pgTable(
+  "workshop_contacts",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    sessionId: uuid("session_id")
+      .notNull()
+      .references(() => workshopSessions.id, { onDelete: "cascade" }),
+    round: integer("round").notNull(),
+    /** Team of the member who submitted — scores the points. */
+    submitterTeam: text("submitter_team").notNull(),
+    /** Team that owns the seat — fills the seat progress. */
+    seatTeam: text("seat_team").notNull(),
+    /** Seat index 0-4, or -1 for the team's free-text "Other". */
+    seatIndex: integer("seat_index").notNull(),
+    /** Seat name, or the typed category when seatIndex is -1. */
+    category: text("category").notNull(),
+    contactName: text("contact_name").notNull(),
+    company: text("company").notNull(),
+    phone: text("phone"),
+    email: text("email"),
+    points: integer("points").notNull(),
+    /** Lower-cased, whitespace-collapsed keys backing the dedupe indexes. */
+    nameKey: text("name_key").notNull(),
+    companyKey: text("company_key").notNull(),
+    phoneKey: text("phone_key"),
+    emailKey: text("email_key"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    uniqueIndex("workshop_contacts_person_idx").on(
+      table.sessionId,
+      table.nameKey,
+      table.companyKey,
+    ),
+    uniqueIndex("workshop_contacts_phone_idx")
+      .on(table.sessionId, table.phoneKey)
+      .where(sql`${table.phoneKey} is not null`),
+    uniqueIndex("workshop_contacts_email_idx")
+      .on(table.sessionId, table.emailKey)
+      .where(sql`${table.emailKey} is not null`),
+    index("workshop_contacts_session_idx").on(table.sessionId, table.createdAt),
+  ],
+);
+
+export type WorkshopSession = typeof workshopSessions.$inferSelect;
+export type WorkshopContact = typeof workshopContacts.$inferSelect;
+export type NewWorkshopContact = typeof workshopContacts.$inferInsert;
+
+type WorkshopConstantsShape = {
+  membersToday: number;
+  visitorRate: number;
+  conversionRate: number;
+  referralsGivenPerMemberMonth: number;
+  referralsReceivedPerMemberMonth: number;
+  tyfcbLast12Months: number;
+};
 
 export type Member = typeof members.$inferSelect;
 export type NewMember = typeof members.$inferInsert;

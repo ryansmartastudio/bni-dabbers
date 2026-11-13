@@ -177,3 +177,45 @@ body:has(#workshop-root) > header,
 body:has(#workshop-root) > footer {
   display: none;
 }
+
+/* ---------- Visitor workshop ---------- */
+
+.workshop-timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  font-size: 1.4rem;
+  letter-spacing: -0.01em;
+}
+
+.workshop-import {
+  width: 100%;
+  border-radius: 0.85rem;
+  border: 2px dashed #c9a227;
+  background: #fffbef;
+  padding: 0.85rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-text-primary);
+  min-height: 3.25rem;
+}
+
+.workshop-confetti-piece {
+  position: absolute;
+  top: -12px;
+  width: 8px;
+  height: 13px;
+  border-radius: 1px;
+  animation: workshop-fall 1.5s ease-in forwards;
+}
+
+@keyframes workshop-fall {
+  to {
+    transform: translateY(105vh) rotate(540deg);
+    opacity: 0.15;
+  }
+}
+
+/* The workshop fills the viewport and supplies its own chrome. */
+body:has(#workshop-root) {
+  background: var(--color-surface);
+}
