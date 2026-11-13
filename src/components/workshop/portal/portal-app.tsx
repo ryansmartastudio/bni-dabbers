@@ -53,6 +53,7 @@ export function PortalApp({
     if (result.ok) {
       setContacts(result.data.contacts);
       setStats(result.data.stats);
+      setNames(result.data.names);
     }
   }, [password, me]);
 
@@ -130,7 +131,7 @@ export function PortalApp({
   if (!me) {
     return (
       <NamePicker
-        names={names.length > 0 ? names : contacts.map((c) => c.submitterName ?? "").filter(Boolean)}
+        names={names}
         onPick={(name) => setSession({ password, memberName: name })}
         onSignOut={() => setSession(null)}
       />
@@ -423,7 +424,9 @@ function NamePicker({
   onSignOut: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const matches = names.filter((n) => normaliseText(n).includes(normaliseText(query)));
+  const matches = [...new Set(names)].filter((n) =>
+    normaliseText(n).includes(normaliseText(query)),
+  );
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">
@@ -441,6 +444,11 @@ function NamePicker({
         className="mt-4 w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-4 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
       />
       <div className="mt-3 space-y-2">
+        {names.length === 0 ? (
+          <p className="rounded-xl border border-dashed border-border bg-white px-4 py-6 text-center text-sm text-muted">
+            Loading the roster…
+          </p>
+        ) : null}
         {matches.map((name) => (
           <button
             key={name}

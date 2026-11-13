@@ -57,14 +57,20 @@ export async function openPortal(
 export async function refreshPortal(
   password: string,
   memberName: string | null,
-): Promise<Result<{ contacts: PortalContact[]; stats: PortalStats }>> {
+): Promise<
+  Result<{ contacts: PortalContact[]; stats: PortalStats; names: string[] }>
+> {
   try {
     const { contactsSessionId } = await authorise(password);
-    const [contacts, stats] = await Promise.all([
+    // The roster comes back on every refresh, not only on sign-in: a member
+    // returning days later has a stored password and no roster, and was being
+    // offered a name list scraped off the contacts instead.
+    const [contacts, stats, roster] = await Promise.all([
       listPortalContacts(contactsSessionId),
       getPortalStats(contactsSessionId, memberName),
+      getWorkshopRoster(),
     ]);
-    return { ok: true, data: { contacts, stats } };
+    return { ok: true, data: { contacts, stats, names: roster.map((m) => m.name) } };
   } catch {
     return { ok: false, error: "Signed out. Enter the password again." };
   }

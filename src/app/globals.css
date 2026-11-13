@@ -19,6 +19,9 @@
   --color-bni: var(--color-bni-red);
   --color-bni-dark: var(--color-bni-red-dark);
   --color-muted: var(--color-text-secondary);
+  /* `surface` was missing while `surface-muted` was present, so bg-surface
+     silently produced nothing and anything relying on it was transparent. */
+  --color-surface: var(--color-surface);
   --color-surface-muted: var(--color-surface-muted);
   --color-border: var(--color-border);
   --color-ink-muted: var(--color-ink-muted);
