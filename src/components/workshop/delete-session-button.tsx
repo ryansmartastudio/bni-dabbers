@@ -16,11 +16,14 @@ export function DeleteSessionButton({
   sessionId,
   contacts,
   when,
+  isCurrent,
 }: {
   secret: string;
   sessionId: string;
   contacts: number;
   when: string;
+  /** The run the board and the phones are still pointed at. */
+  isCurrent: boolean;
 }) {
   const router = useRouter();
   const [confirming, setConfirming] = useState(false);
@@ -47,6 +50,9 @@ export function DeleteSessionButton({
       <span className="text-xs font-semibold text-[#A51A26]">
         Delete {when} and its {contacts} {contacts === 1 ? "name" : "names"}? This
         can&rsquo;t be undone.
+        {isCurrent
+          ? " The board is still on this one, so it starts a fresh session and goes back to the holding screen."
+          : ""}
       </span>
       <button
         type="button"

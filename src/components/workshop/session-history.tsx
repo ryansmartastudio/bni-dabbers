@@ -58,6 +58,12 @@ export function SessionHistory({
       {sessions.map((session) => {
         const isCurrent = session.id === currentId;
         const isOrphan = session.isLive && !isCurrent;
+        // An ended run keeps the live slot so the board can stay on the final
+        // scores. It is still deletable — that just hands the slot on.
+        const isFinished =
+          session.state === "ended" ||
+          session.state === "slide1" ||
+          session.state === "slide2";
         return (
         <div
           key={session.id}
@@ -72,8 +78,12 @@ export function SessionHistory({
                   {formatWhen(session.createdAt)}
                 </span>
                 {isCurrent ? (
-                  <span className="rounded-full bg-bni px-2.5 py-0.5 text-[11px] font-bold text-white">
-                    LIVE NOW
+                  <span
+                    className={`rounded-full px-2.5 py-0.5 text-[11px] font-bold ${
+                      isFinished ? "bg-foreground text-white" : "bg-bni text-white"
+                    }`}
+                  >
+                    {isFinished ? "CURRENT · ENDED" : "LIVE NOW"}
                   </span>
                 ) : isOrphan ? (
                   <span className="rounded-full bg-surface-muted px-2.5 py-0.5 text-[11px] font-bold text-ink-muted">
@@ -83,6 +93,7 @@ export function SessionHistory({
               </p>
               <p className="mt-1 text-sm text-muted">
                 {STATE_LABEL[session.state] ?? session.state}
+                {isCurrent && isFinished ? " · still on the board until a new session starts" : ""}
                 {session.participants > 0
                   ? ` · ${session.participants} ${session.participants === 1 ? "member" : "members"} signed in`
                   : " · nobody signed in"}
@@ -108,14 +119,15 @@ export function SessionHistory({
                   <CopyPortalLink path={`${basePath}/portal?s=${session.id}`} />
                 </>
               ) : null}
-              {isCurrent ? null : (
+              {!isCurrent || isFinished ? (
                 <DeleteSessionButton
                   secret={secret}
                   sessionId={session.id}
                   contacts={session.contacts}
                   when={formatWhen(session.createdAt)}
+                  isCurrent={isCurrent}
                 />
-              )}
+              ) : null}
             </div>
           </div>
 

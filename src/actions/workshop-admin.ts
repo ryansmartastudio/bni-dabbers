@@ -86,10 +86,20 @@ export async function updateRoundLengths(
  * the live run. The old rows are archived rather than dropped, so a mistaken
  * press during the session is recoverable.
  */
-export async function resetWorkshop(secret: string): Promise<Result> {
-  requireAdminSecret(secret);
-  const session = await getLiveSession();
 
+/**
+ * Archives a run and opens its successor, carrying the settings across.
+ *
+ * The unique index allows one live session, so the old row has to give the
+ * slot up before the new one takes it.
+ */
+async function handOverToFreshSession(session: {
+  id: string;
+  round1Seconds: number;
+  round2Seconds: number;
+  constants: unknown;
+  portalPassword: string | null;
+}) {
   await db
     .update(workshopSessions)
     .set({ isLive: false, updatedAt: new Date() })
@@ -98,11 +108,17 @@ export async function resetWorkshop(secret: string): Promise<Result> {
   await db.insert(workshopSessions).values({
     round1Seconds: session.round1Seconds,
     round2Seconds: session.round2Seconds,
-    constants: session.constants,
+    constants: session.constants as never,
     // Carried over so starting a new session doesn't lock members out of the
     // portal while they are still working the previous run's list.
     portalPassword: session.portalPassword,
   });
+}
+
+export async function resetWorkshop(secret: string): Promise<Result> {
+  requireAdminSecret(secret);
+  const session = await getLiveSession();
+  await handOverToFreshSession(session);
 
   revalidatePath("/workshop/board");
   revalidatePath("/workshop");
@@ -252,14 +268,6 @@ export async function deleteWorkshopSession(
   requireAdminSecret(secret);
   if (!UUID.test(sessionId)) return { ok: false, error: "That isn't a session id." };
 
-  const live = await getLiveSession();
-  if (sessionId === live.id) {
-    return {
-      ok: false,
-      error: "That's the session in use. Start a new one first, then delete this.",
-    };
-  }
-
   const [row] = await db
     .select({ id: workshopSessions.id })
     .from(workshopSessions)
@@ -267,7 +275,25 @@ export async function deleteWorkshopSession(
     .limit(1);
   if (!row) return { ok: false, error: "That session has already gone." };
 
+  const live = await getLiveSession();
+  if (sessionId === live.id) {
+    // Ending a session leaves it holding the live slot on purpose: the board
+    // has to stay on the final scores while the room is still looking at it.
+    // So deleting the current run is allowed only once it is over, and it
+    // hands the slot to a fresh session before going.
+    const finished = resolveState(live).state;
+    if (finished !== "ended" && finished !== "slide1" && finished !== "slide2") {
+      return {
+        ok: false,
+        error: "This run is still going. End the session first, then delete it.",
+      };
+    }
+    await handOverToFreshSession(live);
+  }
+
   await db.delete(workshopSessions).where(eq(workshopSessions.id, sessionId));
   revalidatePath("/workshop/admin/[secret]", "page");
+  revalidatePath("/workshop/board");
+  revalidatePath("/workshop");
   return { ok: true };
 }
