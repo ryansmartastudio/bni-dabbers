@@ -1019,10 +1019,17 @@ body:has(#workshop-root) {
 
 .workshop-slide-cta em {
   display: block;
-  margin-top: 0.3cqi;
+  margin-top: 0.4cqi;
   font-style: normal;
-  font-size: 1.15cqi;
+  font-size: 1.3cqi;
   color: var(--color-ink-muted);
+}
+
+.workshop-slide-cta em b {
+  display: inline;
+  font-size: 1.5cqi;
+  letter-spacing: 0.02em;
+  color: #1a1a1a;
 }
 
 /* ---------- Final leaderboard ---------- */

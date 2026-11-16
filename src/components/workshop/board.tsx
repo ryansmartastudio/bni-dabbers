@@ -26,6 +26,8 @@ type BoardProps = {
   initial: WorkshopSnapshot;
   joinUrl: string;
   portalUrl: string;
+  /** Shown on the last slide so the room can get in without asking. */
+  portalPassword: string | null;
   chapterLogoUrl: string | null;
   constants: WorkshopConstants;
   /** Present when the board was opened with ?key=<admin secret>. */
@@ -58,6 +60,7 @@ export function Board({
   initial,
   joinUrl,
   portalUrl,
+  portalPassword,
   chapterLogoUrl,
   constants,
   controlSecret,
@@ -331,6 +334,7 @@ export function Board({
           constants={constants}
           revealed={slideStep}
           portalUrl={portalUrl}
+          portalPassword={portalPassword}
         />
       ) : null}
 

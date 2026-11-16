@@ -451,6 +451,7 @@ export function PortalApp({
                 activeMember={activeMember}
                 onSeat={setActiveSeat}
                 onMember={setActiveMember}
+                onOpen={openContact}
               />
             </div>
 
@@ -513,14 +514,16 @@ export function PortalApp({
   );
 }
 
-type SidebarView = "members" | "categories";
+type SidebarView = "members" | "names" | "categories";
 
 /**
  * The panel beside the map.
  *
  * Members first, because the question people bring to the map is "who has
- * already got someone" — picking one lights up just their names. Categories
- * are a click away: hunting a thin arc is a poor way to find one.
+ * already got someone" — picking one lights up just their names. The names
+ * themselves and the categories are a tap away, and both follow whatever the
+ * map is focused on, so picking a member and switching to Names gives you
+ * their list.
  */
 function MapSidebar({
   contacts,
@@ -530,6 +533,7 @@ function MapSidebar({
   activeMember,
   onSeat,
   onMember,
+  onOpen,
 }: {
   contacts: PortalContact[];
   members: RosterMember[];
@@ -538,6 +542,7 @@ function MapSidebar({
   activeMember: string | null;
   onSeat: (key: string | null) => void;
   onMember: (name: string | null) => void;
+  onOpen: (id: string) => void;
 }) {
   const [view, setView] = useState<SidebarView>("members");
   const mineKey = normaliseText(me);
@@ -583,7 +588,7 @@ function MapSidebar({
   return (
     <div className="mt-5 xl:mt-0">
       <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
-        {(["members", "categories"] as SidebarView[]).map((id) => (
+        {(["members", "names", "categories"] as SidebarView[]).map((id) => (
           <button
             key={id}
             type="button"
@@ -643,10 +648,108 @@ function MapSidebar({
             Invited ✓ / claimed. Pick someone to light up their names.
           </p>
         </>
+      ) : view === "names" ? (
+        <NameList
+          contacts={contacts}
+          me={me}
+          activeSeat={activeSeat}
+          activeMember={activeMember}
+          onOpen={onOpen}
+        />
       ) : (
         <CategoryList contacts={contacts} activeSeat={activeSeat} onSeat={onSeat} />
       )}
     </div>
+  );
+}
+
+/**
+ * Every name on the map, as a list.
+ *
+ * It follows the map's focus rather than ignoring it: pick a member or a
+ * category and this becomes their list, which is the pairing that makes the
+ * map worth looking at rather than just pretty.
+ */
+function NameList({
+  contacts,
+  me,
+  activeSeat,
+  activeMember,
+  onOpen,
+}: {
+  contacts: PortalContact[];
+  me: string;
+  activeSeat: string | null;
+  activeMember: string | null;
+  onOpen: (id: string) => void;
+}) {
+  const mineKey = normaliseText(me);
+  const memberFocus = activeMember ? normaliseText(activeMember) : null;
+
+  const rows = useMemo(() => {
+    return contacts
+      .filter((c) => {
+        if (activeSeat && seatKeyOf(c) !== activeSeat) return false;
+        if (memberFocus && normaliseText(c.claimedBy ?? "") !== memberFocus) return false;
+        return true;
+      })
+      .sort((a, b) => a.contactName.localeCompare(b.contactName, "en-GB"));
+  }, [contacts, activeSeat, memberFocus]);
+
+  if (rows.length === 0) {
+    return (
+      <p className="mt-3 rounded-lg border border-dashed border-border px-3 py-6 text-center text-xs text-muted">
+        No names in this selection.
+      </p>
+    );
+  }
+
+  return (
+    <>
+      <div className="mt-2 flex flex-wrap gap-1.5 xl:max-h-[62vh] xl:flex-col xl:flex-nowrap xl:gap-1 xl:overflow-y-auto xl:pr-1">
+        {rows.map((contact) => {
+          const mine = normaliseText(contact.claimedBy ?? "") === mineKey;
+          const accent =
+            (contact.seatTeam ? getTeam(contact.seatTeam)?.accent : null) ?? "#9A9CA1";
+          return (
+            <button
+              key={contact.id}
+              type="button"
+              onClick={() => onOpen(contact.id)}
+              className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition xl:w-full ${
+                mine
+                  ? "border-bni bg-[#FDF1F2] text-foreground"
+                  : "border-border bg-white text-foreground hover:border-foreground"
+              }`}
+            >
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full border-2"
+                style={{
+                  borderColor: mine ? "#CF2030" : accent,
+                  background: contact.claimedBy ? (mine ? "#CF2030" : accent) : "#FFFFFF",
+                }}
+              />
+              <span className="min-w-0">
+                <span className="block truncate font-semibold">{contact.contactName}</span>
+                <span className="block truncate text-[10px] text-ink-muted">
+                  {contact.claimedBy
+                    ? mine
+                      ? "Yours"
+                      : contact.claimedBy
+                    : (contact.company || contact.seat)}
+                </span>
+              </span>
+              {contact.invitedAt ? (
+                <span className="ml-auto shrink-0 text-[11px] font-bold text-[#1F7A3E]">✓</span>
+              ) : null}
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-ink-muted">
+        {rows.length} {rows.length === 1 ? "name" : "names"} · tap one to open it
+      </p>
+    </>
   );
 }
 

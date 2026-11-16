@@ -60,6 +60,7 @@ export default async function WorkshopBoardPage({
       initial={initial}
       joinUrl={getWorkshopJoinUrl()}
       portalUrl={getWorkshopPortalUrl()}
+      portalPassword={session.portalPassword}
       chapterLogoUrl={settings.chapterLogoUrl}
       constants={sessionConstants(session)}
       controlSecret={controlSecret}

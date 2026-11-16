@@ -142,6 +142,7 @@ export function MembersSlide({
   constants,
   revealed,
   portalUrl,
+  portalPassword,
 }: {
   contacts: number;
   constants: WorkshopConstants;
@@ -149,6 +150,8 @@ export function MembersSlide({
   revealed: number;
   /** Where the room goes next, revealed on the last press. */
   portalUrl: string;
+  /** Put on the screen so thirty-five people aren't typing it from memory. */
+  portalPassword: string | null;
 }) {
   const reduced = useReducedMotion() ?? false;
   const { membersAfter, rows } = projectMemberValue(contacts, constants);
@@ -259,7 +262,13 @@ export function MembersSlide({
           <span className="workshop-slide-cta-url">
             {portalUrl.replace("https://", "")}
           </span>
-          <em>Harry has the password</em>
+          {portalPassword ? (
+            <em>
+              Password: <b>{portalPassword}</b>
+            </em>
+          ) : (
+            <em>Harry has the password</em>
+          )}
         </div>
       </motion.div>
     </div>
