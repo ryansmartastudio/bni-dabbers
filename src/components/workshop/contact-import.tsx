@@ -1,50 +1,23 @@
 "use client";
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import {
+  getContactsApi,
+  hasContactsApi,
+  isAndroid,
+  isChrome,
+  isSamsungInternet,
+  subscribeNoop,
+  type ContactsApi,
+} from "@/lib/workshop/contacts-api";
 import { parseVCard, type ParsedContact } from "@/lib/workshop/vcard";
 
 type ContactImportProps = {
   onImport: (contact: ParsedContact) => void;
 };
 
-type ContactsApi = {
-  select: (
-    props: string[],
-    options?: { multiple?: boolean },
-  ) => Promise<Array<{ name?: string[]; tel?: string[]; email?: string[] }>>;
-  getProperties?: () => Promise<string[]>;
-};
-
 /** What we would like, in the order we would like it. */
 const WANTED = ["name", "tel", "email"] as const;
-
-/** The picker's availability never changes within a session. */
-function subscribeNoop() {
-  return () => {};
-}
-
-function isAndroid(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /Android/i.test(navigator.userAgent);
-}
-
-/**
- * Samsung Internet is the default browser on a Samsung phone and has dropped
- * the Contact Picker, so the one-tap route silently isn't there. Chrome on the
- * same handset still has it, which is a far better answer than a file chooser
- * offering the camera.
- */
-function isSamsungInternet(): boolean {
-  if (typeof navigator === "undefined") return false;
-  return /SamsungBrowser/i.test(navigator.userAgent);
-}
-
-/** Chrome proper, not one of the many Chromium browsers that claim to be it. */
-function isChrome(): boolean {
-  if (typeof navigator === "undefined") return false;
-  const ua = navigator.userAgent;
-  return /Chrome\//.test(ua) && !/SamsungBrowser|EdgA|OPR|Firefox|DuckDuckGo|YaBrowser/i.test(ua);
-}
 
 /**
  * `File.text()` rejects on some Android content providers. FileReader goes
@@ -62,32 +35,10 @@ function readFileText(file: File): Promise<string> {
   );
 }
 
-/**
- * The canonical feature test from the spec.
- *
- * Checks ContactsManager as well as navigator.contacts: Safari behind its
- * feature flag, Chrome on Android and Samsung Internet have each at times
- * exposed one without a working other.
- */
-function hasContactsApi(): boolean {
-  if (typeof navigator === "undefined" || typeof window === "undefined") return false;
-  return (
-    "contacts" in navigator &&
-    "ContactsManager" in window &&
-    typeof (navigator as Navigator & { contacts?: ContactsApi }).contacts?.select ===
-      "function"
-  );
-}
-
 /** The address to read out, without the scheme. */
 function joinHost(): string {
   if (typeof window === "undefined") return "";
   return `${window.location.host}${window.location.pathname === "/" ? "" : window.location.pathname}`;
-}
-
-function getContactsApi(): ContactsApi | null {
-  if (!hasContactsApi()) return null;
-  return (navigator as Navigator & { contacts?: ContactsApi }).contacts ?? null;
 }
 
 /**
@@ -159,8 +110,26 @@ export function ContactImport({ onImport }: ContactImportProps) {
     const props = WANTED.filter((p) => supported.current.includes(p));
     if (props.length === 0) props.push("name");
 
+    // Asking for a property a browser doesn't know makes select() reject
+    // outright, and the browsers that report nothing from getProperties() are
+    // exactly the ones likely to support fewer. So narrow and try again rather
+    // than give up on a phone that would have managed the name.
+    const attempts = [props, ["name", "tel"], ["name"]];
+
     try {
-      const results = await api.select(props, { multiple: false });
+      let results: Awaited<ReturnType<ContactsApi["select"]>> | null = null;
+      let lastError: unknown = null;
+
+      for (const attempt of attempts) {
+        try {
+          results = await api.select(attempt, { multiple: false });
+          break;
+        } catch (error) {
+          lastError = error;
+        }
+      }
+      if (!results) throw lastError ?? new Error("select() failed");
+
       const first = results[0];
       // An empty result means they backed out, which is not an error.
       if (!first) return;
@@ -173,7 +142,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
       setNote(null);
     } catch (error) {
       console.error("Contact picker failed", error);
-      setNote("Couldn't open your contacts. Type the details below instead.");
+      setNote("Couldn't open your contacts. Use a contact card or type the details below.");
     }
   }
 
@@ -227,6 +196,9 @@ export function ContactImport({ onImport }: ContactImportProps) {
       {showDiagnostics ? (
         <p className="rounded-lg bg-surface-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground">
           Picker: {hasPicker ? "available" : "not available"}
+          <br />
+          ContactsManager:{" "}
+          {typeof window === "undefined" ? "—" : "ContactsManager" in window ? "yes" : "no"}
           <br />
           Fields: {reported ?? (hasPicker ? "checking…" : "—")}
           <br />
