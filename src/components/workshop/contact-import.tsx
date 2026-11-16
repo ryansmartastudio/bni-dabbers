@@ -195,12 +195,23 @@ export function ContactImport({ onImport }: ContactImportProps) {
         A label wrapping a visually hidden input, rather than display:none plus
         a programmatic click. A file input hidden with display:none is skipped
         by some mobile browsers, so the chooser either never opened or never
-        returned the file. No `accept` filter either: a strict one greys out
-        the card people are trying to pick, and the file is validated by
-        parsing it anyway.
+        returned the file.
+
+        The `accept` filter is what puts the Contacts app in Android's chooser:
+        it resolves apps that can hand over a vCard, and Contacts is one. Take
+        it away and the chooser offers the camera and a file browser instead,
+        and sharing a contact through those hands back an empty stub. It stays
+        off on iOS, where a strict filter greys out the very card people are
+        trying to pick.
       */}
       <label className={hasPicker ? "workshop-import is-secondary" : "workshop-import"}>
-        <input ref={fileRef} type="file" onChange={readVCard} className="sr-only" />
+        <input
+          ref={fileRef}
+          type="file"
+          accept={android ? ".vcf,text/vcard,text/x-vcard,text/directory" : undefined}
+          onChange={readVCard}
+          className="sr-only"
+        />
         {hasPicker ? "Or use a contact card" : "Import a contact card"}
       </label>
 
@@ -222,9 +233,10 @@ export function ContactImport({ onImport }: ContactImportProps) {
       {!hasPicker && android && !chrome ? (
         <p className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-foreground">
           <strong className="font-bold">
-            {samsung ? "Samsung Internet" : "This browser"} can&rsquo;t open your contacts.
+            {samsung ? "Samsung Internet" : "This browser"} has no one-tap contact picker.
           </strong>{" "}
-          Chrome on this phone can, in one tap — open{" "}
+          Tap <span className="font-semibold">Import a contact card</span> above and choose
+          Contacts. For one-tap, open{" "}
           <span className="font-semibold">{joinHost()}</span> in Chrome instead.
         </p>
       ) : null}
