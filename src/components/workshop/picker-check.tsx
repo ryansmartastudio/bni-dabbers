@@ -118,3 +118,32 @@ export function PickerCheck() {
     </div>
   );
 }
+
+/**
+ * The iPhone steps are the bulk of this page and don't apply on Android, so
+ * say so before someone works through a menu their phone doesn't have.
+ */
+export function AndroidNote() {
+  const android = useSyncExternalStore(subscribeNoop, isAndroid, () => false);
+  const samsung = useSyncExternalStore(subscribeNoop, isSamsungInternet, () => false);
+  const chrome = useSyncExternalStore(subscribeNoop, isChrome, () => false);
+  if (!android) return null;
+
+  return (
+    <div className="mt-8 rounded-2xl border-2 border-foreground bg-white p-5">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-muted">
+        You&rsquo;re on Android
+      </p>
+      <p className="mt-1.5 text-[15px] font-semibold leading-relaxed text-foreground">
+        {chrome
+          ? "There's nothing to switch on — Chrome handles this already. The iPhone steps below don't apply to you."
+          : `${samsung ? "Samsung Internet" : "This browser"} can't open your contacts, and there's no setting that changes that. Open this page in Chrome instead and it'll work in one tap.`}
+      </p>
+      <p className="mt-2 text-sm text-muted">
+        {chrome
+          ? "If the check above says otherwise, screenshot the details and send them to Ryan."
+          : "Or just type names in on the day — most people do anyway."}
+      </p>
+    </div>
+  );
+}

@@ -1,4 +1,4 @@
-import { PickerCheck } from "@/components/workshop/picker-check";
+import { AndroidNote, PickerCheck } from "@/components/workshop/picker-check";
 import { IOS_VERSION_PATH, IPHONE_STEPS, WEB_ARROW } from "@/lib/workshop/picker-setup";
 
 export const dynamic = "force-dynamic";
@@ -23,11 +23,14 @@ export default function WorkshopCheckPage() {
       </h1>
       <p className="mt-2 text-sm leading-relaxed text-muted">
         On the day you&rsquo;ll add people you could invite as visitors. iPhones can pull
-        them straight from your contacts, but only once you switch one setting on. Androids
-        already can.
+        them straight from your contacts, but only once you switch one setting on. Most
+        Android phones can already — except Samsung Internet, which can&rsquo;t do it at
+        all, so Samsung owners should use Chrome.
       </p>
 
       <PickerCheck />
+
+      <AndroidNote />
 
       <h2 className="mt-9 text-xl font-bold text-foreground">iPhone: how to switch it on</h2>
       <p className="mt-1 text-sm text-muted">

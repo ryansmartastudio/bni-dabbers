@@ -206,9 +206,9 @@ export function WorkshopPoster({
       >
         <View style={{ height: 10, backgroundColor: RED, marginHorizontal: -44 }} />
 
-        <View style={{ alignItems: "center", marginTop: 24 }}>
+        <View style={{ alignItems: "center", marginTop: 18 }}>
           {chapterLogoUrl ? (
-            <Image src={chapterLogoUrl} style={{ height: 36, objectFit: "contain" }} />
+            <Image src={chapterLogoUrl} style={{ height: 30, objectFit: "contain" }} />
           ) : (
             <Text style={{ fontSize: 16, fontWeight: 700, color: RED }}>BNI DABBERS</Text>
           )}
@@ -221,14 +221,14 @@ export function WorkshopPoster({
               fontWeight: 700,
             }}
           >
-            BEFORE THE WORKSHOP · iPHONE ONLY
+            BEFORE THE WORKSHOP · TWO MINUTES
           </Text>
         </View>
 
         <Text
           style={{
-            marginTop: 14,
-            fontSize: 28,
+            marginTop: 10,
+            fontSize: 26,
             fontWeight: 700,
             color: INK,
             textAlign: "center",
@@ -240,21 +240,43 @@ export function WorkshopPoster({
 
         <Text
           style={{
-            marginTop: 8,
-            fontSize: 11,
+            marginTop: 6,
+            fontSize: 10.5,
             color: MUTED,
             textAlign: "center",
-            lineHeight: 1.5,
+            lineHeight: 1.45,
           }}
         >
           On the day you&apos;ll be adding people you could invite. iPhones can pull them
-          straight from your contacts — but only once you switch this on. Android phones
-          can already do it, so there&apos;s nothing to change.
+          straight from your contacts — but only once you switch this on. Most Android
+          phones already can; Samsung Internet cannot, so Samsung owners should open the
+          link in Chrome.
         </Text>
+
+        <View
+          style={{
+            marginTop: 10,
+            borderWidth: 1.5,
+            borderColor: INK,
+            borderRadius: 8,
+            paddingVertical: 8,
+            paddingHorizontal: 12,
+          }}
+        >
+          <Text style={{ fontSize: 10.5, color: INK, lineHeight: 1.5 }}>
+            <Text style={{ fontWeight: 700 }}>On a Samsung?</Text> Samsung Internet has no
+            contact picker and no setting that adds one. Open the workshop link in Chrome on
+            the same phone and it works in one tap. The steps below are iPhone only.
+          </Text>
+          <Text style={{ marginTop: 5, fontSize: 9.5, color: MUTED, lineHeight: 1.45 }}>
+            And if none of this works on your phone, don&apos;t worry — you can still type
+            names in on the day, which most people do anyway.
+          </Text>
+        </View>
 
         <Text
           style={{
-            marginTop: 18,
+            marginTop: 12,
             fontSize: 9,
             letterSpacing: 1.8,
             color: MUTED,
@@ -267,7 +289,7 @@ export function WorkshopPoster({
           Check yours in {IOS_VERSION_PATH.join(PDF_ARROW)}.
         </Text>
 
-        <View style={{ marginTop: 8, gap: 6 }}>
+        <View style={{ marginTop: 6, gap: 5 }}>
           {IPHONE_STEPS.map((group) => (
             <View
               key={group.version}
@@ -277,7 +299,7 @@ export function WorkshopPoster({
                 borderLeftWidth: 4,
                 borderLeftColor: RED,
                 borderRadius: 6,
-                paddingVertical: 8,
+                paddingVertical: 6,
                 paddingHorizontal: 12,
               }}
             >
@@ -293,7 +315,7 @@ export function WorkshopPoster({
 
         <Text
           style={{
-            marginTop: 16,
+            marginTop: 12,
             fontSize: 9,
             letterSpacing: 1.8,
             color: MUTED,
@@ -304,11 +326,11 @@ export function WorkshopPoster({
         </Text>
         <View
           style={{
-            marginTop: 6,
+            marginTop: 5,
             borderWidth: 1,
             borderColor: BORDER,
             borderRadius: 6,
-            paddingVertical: 10,
+            paddingVertical: 8,
             paddingHorizontal: 12,
           }}
         >
@@ -326,7 +348,7 @@ export function WorkshopPoster({
 
         <Text
           style={{
-            marginTop: 16,
+            marginTop: 12,
             fontSize: 9,
             letterSpacing: 1.8,
             color: MUTED,
@@ -345,10 +367,10 @@ export function WorkshopPoster({
             borderWidth: 2,
             borderColor: INK,
             borderRadius: 8,
-            padding: 12,
+            padding: 10,
           }}
         >
-          <Image src={checkQrDataUrl} style={{ width: 118, height: 118 }} />
+          <Image src={checkQrDataUrl} style={{ width: 100, height: 100 }} />
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 13, fontWeight: 700, color: INK, lineHeight: 1.35 }}>
               Scan this and the page tells you straight away whether your phone is ready.
@@ -360,23 +382,6 @@ export function WorkshopPoster({
               It also repeats these steps, so you don&apos;t need to keep this card.
             </Text>
           </View>
-        </View>
-
-        <View
-          style={{
-            marginTop: 16,
-            borderWidth: 2,
-            borderColor: GOLD,
-            backgroundColor: "#FFF6D6",
-            borderRadius: 8,
-            paddingVertical: 9,
-            paddingHorizontal: 14,
-          }}
-        >
-          <Text style={{ fontSize: 10.5, color: INK, textAlign: "center", lineHeight: 1.5 }}>
-            Can&apos;t find it, or it won&apos;t switch on? Don&apos;t worry — you can still
-            type names in on the day, which most people do anyway. This just makes it quicker.
-          </Text>
         </View>
 
         <Text
