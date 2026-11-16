@@ -221,6 +221,8 @@ export function PortalApp({
 
   /** Opening a contact from the map or the board should show it, wherever. */
   const openContact = (id: string) => setOpenId(id);
+  const claimContact = (id: string) => act(() => claimForMe(password, id, me, wanted));
+  const releaseContact = (id: string) => act(() => releaseMine(password, id, me, wanted));
 
   return (
     <div className="mx-auto w-full max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
@@ -441,6 +443,9 @@ export function PortalApp({
                 activeMember={activeMember}
                 onSeat={setActiveSeat}
                 onOpen={openContact}
+                onClaim={claimContact}
+                onRelease={releaseContact}
+                pending={isPending}
                 reduced={reduced}
               />
               <MapSidebar
@@ -452,6 +457,8 @@ export function PortalApp({
                 onSeat={setActiveSeat}
                 onMember={setActiveMember}
                 onOpen={openContact}
+                onClaim={claimContact}
+                pending={isPending}
               />
             </div>
 
@@ -534,6 +541,8 @@ function MapSidebar({
   onSeat,
   onMember,
   onOpen,
+  onClaim,
+  pending,
 }: {
   contacts: PortalContact[];
   members: RosterMember[];
@@ -543,6 +552,8 @@ function MapSidebar({
   onSeat: (key: string | null) => void;
   onMember: (name: string | null) => void;
   onOpen: (id: string) => void;
+  onClaim: (id: string) => void;
+  pending: boolean;
 }) {
   const [view, setView] = useState<SidebarView>("members");
   const mineKey = normaliseText(me);
@@ -655,6 +666,8 @@ function MapSidebar({
           activeSeat={activeSeat}
           activeMember={activeMember}
           onOpen={onOpen}
+          onClaim={onClaim}
+          pending={pending}
         />
       ) : (
         <CategoryList contacts={contacts} activeSeat={activeSeat} onSeat={onSeat} />
@@ -676,12 +689,16 @@ function NameList({
   activeSeat,
   activeMember,
   onOpen,
+  onClaim,
+  pending,
 }: {
   contacts: PortalContact[];
   me: string;
   activeSeat: string | null;
   activeMember: string | null;
   onOpen: (id: string) => void;
+  onClaim: (id: string) => void;
+  pending: boolean;
 }) {
   const mineKey = normaliseText(me);
   const memberFocus = activeMember ? normaliseText(activeMember) : null;
@@ -712,37 +729,52 @@ function NameList({
           const accent =
             (contact.seatTeam ? getTeam(contact.seatTeam)?.accent : null) ?? "#9A9CA1";
           return (
-            <button
+            <div
               key={contact.id}
-              type="button"
-              onClick={() => onOpen(contact.id)}
-              className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition xl:w-full ${
+              className={`flex items-center gap-1.5 rounded-lg border pr-1 text-xs transition xl:w-full ${
                 mine
                   ? "border-bni bg-[#FDF1F2] text-foreground"
                   : "border-border bg-white text-foreground hover:border-foreground"
               }`}
             >
-              <span
-                className="h-2.5 w-2.5 shrink-0 rounded-full border-2"
-                style={{
-                  borderColor: mine ? "#CF2030" : accent,
-                  background: contact.claimedBy ? (mine ? "#CF2030" : accent) : "#FFFFFF",
-                }}
-              />
-              <span className="min-w-0">
-                <span className="block truncate font-semibold">{contact.contactName}</span>
-                <span className="block truncate text-[10px] text-ink-muted">
-                  {contact.claimedBy
-                    ? mine
-                      ? "Yours"
-                      : contact.claimedBy
-                    : (contact.company || contact.seat)}
+              <button
+                type="button"
+                onClick={() => onOpen(contact.id)}
+                className="flex min-w-0 flex-1 items-center gap-2 py-1.5 pl-2 text-left"
+              >
+                <span
+                  className="h-2.5 w-2.5 shrink-0 rounded-full border-2"
+                  style={{
+                    borderColor: mine ? "#CF2030" : accent,
+                    background: contact.claimedBy ? (mine ? "#CF2030" : accent) : "#FFFFFF",
+                  }}
+                />
+                <span className="min-w-0">
+                  <span className="block truncate font-semibold">{contact.contactName}</span>
+                  <span className="block truncate text-[10px] text-ink-muted">
+                    {contact.claimedBy
+                      ? mine
+                        ? "Yours"
+                        : contact.claimedBy
+                      : (contact.company || contact.seat)}
+                  </span>
                 </span>
-              </span>
+              </button>
               {contact.invitedAt ? (
-                <span className="ml-auto shrink-0 text-[11px] font-bold text-[#1F7A3E]">✓</span>
+                <span className="shrink-0 px-1 text-[11px] font-bold text-[#1F7A3E]">✓</span>
               ) : null}
-            </button>
+              {!contact.claimedBy ? (
+                <button
+                  type="button"
+                  disabled={pending}
+                  title={`Take on ${contact.contactName}`}
+                  onClick={() => onClaim(contact.id)}
+                  className="shrink-0 rounded-md bg-foreground px-2 py-1 text-[10px] font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+                >
+                  Claim
+                </button>
+              ) : null}
+            </div>
           );
         })}
       </div>

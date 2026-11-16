@@ -347,6 +347,9 @@ export function ContactMap({
   activeMember,
   onSeat,
   onOpen,
+  onClaim,
+  onRelease,
+  pending,
   reduced,
 }: {
   contacts: PortalContact[];
@@ -356,9 +359,15 @@ export function ContactMap({
   activeMember: string | null;
   onSeat: (seatKey: string | null) => void;
   onOpen: (id: string) => void;
+  onClaim: (id: string) => void;
+  onRelease: (id: string) => void;
+  pending: boolean;
   reduced: boolean;
 }) {
   const [hover, setHover] = useState<HoverTarget>(null);
+  // The hover card carries a claim button, so leaving a name has to give the
+  // pointer time to reach it rather than closing the moment it moves.
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [view, setView] = useState<View>(IDENTITY);
   const [dragging, setDragging] = useState(false);
 
@@ -380,6 +389,20 @@ export function ContactMap({
   const mineKey = normaliseText(me);
 
   const memberFocus = activeMember ? normaliseText(activeMember) : null;
+
+  const openHover = useCallback((target: NonNullable<HoverTarget>) => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    setHover(target);
+  }, []);
+
+  const closeHover = useCallback(() => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => setHover(null), 160);
+  }, []);
+
+  useEffect(() => () => {
+    if (closeTimer.current) clearTimeout(closeTimer.current);
+  }, []);
 
   const hubCount = useMemo(() => {
     return contacts.filter((c) => {
@@ -619,9 +642,9 @@ export function ContactMap({
                 transition={{ delay: reduced ? 0 : 0.05 + i * 0.06, duration: 0.45 }}
                 style={{ cursor: "pointer" }}
                 onMouseEnter={() =>
-                  setHover({ kind: "team", team, angle: team.mid, radius: R_TEAM_OUT })
+                  openHover({ kind: "team", team, angle: team.mid, radius: R_TEAM_OUT })
                 }
-                onMouseLeave={() => setHover(null)}
+                onMouseLeave={closeHover}
               >
                 <path d={arcBand(team.start, team.end, R_TEAM_IN, R_TEAM_OUT)} fill={team.accent} />
                 {label ? (
@@ -684,7 +707,7 @@ export function ContactMap({
                     transition: "transform 180ms cubic-bezier(.2,.8,.2,1)",
                   }}
                   onMouseEnter={() =>
-                    setHover({
+                    openHover({
                       kind: "seat",
                       key: seat.key,
                       seat,
@@ -693,7 +716,7 @@ export function ContactMap({
                       radius: scale.ringOut,
                     })
                   }
-                  onMouseLeave={() => setHover(null)}
+                  onMouseLeave={closeHover}
                   onClick={() => {
                     if (movedRef.current) return;
                     onSeat(isActive ? null : seat.key);
@@ -814,7 +837,7 @@ export function ContactMap({
                       transition: "opacity 180ms ease",
                     }}
                     onMouseEnter={() =>
-                      setHover({
+                      openHover({
                         kind: "leaf",
                         key: contact.id,
                         seatKey: seat.key,
@@ -823,7 +846,7 @@ export function ContactMap({
                         radius: scale.leaf,
                       })
                     }
-                    onMouseLeave={() => setHover(null)}
+                    onMouseLeave={closeHover}
                     onClick={() => {
                       if (movedRef.current) return;
                       onOpen(contact.id);
@@ -939,7 +962,13 @@ export function ContactMap({
             target={hover}
             view={view}
             mineKey={mineKey}
+            pending={pending}
             reduced={reduced}
+            onHold={openHover}
+            onLeave={closeHover}
+            onOpen={onOpen}
+            onClaim={onClaim}
+            onRelease={onRelease}
           />
         ) : null}
       </AnimatePresence>
@@ -983,12 +1012,24 @@ function MapTooltip({
   target,
   view,
   mineKey,
+  pending,
   reduced,
+  onHold,
+  onLeave,
+  onOpen,
+  onClaim,
+  onRelease,
 }: {
   target: NonNullable<HoverTarget>;
   view: View;
   mineKey: string;
+  pending: boolean;
   reduced: boolean;
+  onHold: (target: NonNullable<HoverTarget>) => void;
+  onLeave: () => void;
+  onOpen: (id: string) => void;
+  onClaim: (id: string) => void;
+  onRelease: (id: string) => void;
 }) {
   // The anchor lives in the transformed group, so the pan and zoom have to be
   // applied by hand to put the card next to what the eye is looking at.
@@ -1000,7 +1041,14 @@ function MapTooltip({
 
   const body =
     target.kind === "leaf" ? (
-      <LeafTooltip contact={target.contact} mineKey={mineKey} />
+      <LeafTooltip
+        contact={target.contact}
+        mineKey={mineKey}
+        pending={pending}
+        onOpen={onOpen}
+        onClaim={onClaim}
+        onRelease={onRelease}
+      />
     ) : target.kind === "seat" ? (
       <SeatTooltip seat={target.seat} team={target.team} mineKey={mineKey} />
     ) : (
@@ -1012,7 +1060,9 @@ function MapTooltip({
   // the same property had it dropped the moment the spring started.
   return (
     <div
-      className="pointer-events-none absolute z-20"
+      className="absolute z-20"
+      onMouseEnter={() => onHold(target)}
+      onMouseLeave={onLeave}
       style={{
         left: `${Math.min(100, Math.max(0, left))}%`,
         top: `${Math.min(100, Math.max(0, top))}%`,
@@ -1033,7 +1083,21 @@ function MapTooltip({
   );
 }
 
-function LeafTooltip({ contact, mineKey }: { contact: PortalContact; mineKey: string }) {
+function LeafTooltip({
+  contact,
+  mineKey,
+  pending,
+  onOpen,
+  onClaim,
+  onRelease,
+}: {
+  contact: PortalContact;
+  mineKey: string;
+  pending: boolean;
+  onOpen: (id: string) => void;
+  onClaim: (id: string) => void;
+  onRelease: (id: string) => void;
+}) {
   const mine = normaliseText(contact.claimedBy ?? "") === mineKey;
   const team = contact.seatTeam ? getTeam(contact.seatTeam) : null;
   const accent = team?.accent ?? UNSEATED_ACCENT;
@@ -1063,6 +1127,45 @@ function LeafTooltip({ contact, mineKey }: { contact: PortalContact; mineKey: st
       {contact.submitterName ? (
         <p className="mt-1 text-[11px] text-ink-muted">Added by {contact.submitterName}</p>
       ) : null}
+
+      {/* Taking somebody on from here is the whole point of the card: the
+          alternative was a trip through the list and a sheet. */}
+      {!contact.claimedBy ? (
+        <button
+          type="button"
+          disabled={pending}
+          onClick={() => onClaim(contact.id)}
+          className="mt-2.5 w-full rounded-lg bg-foreground px-3 py-2 text-xs font-bold text-white transition hover:opacity-90 disabled:opacity-60"
+        >
+          I&rsquo;ll invite them
+        </button>
+      ) : mine ? (
+        <div className="mt-2.5 flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => onOpen(contact.id)}
+            className="flex-1 rounded-lg bg-bni px-3 py-2 text-xs font-bold text-white"
+          >
+            Open toolkit
+          </button>
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() => onRelease(contact.id)}
+            className="rounded-lg border border-border px-2.5 py-2 text-xs font-semibold text-muted disabled:opacity-60"
+          >
+            Release
+          </button>
+        </div>
+      ) : (
+        <button
+          type="button"
+          onClick={() => onOpen(contact.id)}
+          className="mt-2.5 w-full rounded-lg border border-border px-3 py-2 text-xs font-semibold text-foreground"
+        >
+          See their details
+        </button>
+      )}
     </>
   );
 }
