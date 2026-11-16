@@ -156,6 +156,17 @@ export function ContactImport({ onImport }: ContactImportProps) {
     // which file sent us round in circles for a week.
     const what = `${file.name || "that file"} (${file.type || "no type"}, ${file.size} bytes)`;
 
+    // Sharing a contact out of Samsung's Contacts app into a file input hands
+    // over an empty stub named after the contact's row id. There is nothing to
+    // read and no amount of retrying will produce one, so say so plainly
+    // rather than making it look like a failure they can fix by trying again.
+    if (file.size === 0) {
+      setNote(
+        "Your phone handed over an empty file, which is what it does when sharing a contact straight into a browser. Type the name below — or open this page in Chrome, where you can pick from your contacts in one tap.",
+      );
+      return;
+    }
+
     try {
       const parsed = parseVCard(await readFileText(file));
       if (!parsed) {
