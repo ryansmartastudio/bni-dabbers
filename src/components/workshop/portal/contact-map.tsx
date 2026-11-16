@@ -363,6 +363,14 @@ export function ContactMap({
   const dragFrom = useRef<{ x: number; y: number; view: View } | null>(null);
   // A drag that ends over a name must not also open that name.
   const movedRef = useRef(false);
+  // Live touches, so two fingers can pinch. A Map rather than a count because
+  // the gesture has to survive one finger lifting and another landing.
+  const pointers = useRef(new Map<number, { x: number; y: number }>());
+  const pinchFrom = useRef<{
+    distance: number;
+    midpoint: { x: number; y: number };
+    view: View;
+  } | null>(null);
 
   const tree = useMemo(() => buildTree(contacts), [contacts]);
   const scale = scaleFor(contacts.length);
@@ -452,8 +460,27 @@ export function ContactMap({
     return hover.key !== leafId;
   };
 
+  /** The midpoint and spread of the two live touches, in viewBox units. */
+  const pinchGeometry = () => {
+    const [a, b] = [...pointers.current.values()];
+    if (!a || !b) return null;
+    const mid = toViewBox((a.x + b.x) / 2, (a.y + b.y) / 2);
+    return { distance: Math.hypot(a.x - b.x, a.y - b.y), midpoint: mid };
+  };
+
   const startDrag = (event: React.PointerEvent<SVGSVGElement>) => {
-    if (event.button !== 0) return;
+    if (event.pointerType === "mouse" && event.button !== 0) return;
+    pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+
+    if (pointers.current.size === 2) {
+      const geometry = pinchGeometry();
+      if (geometry) {
+        pinchFrom.current = { ...geometry, view };
+        // A pinch is never a tap on whatever happened to be under a finger.
+        movedRef.current = true;
+      }
+      return;
+    }
     movedRef.current = false;
     dragFrom.current = { x: event.clientX, y: event.clientY, view };
   };
@@ -466,6 +493,32 @@ export function ContactMap({
    * nothing on the map could be clicked at all.
    */
   const moveDrag = (event: React.PointerEvent<SVGSVGElement>) => {
+    if (pointers.current.has(event.pointerId)) {
+      pointers.current.set(event.pointerId, { x: event.clientX, y: event.clientY });
+    }
+
+    const pinch = pinchFrom.current;
+    if (pinch && pointers.current.size >= 2) {
+      const now = pinchGeometry();
+      if (!now || pinch.distance === 0) return;
+      const next = Math.min(
+        MAX_ZOOM,
+        Math.max(MIN_ZOOM, pinch.view.s * (now.distance / pinch.distance)),
+      );
+      const ratio = next / pinch.view.s;
+      // The fingers may travel as well as spread, so the gesture pans too.
+      const driftX = now.midpoint.x - pinch.midpoint.x;
+      const driftY = now.midpoint.y - pinch.midpoint.y;
+      setView(
+        clampView({
+          s: next,
+          x: pinch.midpoint.x - (pinch.midpoint.x - pinch.view.x) * ratio + driftX,
+          y: pinch.midpoint.y - (pinch.midpoint.y - pinch.view.y) * ratio + driftY,
+        }),
+      );
+      return;
+    }
+
     const from = dragFrom.current;
     if (!from) return;
     const rect = svgRef.current?.getBoundingClientRect();
@@ -487,6 +540,8 @@ export function ContactMap({
   };
 
   const endDrag = (event: React.PointerEvent<SVGSVGElement>) => {
+    pointers.current.delete(event.pointerId);
+    if (pointers.current.size < 2) pinchFrom.current = null;
     dragFrom.current = null;
     setDragging(false);
     if (event.currentTarget.hasPointerCapture(event.pointerId)) {
@@ -497,12 +552,18 @@ export function ContactMap({
   const zoomed = view.s > 1.001;
 
   return (
-    <div className="workshop-map relative mx-auto aspect-square w-[min(100%,88vh)] select-none">
+    <div className="workshop-map relative mx-auto aspect-square w-[min(100%,92vh)] select-none">
       <svg
         ref={svgRef}
         viewBox={`0 0 ${SIZE} ${SIZE}`}
-        className="h-full w-full touch-none overflow-hidden"
-        style={{ cursor: dragging ? "grabbing" : zoomed ? "grab" : "default" }}
+        className="h-full w-full overflow-hidden"
+        style={{
+          cursor: dragging ? "grabbing" : zoomed ? "grab" : "default",
+          // At 1x the whole map is already in frame, so a swipe over it should
+          // scroll the page rather than pan nothing. `pan-y` still leaves the
+          // pinch to us. Once zoomed, every gesture belongs to the map.
+          touchAction: zoomed ? "none" : "pan-y",
+        }}
         role="img"
         aria-label="Invite map"
         onPointerDown={startDrag}

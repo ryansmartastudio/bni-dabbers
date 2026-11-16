@@ -10,6 +10,7 @@ import {
 } from "@/actions/workshop-portal";
 import { ContactMap } from "@/components/workshop/portal/contact-map";
 import { ContactSheet } from "@/components/workshop/portal/contact-sheet";
+import { MembersBoard } from "@/components/workshop/portal/members-board";
 import { usePortalSession } from "@/components/workshop/portal/portal-store";
 import { TEAMS, getTeam } from "@/lib/workshop/config";
 import { normaliseText } from "@/lib/workshop/normalise";
@@ -18,17 +19,25 @@ import type {
   PortalSessionSummary,
   PortalStats,
 } from "@/lib/workshop/portal";
+import type { RosterMember } from "@/lib/workshop/roster";
 import type { WorkshopConstants } from "@/lib/workshop/config";
 
 const REFRESH_MS = 6000;
 
 type Filter = "all" | "unclaimed" | "mine" | "invited";
+type Tab = "names" | "map" | "members";
 
 const FILTERS: Array<{ id: Filter; label: string }> = [
   { id: "unclaimed", label: "Up for grabs" },
   { id: "mine", label: "Mine" },
   { id: "invited", label: "Invited" },
   { id: "all", label: "Everyone" },
+];
+
+const TABS: Array<{ id: Tab; label: string }> = [
+  { id: "names", label: "The names" },
+  { id: "map", label: "Invite map" },
+  { id: "members", label: "Who's got who" },
 ];
 
 const UNSEATED = "__unseated__";
@@ -58,13 +67,14 @@ export function PortalApp({
   const reduced = useReducedMotion() ?? false;
   const [session, setSession] = usePortalSession();
   const [contacts, setContacts] = useState<PortalContact[]>([]);
-  const [names, setNames] = useState<string[]>([]);
+  const [members, setMembers] = useState<RosterMember[]>([]);
   const [stats, setStats] = useState<PortalStats | null>(null);
   const [sessions, setSessions] = useState<PortalSessionSummary[]>([]);
   // What the server resolved; `wanted` is what this page is asking for, which
   // starts as whatever the link carried.
   const [wanted, setWanted] = useState<string | null>(requestedSessionId);
   const [resolvedId, setResolvedId] = useState<string | null>(null);
+  const [tab, setTab] = useState<Tab>("names");
   const [filter, setFilter] = useState<Filter>("unclaimed");
   const [activeSeat, setActiveSeat] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -81,7 +91,7 @@ export function PortalApp({
     if (result.ok) {
       setContacts(result.data.contacts);
       setStats(result.data.stats);
-      setNames(result.data.names);
+      setMembers(result.data.members);
       setSessions(result.data.sessions);
       setResolvedId(result.data.sessionId);
     }
@@ -116,7 +126,7 @@ export function PortalApp({
         return;
       }
       setContacts(result.data.contacts);
-      setNames(result.data.names);
+      setMembers(result.data.members);
       setSessions(result.data.sessions);
       setResolvedId(result.data.sessionId);
       setSession({ password: given, memberName: null });
@@ -156,6 +166,12 @@ export function PortalApp({
     }
   }
 
+  /** Jump to the list already filtered — what every stat card is really for. */
+  function showNames(next: Filter) {
+    setFilter(next);
+    setTab("names");
+  }
+
   const visible = useMemo(() => {
     const q = normaliseText(query);
     return contacts.filter((c) => {
@@ -187,7 +203,7 @@ export function PortalApp({
   if (!me) {
     return (
       <NamePicker
-        names={names}
+        members={members}
         onPick={(name) => setSession({ password, memberName: name })}
         onSignOut={() => setSession(null)}
       />
@@ -200,8 +216,11 @@ export function PortalApp({
     ? (contacts.find((c) => seatKeyOf(c) === activeSeat)?.seat ?? null)
     : null;
 
+  /** Opening a contact from the map or the board should show it, wherever. */
+  const openContact = (id: string) => setOpenId(id);
+
   return (
-    <div className="mx-auto w-full max-w-3xl px-4 pb-24 pt-6 sm:px-6 lg:max-w-[1480px] lg:px-8">
+    <div className="mx-auto w-full max-w-[1400px] px-4 pb-24 pt-6 sm:px-6 lg:px-8">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <p className="marketing-eyebrow">BNI Dabbers · Visitor list</p>
@@ -248,38 +267,171 @@ export function PortalApp({
         </p>
       ) : null}
 
-      <div className="mt-5 lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(400px,440px)] lg:items-start lg:gap-8">
-        {/* The map is desktop-only: a hundred radial labels on a phone is just
-            a worse list. */}
-        <div className="hidden lg:block">
-          <div className="rounded-3xl border border-border bg-white p-5">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <p className="text-sm font-bold text-foreground">The invite map</p>
-                <p className="text-xs text-muted">
-                  Hover for the full name, click to open. Scroll to zoom, drag to move,
-                  double-click to reset.
-                </p>
-              </div>
-              {activeSeat ? (
+      {stats ? (
+        <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <Stat label="Contacts" value={stats.total} onClick={() => showNames("all")} />
+          <Stat label="Claimed" value={stats.claimed} onClick={() => setTab("members")} />
+          <Stat label="Yours" value={stats.mine} accent onClick={() => showNames("mine")} />
+          <Stat label="Invited" value={stats.invited} onClick={() => showNames("invited")} />
+        </div>
+      ) : null}
+
+      {/* One tab bar at every width: the map earns a full-width page of its
+          own rather than a column that only exists on a big screen. */}
+      <div className="sticky top-0 z-10 -mx-4 mt-5 bg-background/92 px-4 py-2 backdrop-blur sm:-mx-6 sm:px-6 lg:-mx-8 lg:px-8">
+        <div className="flex gap-1 rounded-xl bg-surface-muted p-1">
+          {TABS.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              className={`relative flex-1 whitespace-nowrap rounded-lg px-2 py-2.5 text-[13px] font-bold transition sm:flex-none sm:px-4 sm:text-sm ${
+                tab === t.id ? "text-white" : "text-muted hover:text-foreground"
+              }`}
+            >
+              {tab === t.id ? (
+                <motion.span
+                  layoutId="portal-tab"
+                  className="absolute inset-0 rounded-lg bg-bni"
+                  transition={{ type: "spring", stiffness: 420, damping: 34 }}
+                />
+              ) : null}
+              <span className="relative">{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {error ? (
+        <p className="mt-3 rounded-xl bg-[#FDECEE] px-4 py-3 text-sm font-semibold text-[#A51A26]">
+          {error}
+        </p>
+      ) : null}
+
+      <div className="mt-4">
+        {tab === "names" ? (
+          <>
+            <label className="block">
+              <span className="sr-only">Search the list</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                placeholder="Search name, company, seat or who claimed it…"
+                className="w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-4 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
+              />
+            </label>
+
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              {FILTERS.map((f) => (
+                <button
+                  key={f.id}
+                  type="button"
+                  onClick={() => setFilter(f.id)}
+                  className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
+                    filter === f.id
+                      ? "bg-bni text-white"
+                      : "border border-border bg-white text-muted hover:text-foreground"
+                  }`}
+                >
+                  {f.label}
+                </button>
+              ))}
+              {activeSeat && seatLabel ? (
                 <button
                   type="button"
                   onClick={() => setActiveSeat(null)}
-                  className="rounded-full bg-foreground px-3 py-1.5 text-xs font-bold text-white"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-foreground bg-white px-3.5 py-[7px] text-sm font-semibold text-foreground"
                 >
-                  {seatLabel} ✕
+                  {seatLabel}
+                  <span className="text-muted">✕</span>
                 </button>
               ) : null}
             </div>
 
-            <div className="mt-2">
+            <p className="mt-4 text-sm text-muted">
+              Showing {visible.length} of {contacts.length}
+              {filter === "unclaimed" ? " · nobody has taken these on yet" : ""}
+            </p>
+
+            <div className="mt-3 grid gap-2.5 md:grid-cols-2 xl:grid-cols-3">
+              {visible.length === 0 ? (
+                <div className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center md:col-span-2 xl:col-span-3">
+                  <p className="text-sm text-muted">Nothing matches that.</p>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setQuery("");
+                      setActiveSeat(null);
+                      setFilter("all");
+                    }}
+                    className="mt-3 rounded-lg bg-foreground px-4 py-2 text-sm font-bold text-white"
+                  >
+                    Show everyone
+                  </button>
+                </div>
+              ) : (
+                visible.map((contact) => (
+                  <ContactRow
+                    key={contact.id}
+                    contact={contact}
+                    me={me}
+                    reduced={reduced}
+                    pending={isPending}
+                    onOpen={() => setOpenId(contact.id)}
+                    onClaim={() => act(() => claimForMe(password, contact.id, me, wanted))}
+                    onRelease={() => act(() => releaseMine(password, contact.id, me, wanted))}
+                  />
+                ))
+              )}
+            </div>
+          </>
+        ) : null}
+
+        {tab === "map" ? (
+          <div className="rounded-3xl border border-border bg-white p-4 sm:p-5">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="text-sm font-bold text-foreground">The invite map</p>
+                <p className="text-xs text-muted">
+                  Hover or tap for the full name. Pinch or scroll to zoom, drag to move.
+                </p>
+              </div>
+              {activeSeat && seatLabel ? (
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => showNames("all")}
+                    className="rounded-full bg-bni px-3.5 py-2 text-xs font-bold text-white"
+                  >
+                    See the {visible.length} in {seatLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveSeat(null)}
+                    className="rounded-full border border-border bg-white px-3 py-2 text-xs font-semibold text-muted"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : null}
+            </div>
+
+            <div className="mt-2 gap-6 xl:grid xl:grid-cols-[minmax(0,1fr)_17rem] xl:items-start">
               <ContactMap
                 contacts={contacts}
                 me={me}
                 activeSeat={activeSeat}
                 onSeat={setActiveSeat}
-                onOpen={setOpenId}
+                onOpen={openContact}
                 reduced={reduced}
+              />
+              {/* Hunting a thin arc is a poor way to find a category, so the
+                  same thing is here as a plain list. */}
+              <CategoryList
+                contacts={contacts}
+                activeSeat={activeSeat}
+                onSeat={setActiveSeat}
               />
             </div>
 
@@ -312,89 +464,11 @@ export function PortalApp({
               </span>
             </div>
           </div>
-        </div>
+        ) : null}
 
-        <div className="lg:min-w-0">
-          {stats ? (
-            <div className="grid grid-cols-4 gap-2">
-              <Stat label="Contacts" value={stats.total} />
-              <Stat label="Claimed" value={stats.claimed} />
-              <Stat label="Yours" value={stats.mine} accent />
-              <Stat label="Invited" value={stats.invited} />
-            </div>
-          ) : null}
-
-          <label className="mt-4 block">
-            <span className="sr-only">Search the list</span>
-            <input
-              type="search"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search name, company, seat or who claimed it…"
-              className="w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-4 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
-            />
-          </label>
-
-          <div className="mt-3 flex flex-wrap gap-2">
-            {FILTERS.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                onClick={() => setFilter(f.id)}
-                className={`rounded-full px-3.5 py-2 text-sm font-semibold transition ${
-                  filter === f.id
-                    ? "bg-bni text-white"
-                    : "border border-border bg-white text-muted hover:text-foreground"
-                }`}
-              >
-                {f.label}
-              </button>
-            ))}
-          </div>
-
-          {activeSeat && seatLabel ? (
-            <button
-              type="button"
-              onClick={() => setActiveSeat(null)}
-              className="mt-3 inline-flex items-center gap-2 rounded-full border border-border bg-white px-3.5 py-2 text-sm font-semibold text-foreground"
-            >
-              Category: {seatLabel}
-              <span className="text-muted">✕</span>
-            </button>
-          ) : null}
-
-          {error ? (
-            <p className="mt-3 rounded-xl bg-[#FDECEE] px-4 py-3 text-sm font-semibold text-[#A51A26]">
-              {error}
-            </p>
-          ) : null}
-
-          <p className="mt-4 text-sm text-muted">
-            {visible.length} {visible.length === 1 ? "contact" : "contacts"}
-            {filter === "unclaimed" ? " nobody has taken on yet" : ""}
-          </p>
-
-          <div className="mt-3 space-y-2.5">
-            {visible.length === 0 ? (
-              <p className="rounded-2xl border border-dashed border-border bg-white px-5 py-10 text-center text-sm text-muted">
-                Nothing here. Try another filter.
-              </p>
-            ) : (
-              visible.map((contact) => (
-                <ContactRow
-                  key={contact.id}
-                  contact={contact}
-                  me={me}
-                  reduced={reduced}
-                  pending={isPending}
-                  onOpen={() => setOpenId(contact.id)}
-                  onClaim={() => act(() => claimForMe(password, contact.id, me, wanted))}
-                  onRelease={() => act(() => releaseMine(password, contact.id, me, wanted))}
-                />
-              ))
-            )}
-          </div>
-        </div>
+        {tab === "members" ? (
+          <MembersBoard contacts={contacts} members={members} me={me} onOpen={openContact} />
+        ) : null}
       </div>
 
       <AnimatePresence>
@@ -420,16 +494,111 @@ export function PortalApp({
   );
 }
 
-function Stat({ label, value, accent }: { label: string; value: number; accent?: boolean }) {
+type CategoryRow = {
+  key: string;
+  label: string;
+  accent: string;
+  total: number;
+  claimed: number;
+};
+
+function CategoryList({
+  contacts,
+  activeSeat,
+  onSeat,
+}: {
+  contacts: PortalContact[];
+  activeSeat: string | null;
+  onSeat: (key: string | null) => void;
+}) {
+  const rows = useMemo(() => {
+    const byKey = new Map<string, CategoryRow>();
+    for (const contact of contacts) {
+      const key = seatKeyOf(contact);
+      const row =
+        byKey.get(key) ??
+        ({
+          key,
+          label: contact.seat || "Other",
+          accent: (contact.seatTeam ? getTeam(contact.seatTeam)?.accent : null) ?? "#9A9CA1",
+          total: 0,
+          claimed: 0,
+        } satisfies CategoryRow);
+      row.total += 1;
+      if (contact.claimedBy) row.claimed += 1;
+      byKey.set(key, row);
+    }
+    return [...byKey.values()].sort(
+      (a, b) => b.total - a.total || a.label.localeCompare(b.label, "en-GB"),
+    );
+  }, [contacts]);
+
+  if (rows.length === 0) return null;
+
   return (
-    <div className={`rounded-xl px-3 py-2.5 text-center ${accent ? "bg-[#FDF1F2]" : "bg-surface-muted"}`}>
+    <div className="mt-5 xl:mt-0">
+      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-muted">
+        Categories
+      </p>
+      <div className="mt-2 flex flex-wrap gap-1.5 xl:max-h-[70vh] xl:flex-col xl:flex-nowrap xl:gap-1 xl:overflow-y-auto xl:pr-1">
+        {rows.map((row) => {
+          const active = activeSeat === row.key;
+          return (
+            <button
+              key={row.key}
+              type="button"
+              onClick={() => onSeat(active ? null : row.key)}
+              className={`flex items-center gap-2 rounded-lg border px-2.5 py-1.5 text-left text-xs transition xl:w-full ${
+                active
+                  ? "border-foreground bg-foreground text-white"
+                  : "border-border bg-white text-foreground hover:border-foreground"
+              }`}
+            >
+              <span
+                className="h-2.5 w-2.5 shrink-0 rounded-full"
+                style={{ background: active ? "#FFFFFF" : row.accent }}
+              />
+              <span className="truncate font-semibold">{row.label}</span>
+              <span
+                className={`ml-auto shrink-0 tabular-nums ${active ? "text-white/70" : "text-ink-muted"}`}
+              >
+                {row.total - row.claimed}/{row.total}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+      <p className="mt-2 text-[11px] text-ink-muted">Up for grabs / total</p>
+    </div>
+  );
+}
+
+function Stat({
+  label,
+  value,
+  accent,
+  onClick,
+}: {
+  label: string;
+  value: number;
+  accent?: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`rounded-xl px-3 py-2.5 text-center transition hover:ring-2 hover:ring-bni/30 ${
+        accent ? "bg-[#FDF1F2]" : "bg-surface-muted"
+      }`}
+    >
       <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-ink-muted">
         {label}
       </p>
       <p className={`mt-0.5 text-xl font-bold ${accent ? "text-bni" : "text-foreground"}`}>
         {value}
       </p>
-    </div>
+    </button>
   );
 }
 
@@ -456,11 +625,11 @@ function ContactRow({
   return (
     <motion.div
       layout={!reduced}
-      className={`rounded-2xl border-2 bg-white p-4 transition-shadow hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] ${
+      className={`flex flex-col rounded-2xl border-2 bg-white p-4 transition-shadow hover:shadow-[0_6px_24px_rgba(0,0,0,0.07)] ${
         mine ? "border-bni" : contact.claimedBy ? "border-border opacity-80" : "border-border"
       }`}
     >
-      <button type="button" onClick={onOpen} className="block w-full text-left">
+      <button type="button" onClick={onOpen} className="block w-full flex-1 text-left">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
             <p className="truncate text-base font-bold text-foreground">
@@ -486,7 +655,7 @@ function ContactRow({
         </div>
       </button>
 
-      <div className="mt-3 flex items-center justify-between gap-3">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
         {contact.claimedBy ? (
           <span className={`text-sm font-semibold ${mine ? "text-bni" : "text-muted"}`}>
             {mine ? "You're inviting them" : `${contact.claimedBy} is inviting them`}
@@ -586,18 +755,17 @@ function PasswordGate({
 }
 
 function NamePicker({
-  names,
+  members,
   onPick,
   onSignOut,
 }: {
-  names: string[];
+  members: RosterMember[];
   onPick: (name: string) => void;
   onSignOut: () => void;
 }) {
   const [query, setQuery] = useState("");
-  const matches = [...new Set(names)].filter((n) =>
-    normaliseText(n).includes(normaliseText(query)),
-  );
+  const names = [...new Set(members.map((m) => m.name))];
+  const matches = names.filter((n) => normaliseText(n).includes(normaliseText(query)));
 
   return (
     <div className="mx-auto max-w-sm px-4 py-12">

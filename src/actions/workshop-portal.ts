@@ -17,7 +17,7 @@ import {
   type PortalSessionSummary,
   type PortalStats,
 } from "@/lib/workshop/portal";
-import { getWorkshopRoster, memberKey } from "@/lib/workshop/roster";
+import { getWorkshopRoster, memberKey, type RosterMember } from "@/lib/workshop/roster";
 
 /**
  * Every action re-checks the password.
@@ -48,7 +48,8 @@ type Result<T> = { ok: true; data: T } | { ok: false; error: string };
 
 export type PortalPayload = {
   contacts: PortalContact[];
-  names: string[];
+  /** The whole roster, not just names: the portal shows power teams too. */
+  members: RosterMember[];
   sessionId: string;
   sessions: PortalSessionSummary[];
 };
@@ -82,7 +83,7 @@ export async function openPortal(
   ]);
   return {
     ok: true,
-    data: { contacts, names: roster.map((m) => m.name), sessionId: contactsSessionId, sessions },
+    data: { contacts, members: roster, sessionId: contactsSessionId, sessions },
   };
 }
 
@@ -107,7 +108,7 @@ export async function refreshPortal(
       data: {
         contacts,
         stats,
-        names: roster.map((m) => m.name),
+        members: roster,
         sessionId: contactsSessionId,
         sessions,
       },
