@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { CopyPortalLink } from "@/components/workshop/copy-portal-link";
+import { DeleteSessionButton } from "@/components/workshop/delete-session-button";
 import type { ArchivedSession } from "@/lib/workshop/session";
 
 const STATE_LABEL: Record<string, string> = {
@@ -107,6 +108,14 @@ export function SessionHistory({
                   <CopyPortalLink path={`${basePath}/portal?s=${session.id}`} />
                 </>
               ) : null}
+              {isCurrent ? null : (
+                <DeleteSessionButton
+                  secret={secret}
+                  sessionId={session.id}
+                  contacts={session.contacts}
+                  when={formatWhen(session.createdAt)}
+                />
+              )}
             </div>
           </div>
 

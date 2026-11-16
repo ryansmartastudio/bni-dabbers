@@ -234,3 +234,40 @@ export async function setPortalPassword(
   await bump(session.id, { portalPassword: cleaned === "" ? null : cleaned });
   return { ok: true };
 }
+
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/**
+ * Removes an archived run and everything in it.
+ *
+ * The live session is refused rather than handled: deleting the one the room
+ * is using would take the board, the phones and the portal with it, and the
+ * recovery is "start a new session", which is a button of its own. Contacts
+ * and participants go with it through the cascade on their foreign keys.
+ */
+export async function deleteWorkshopSession(
+  secret: string,
+  sessionId: string,
+): Promise<Result> {
+  requireAdminSecret(secret);
+  if (!UUID.test(sessionId)) return { ok: false, error: "That isn't a session id." };
+
+  const live = await getLiveSession();
+  if (sessionId === live.id) {
+    return {
+      ok: false,
+      error: "That's the session in use. Start a new one first, then delete this.",
+    };
+  }
+
+  const [row] = await db
+    .select({ id: workshopSessions.id })
+    .from(workshopSessions)
+    .where(eq(workshopSessions.id, sessionId))
+    .limit(1);
+  if (!row) return { ok: false, error: "That session has already gone." };
+
+  await db.delete(workshopSessions).where(eq(workshopSessions.id, sessionId));
+  revalidatePath("/workshop/admin/[secret]", "page");
+  return { ok: true };
+}

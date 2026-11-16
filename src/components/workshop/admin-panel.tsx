@@ -44,6 +44,24 @@ const STATE_LABEL: Record<WorkshopState, string> = {
   slide2: "Slide 2 — what it means",
 };
 
+/**
+ * Every stage, in the order the session walks through them.
+ *
+ * The big button only ever moves forward, which is right on the day but
+ * leaves a rehearsal stranded: walk to the last slide and there is no way
+ * back to round 2, so the phones show no way to add a contact and it reads
+ * as the feature having vanished.
+ */
+const STAGES: WorkshopState[] = [
+  "waiting",
+  "round1",
+  "break",
+  "round2",
+  "ended",
+  "slide1",
+  "slide2",
+];
+
 export function AdminPanel({
   secret,
   initial,
@@ -210,6 +228,35 @@ export function AdminPanel({
               onClick={() => setConfirming("end")}
             />
           ) : null}
+        </div>
+      ) : null}
+
+      {showSessionControls ? (
+        <div className="mt-2 rounded-2xl border border-border bg-white p-5">
+          <p className="marketing-eyebrow">Jump to any stage</p>
+          <p className="mt-1 text-sm text-muted">
+            Every stage, in order, in case you need to go back. Starting a round from
+            here restarts its clock.
+          </p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {STAGES.map((stage) => (
+              <button
+                key={stage}
+                type="button"
+                disabled={isPending || stage === state}
+                onClick={() =>
+                  run(STATE_LABEL[stage], () => setWorkshopState(secret, stage))
+                }
+                className={`rounded-lg px-3.5 py-2 text-sm font-semibold transition disabled:opacity-100 ${
+                  stage === state
+                    ? "bg-bni text-white"
+                    : "border border-border bg-white text-foreground hover:border-foreground disabled:opacity-50"
+                }`}
+              >
+                {STATE_LABEL[stage]}
+              </button>
+            ))}
+          </div>
         </div>
       ) : null}
 
