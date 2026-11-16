@@ -971,6 +971,60 @@ body:has(#workshop-root) {
   max-width: 86%;
 }
 
+/* The hand-off at the end of slide 2. Sized in cqi like the rest of the
+   board, so it reads the same on a laptop screen and a hall projector. */
+.workshop-slide-cta {
+  display: flex;
+  align-items: center;
+  gap: 2.2cqi;
+  margin-top: 1.4cqi;
+  padding: 1.6cqi 2cqi;
+  border: 0.22cqi solid var(--color-bni, #cf2030);
+  border-radius: 1.4cqi;
+  background: #ffffff;
+}
+
+.workshop-slide-cta-qr {
+  width: 11cqi;
+  height: 11cqi;
+  flex: none;
+  padding: 0.6cqi;
+  border-radius: 0.9cqi;
+  background: #ffffff;
+}
+
+.workshop-slide-cta b {
+  display: block;
+  font-size: 2.6cqi;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+  color: #cf2030;
+}
+
+.workshop-slide-cta p {
+  margin: 0.5cqi 0 0.8cqi;
+  font-size: 1.35cqi;
+  line-height: 1.45;
+  color: #333333;
+  max-width: 48cqi;
+}
+
+.workshop-slide-cta-url {
+  display: inline-block;
+  font-size: 1.7cqi;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: #1a1a1a;
+}
+
+.workshop-slide-cta em {
+  display: block;
+  margin-top: 0.3cqi;
+  font-style: normal;
+  font-size: 1.15cqi;
+  color: var(--color-ink-muted);
+}
+
 /* ---------- Final leaderboard ---------- */
 
 .workshop-leaderboard {

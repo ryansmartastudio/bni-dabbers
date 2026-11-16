@@ -25,6 +25,7 @@ const POLL_MS = 1000;
 type BoardProps = {
   initial: WorkshopSnapshot;
   joinUrl: string;
+  portalUrl: string;
   chapterLogoUrl: string | null;
   constants: WorkshopConstants;
   /** Present when the board was opened with ?key=<admin secret>. */
@@ -45,7 +46,8 @@ const SEQUENCE: WorkshopState[] = [
 /** Steps within each slide, walked through before moving on. */
 const SLIDE_STEPS: Partial<Record<WorkshopState, number>> = {
   slide1: 5,
-  slide2: 4,
+  // Three cards, the footnote, then the hand-off to the portal.
+  slide2: 5,
 };
 
 function stepsFor(state: WorkshopState): number {
@@ -55,6 +57,7 @@ function stepsFor(state: WorkshopState): number {
 export function Board({
   initial,
   joinUrl,
+  portalUrl,
   chapterLogoUrl,
   constants,
   controlSecret,
@@ -327,6 +330,7 @@ export function Board({
           contacts={snapshot.totalContacts ?? 0}
           constants={constants}
           revealed={slideStep}
+          portalUrl={portalUrl}
         />
       ) : null}
 

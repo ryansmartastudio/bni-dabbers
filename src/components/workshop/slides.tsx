@@ -2,6 +2,7 @@
 
 import { motion, useReducedMotion } from "motion/react";
 import { useEffect, useState } from "react";
+import QRCode from "react-qr-code";
 import { NetworkWeb } from "@/components/workshop/network-web";
 import { Odometer } from "@/components/workshop/odometer";
 import type { WorkshopConstants } from "@/lib/workshop/config";
@@ -140,11 +141,14 @@ export function MembersSlide({
   contacts,
   constants,
   revealed,
+  portalUrl,
 }: {
   contacts: number;
   constants: WorkshopConstants;
   /** How many cards to show. Harry advances these one at a time. */
   revealed: number;
+  /** Where the room goes next, revealed on the last press. */
+  portalUrl: string;
 }) {
   const reduced = useReducedMotion() ?? false;
   const { membersAfter, rows } = projectMemberValue(contacts, constants);
@@ -231,6 +235,33 @@ export function MembersSlide({
           : `£${formatCount(constants.tyfcbLast12Months)}`}{" "}
         in the last 12 months, scaled up in line with member numbers.
       </motion.p>
+
+      {/* The last thing on the screen is the thing the room has to do next. */}
+      <motion.div
+        className="workshop-slide-cta"
+        initial={{ opacity: 0, y: 18 }}
+        animate={{
+          opacity: revealed > rows.length + 1 ? 1 : 0,
+          y: revealed > rows.length + 1 ? 0 : 18,
+        }}
+        transition={{ type: "spring", stiffness: 240, damping: 28 }}
+        aria-hidden={revealed <= rows.length + 1}
+      >
+        <div className="workshop-slide-cta-qr">
+          <QRCode value={portalUrl} size={256} style={{ width: "100%", height: "100%" }} />
+        </div>
+        <div>
+          <b>Now go and claim them</b>
+          <p>
+            Every name from today is in the members&rsquo; portal. Take on the people
+            you know, get the opening message, and invite them.
+          </p>
+          <span className="workshop-slide-cta-url">
+            {portalUrl.replace("https://", "")}
+          </span>
+          <em>Harry has the password</em>
+        </div>
+      </motion.div>
     </div>
   );
 }

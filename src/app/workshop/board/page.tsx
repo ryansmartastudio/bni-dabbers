@@ -1,5 +1,5 @@
 import { Board } from "@/components/workshop/board";
-import { getWorkshopJoinUrl } from "@/lib/workshop";
+import { getWorkshopJoinUrl, getWorkshopPortalUrl } from "@/lib/workshop";
 import { isValidAdminSecret } from "@/lib/workshop/admin";
 import { MILESTONE_EVERY } from "@/lib/workshop/config";
 import { getBoardSnapshot } from "@/lib/workshop/contacts";
@@ -59,6 +59,7 @@ export default async function WorkshopBoardPage({
     <Board
       initial={initial}
       joinUrl={getWorkshopJoinUrl()}
+      portalUrl={getWorkshopPortalUrl()}
       chapterLogoUrl={settings.chapterLogoUrl}
       constants={sessionConstants(session)}
       controlSecret={controlSecret}

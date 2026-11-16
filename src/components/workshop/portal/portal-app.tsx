@@ -10,7 +10,7 @@ import {
 } from "@/actions/workshop-portal";
 import { ContactMap } from "@/components/workshop/portal/contact-map";
 import { ContactSheet } from "@/components/workshop/portal/contact-sheet";
-import { MembersBoard } from "@/components/workshop/portal/members-board";
+import { MembersBoard, initials } from "@/components/workshop/portal/members-board";
 import { usePortalSession } from "@/components/workshop/portal/portal-store";
 import { TEAMS, getTeam } from "@/lib/workshop/config";
 import { normaliseText } from "@/lib/workshop/normalise";
@@ -74,9 +74,11 @@ export function PortalApp({
   // starts as whatever the link carried.
   const [wanted, setWanted] = useState<string | null>(requestedSessionId);
   const [resolvedId, setResolvedId] = useState<string | null>(null);
-  const [tab, setTab] = useState<Tab>("names");
+  // The map is the overview, so it is what the portal opens on.
+  const [tab, setTab] = useState<Tab>("map");
   const [filter, setFilter] = useState<Filter>("unclaimed");
   const [activeSeat, setActiveSeat] = useState<string | null>(null);
+  const [activeMember, setActiveMember] = useState<string | null>(null);
   const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -156,6 +158,7 @@ export function PortalApp({
   function switchSession(id: string) {
     setWanted(id);
     setActiveSeat(null);
+    setActiveMember(null);
     setOpenId(null);
     setContacts([]);
     setStats(null);
@@ -292,6 +295,9 @@ export function PortalApp({
               {tab === t.id ? (
                 <motion.span
                   layoutId="portal-tab"
+                  // Without this the pill animates in from wherever Motion
+                  // first measured it, which on mount is nowhere useful.
+                  initial={false}
                   className="absolute inset-0 rounded-lg bg-bni"
                   transition={{ type: "spring", stiffness: 420, damping: 34 }}
                 />
@@ -397,18 +403,28 @@ export function PortalApp({
                   Hover or tap for the full name. Pinch or scroll to zoom, drag to move.
                 </p>
               </div>
-              {activeSeat && seatLabel ? (
+              {activeSeat || activeMember ? (
                 <div className="flex items-center gap-2">
+                  {activeSeat && seatLabel ? (
+                    <button
+                      type="button"
+                      onClick={() => showNames("all")}
+                      className="rounded-full bg-bni px-3.5 py-2 text-xs font-bold text-white"
+                    >
+                      See the {visible.length} in {seatLabel}
+                    </button>
+                  ) : null}
+                  {activeMember ? (
+                    <span className="rounded-full bg-foreground px-3.5 py-2 text-xs font-bold text-white">
+                      {activeMember}&rsquo;s names
+                    </span>
+                  ) : null}
                   <button
                     type="button"
-                    onClick={() => showNames("all")}
-                    className="rounded-full bg-bni px-3.5 py-2 text-xs font-bold text-white"
-                  >
-                    See the {visible.length} in {seatLabel}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setActiveSeat(null)}
+                    onClick={() => {
+                      setActiveSeat(null);
+                      setActiveMember(null);
+                    }}
                     className="rounded-full border border-border bg-white px-3 py-2 text-xs font-semibold text-muted"
                   >
                     Clear
@@ -422,16 +438,19 @@ export function PortalApp({
                 contacts={contacts}
                 me={me}
                 activeSeat={activeSeat}
+                activeMember={activeMember}
                 onSeat={setActiveSeat}
                 onOpen={openContact}
                 reduced={reduced}
               />
-              {/* Hunting a thin arc is a poor way to find a category, so the
-                  same thing is here as a plain list. */}
-              <CategoryList
+              <MapSidebar
                 contacts={contacts}
+                members={members}
+                me={me}
                 activeSeat={activeSeat}
+                activeMember={activeMember}
                 onSeat={setActiveSeat}
+                onMember={setActiveMember}
               />
             </div>
 
@@ -494,6 +513,143 @@ export function PortalApp({
   );
 }
 
+type SidebarView = "members" | "categories";
+
+/**
+ * The panel beside the map.
+ *
+ * Members first, because the question people bring to the map is "who has
+ * already got someone" — picking one lights up just their names. Categories
+ * are a click away: hunting a thin arc is a poor way to find one.
+ */
+function MapSidebar({
+  contacts,
+  members,
+  me,
+  activeSeat,
+  activeMember,
+  onSeat,
+  onMember,
+}: {
+  contacts: PortalContact[];
+  members: RosterMember[];
+  me: string;
+  activeSeat: string | null;
+  activeMember: string | null;
+  onSeat: (key: string | null) => void;
+  onMember: (name: string | null) => void;
+}) {
+  const [view, setView] = useState<SidebarView>("members");
+  const mineKey = normaliseText(me);
+
+  const rows = useMemo(() => {
+    const counts = new Map<string, { claimed: number; invited: number; name: string }>();
+    for (const contact of contacts) {
+      if (!contact.claimedBy) continue;
+      const key = normaliseText(contact.claimedBy);
+      const row = counts.get(key) ?? { claimed: 0, invited: 0, name: contact.claimedBy };
+      row.claimed += 1;
+      if (contact.invitedAt) row.invited += 1;
+      counts.set(key, row);
+    }
+
+    // Everyone on the roster appears, not only the ones who have claimed: the
+    // gaps are the useful part of the list.
+    const seen = new Set<string>();
+    const all = members.map((member) => {
+      const key = normaliseText(member.name);
+      seen.add(key);
+      const row = counts.get(key);
+      return {
+        key,
+        name: member.name,
+        accent: getTeam(member.team)?.accent ?? "#9A9CA1",
+        claimed: row?.claimed ?? 0,
+        invited: row?.invited ?? 0,
+      };
+    });
+
+    // Anyone who claimed but is no longer on the roster still has names out.
+    for (const [key, row] of counts) {
+      if (seen.has(key)) continue;
+      all.push({ key, name: row.name, accent: "#9A9CA1", claimed: row.claimed, invited: row.invited });
+    }
+
+    return all.sort(
+      (a, b) => b.claimed - a.claimed || a.name.localeCompare(b.name, "en-GB"),
+    );
+  }, [contacts, members]);
+
+  return (
+    <div className="mt-5 xl:mt-0">
+      <div className="flex gap-1 rounded-lg bg-surface-muted p-1">
+        {(["members", "categories"] as SidebarView[]).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setView(id)}
+            className={`flex-1 rounded-md px-2 py-1.5 text-[11px] font-bold uppercase tracking-[0.06em] transition ${
+              view === id ? "bg-white text-foreground shadow-sm" : "text-ink-muted"
+            }`}
+          >
+            {id}
+          </button>
+        ))}
+      </div>
+
+      {view === "members" ? (
+        <>
+          <div className="mt-2 flex flex-wrap gap-1.5 xl:max-h-[62vh] xl:flex-col xl:flex-nowrap xl:gap-1 xl:overflow-y-auto xl:pr-1">
+            {rows.map((row) => {
+              const active = activeMember === row.name;
+              const idle = row.claimed === 0;
+              return (
+                <button
+                  key={row.key}
+                  type="button"
+                  disabled={idle}
+                  onClick={() => onMember(active ? null : row.name)}
+                  className={`flex items-center gap-2 rounded-lg border px-2 py-1.5 text-left text-xs transition xl:w-full ${
+                    active
+                      ? "border-foreground bg-foreground text-white"
+                      : idle
+                        ? "border-transparent bg-transparent text-ink-muted"
+                        : "border-border bg-white text-foreground hover:border-foreground"
+                  }`}
+                >
+                  <span
+                    className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[9px] font-bold text-white"
+                    style={{ background: idle ? "#C9C6C1" : row.accent }}
+                  >
+                    {initials(row.name)}
+                  </span>
+                  <span className="truncate font-semibold">
+                    {row.name}
+                    {row.key === mineKey ? " (you)" : ""}
+                  </span>
+                  <span
+                    className={`ml-auto shrink-0 tabular-nums ${
+                      active ? "text-white/70" : "text-ink-muted"
+                    }`}
+                  >
+                    {row.invited > 0 ? `${row.invited}✓ ` : ""}
+                    {row.claimed}
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <p className="mt-2 text-[11px] text-ink-muted">
+            Invited ✓ / claimed. Pick someone to light up their names.
+          </p>
+        </>
+      ) : (
+        <CategoryList contacts={contacts} activeSeat={activeSeat} onSeat={onSeat} />
+      )}
+    </div>
+  );
+}
+
 type CategoryRow = {
   key: string;
   label: string;
@@ -536,11 +692,8 @@ function CategoryList({
   if (rows.length === 0) return null;
 
   return (
-    <div className="mt-5 xl:mt-0">
-      <p className="text-[11px] font-bold uppercase tracking-[0.08em] text-ink-muted">
-        Categories
-      </p>
-      <div className="mt-2 flex flex-wrap gap-1.5 xl:max-h-[70vh] xl:flex-col xl:flex-nowrap xl:gap-1 xl:overflow-y-auto xl:pr-1">
+    <>
+      <div className="mt-2 flex flex-wrap gap-1.5 xl:max-h-[62vh] xl:flex-col xl:flex-nowrap xl:gap-1 xl:overflow-y-auto xl:pr-1">
         {rows.map((row) => {
           const active = activeSeat === row.key;
           return (
@@ -569,7 +722,7 @@ function CategoryList({
         })}
       </div>
       <p className="mt-2 text-[11px] text-ink-muted">Up for grabs / total</p>
-    </div>
+    </>
   );
 }
 

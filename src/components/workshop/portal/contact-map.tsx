@@ -344,6 +344,7 @@ export function ContactMap({
   contacts,
   me,
   activeSeat,
+  activeMember,
   onSeat,
   onOpen,
   reduced,
@@ -351,6 +352,8 @@ export function ContactMap({
   contacts: PortalContact[];
   me: string;
   activeSeat: string | null;
+  /** When set, only this member's claims stay lit. */
+  activeMember: string | null;
   onSeat: (seatKey: string | null) => void;
   onOpen: (id: string) => void;
   reduced: boolean;
@@ -376,12 +379,17 @@ export function ContactMap({
   const scale = scaleFor(contacts.length);
   const mineKey = normaliseText(me);
 
+  const memberFocus = activeMember ? normaliseText(activeMember) : null;
+
   const hubCount = useMemo(() => {
-    if (!activeSeat) return contacts.length;
-    return contacts.filter(
-      (c) => `${c.seatTeam ?? UNSEATED}:${c.seat || "Other"}` === activeSeat,
-    ).length;
-  }, [contacts, activeSeat]);
+    return contacts.filter((c) => {
+      if (activeSeat && `${c.seatTeam ?? UNSEATED}:${c.seat || "Other"}` !== activeSeat) {
+        return false;
+      }
+      if (memberFocus && normaliseText(c.claimedBy ?? "") !== memberFocus) return false;
+      return true;
+    }).length;
+  }, [contacts, activeSeat, memberFocus]);
 
   /** Pointer position in viewBox units, before the pan/zoom transform. */
   const toViewBox = useCallback((clientX: number, clientY: number) => {
@@ -413,6 +421,18 @@ export function ContactMap({
     [toViewBox],
   );
 
+  /** Seats holding at least one of the focused member's names. */
+  const memberSeats = useMemo(() => {
+    if (!memberFocus) return null;
+    const keys = new Set<string>();
+    for (const contact of contacts) {
+      if (normaliseText(contact.claimedBy ?? "") === memberFocus) {
+        keys.add(`${contact.seatTeam ?? UNSEATED}:${contact.seat || "Other"}`);
+      }
+    }
+    return keys;
+  }, [contacts, memberFocus]);
+
   // Attached by hand because React's onWheel is passive, and a passive
   // listener cannot stop the page scrolling underneath the map.
   useEffect(() => {
@@ -438,6 +458,7 @@ export function ContactMap({
 
   const hoverSeatKey =
     hover?.kind === "leaf" ? hover.seatKey : hover?.kind === "seat" ? hover.key : null;
+
   const hoverTeamKey =
     hover?.kind === "team"
       ? hover.team.key
@@ -447,13 +468,15 @@ export function ContactMap({
 
   const seatFaded = (seatKey: string, teamKey: string) => {
     if (activeSeat && seatKey !== activeSeat) return true;
+    if (memberSeats && !memberSeats.has(seatKey)) return true;
     if (!hover) return false;
     if (hoverTeamKey && hover.kind === "team") return hoverTeamKey !== teamKey;
     return hoverSeatKey !== seatKey;
   };
 
-  const leafFaded = (seatKey: string, teamKey: string, leafId: string) => {
+  const leafFaded = (seatKey: string, teamKey: string, leafId: string, claimedBy: string | null) => {
     if (activeSeat && seatKey !== activeSeat) return true;
+    if (memberFocus && normaliseText(claimedBy ?? "") !== memberFocus) return true;
     if (!hover) return false;
     if (hover.kind === "team") return hover.team.key !== teamKey;
     if (hover.kind === "seat") return hover.key !== seatKey;
@@ -738,7 +761,7 @@ export function ContactMap({
           {tree.flatMap((team) =>
             team.seats.flatMap((seat) =>
               seat.leaves.map((leaf) => {
-                const faded = leafFaded(seat.key, team.key, leaf.contact.id);
+                const faded = leafFaded(seat.key, team.key, leaf.contact.id, leaf.contact.claimedBy);
                 const lit = hover?.kind === "leaf" && hover.key === leaf.contact.id;
                 const delay = 0.3 + leaf.order * (contacts.length > 70 ? 0.003 : 0.01);
                 return (
@@ -771,7 +794,7 @@ export function ContactMap({
             team.seats.flatMap((seat) =>
               seat.leaves.map((leaf) => {
                 const contact = leaf.contact;
-                const faded = leafFaded(seat.key, team.key, contact.id);
+                const faded = leafFaded(seat.key, team.key, contact.id, contact.claimedBy);
                 const mine = normaliseText(contact.claimedBy ?? "") === mineKey;
                 const claimed = Boolean(contact.claimedBy);
                 const invited = Boolean(contact.invitedAt);
@@ -888,7 +911,7 @@ export function ContactMap({
               letterSpacing="0.1em"
               fill="#8A8C90"
             >
-              {activeSeat ? "IN HERE" : "CONTACTS"}
+              {memberFocus ? "THEIRS" : activeSeat ? "IN HERE" : "CONTACTS"}
             </text>
           </motion.g>
         </g>

@@ -47,3 +47,14 @@ export function toWorkshopPath(pathname: string): string {
 export function getWorkshopJoinUrl(): string {
   return `https://${WORKSHOP_HOST}`;
 }
+
+/**
+ * The members' portal, shown on the last slide and shared afterwards.
+ *
+ * Always the subdomain, even when the board is being served from the
+ * main-domain fallback: this URL ends up in the chapter WhatsApp group and
+ * outlives whatever went wrong with DNS on the day.
+ */
+export function getWorkshopPortalUrl(): string {
+  return `https://${WORKSHOP_HOST}/portal`;
+}
