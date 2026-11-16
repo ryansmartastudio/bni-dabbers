@@ -421,6 +421,18 @@ export function AdminPanel({
         <Simulation secret={secret} state={state} disabled={isPending} />
       ) : null}
 
+      {/* The testing tools stay off by default so nobody fires demo contacts
+          into a live room, but they have to be findable without knowing a URL
+          trick — Harry needs them to show the chapter what this does. */}
+      <div className="mt-4 text-center">
+        <Link
+          href={`${basePath}/admin/${secret}${showSimulation ? "" : "?sim=1"}`}
+          className="text-sm font-semibold text-muted underline"
+        >
+          {showSimulation ? "Hide the testing tools" : "Show the testing tools (simulate a session)"}
+        </Link>
+      </div>
+
       <details className="mt-6 rounded-2xl border-2 border-bni bg-[#FDECEE] p-5">
         <summary className="cursor-pointer text-sm font-bold text-[#A51A26]">
           Delete everything, permanently

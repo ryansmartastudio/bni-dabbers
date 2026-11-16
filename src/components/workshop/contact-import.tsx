@@ -23,6 +23,45 @@ function subscribeNoop() {
   return () => {};
 }
 
+function isAndroid(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /Android/i.test(navigator.userAgent);
+}
+
+/**
+ * Samsung Internet is the default browser on a Samsung phone and has dropped
+ * the Contact Picker, so the one-tap route silently isn't there. Chrome on the
+ * same handset still has it, which is a far better answer than a file chooser
+ * offering the camera.
+ */
+function isSamsungInternet(): boolean {
+  if (typeof navigator === "undefined") return false;
+  return /SamsungBrowser/i.test(navigator.userAgent);
+}
+
+/** Chrome proper, not one of the many Chromium browsers that claim to be it. */
+function isChrome(): boolean {
+  if (typeof navigator === "undefined") return false;
+  const ua = navigator.userAgent;
+  return /Chrome\//.test(ua) && !/SamsungBrowser|EdgA|OPR|Firefox|DuckDuckGo|YaBrowser/i.test(ua);
+}
+
+/**
+ * `File.text()` rejects on some Android content providers. FileReader goes
+ * through a different path and tends to succeed where it doesn't.
+ */
+function readFileText(file: File): Promise<string> {
+  return file.text().catch(
+    () =>
+      new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve(String(reader.result ?? ""));
+        reader.onerror = () => reject(reader.error ?? new Error("read failed"));
+        reader.readAsText(file);
+      }),
+  );
+}
+
 /**
  * The canonical feature test from the spec.
  *
@@ -38,6 +77,12 @@ function hasContactsApi(): boolean {
     typeof (navigator as Navigator & { contacts?: ContactsApi }).contacts?.select ===
       "function"
   );
+}
+
+/** The address to read out, without the scheme. */
+function joinHost(): string {
+  if (typeof window === "undefined") return "";
+  return `${window.location.host}${window.location.pathname === "/" ? "" : window.location.pathname}`;
 }
 
 function getContactsApi(): ContactsApi | null {
@@ -65,6 +110,9 @@ export function ContactImport({ onImport }: ContactImportProps) {
     () => new URLSearchParams(window.location.search).has("diag"),
     () => false,
   );
+  const android = useSyncExternalStore(subscribeNoop, isAndroid, () => false);
+  const samsung = useSyncExternalStore(subscribeNoop, isSamsungInternet, () => false);
+  const chrome = useSyncExternalStore(subscribeNoop, isChrome, () => false);
   const [reported, setReported] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -135,18 +183,23 @@ export function ContactImport({ onImport }: ContactImportProps) {
     event.target.value = "";
     if (!file) return;
 
+    // Named in the message because "couldn't read that file" with no idea
+    // which file sent us round in circles for a week.
+    const what = `${file.name || "that file"} (${file.type || "no type"}, ${file.size} bytes)`;
+
     try {
-      const parsed = parseVCard(await file.text());
+      const parsed = parseVCard(await readFileText(file));
       if (!parsed) {
         setNote(
-          `"${file.name}" isn't a contact card. In Contacts, share the person and choose Save to Files, then pick that file.`,
+          `${what} isn't a contact card. Share the person from your Contacts app and save it as a .vcf first — or just type the name below.`,
         );
         return;
       }
       onImport(parsed);
       setNote(null);
-    } catch {
-      setNote("Couldn't read that file. Type the details below instead.");
+    } catch (error) {
+      console.error("Contact card read failed", error);
+      setNote(`Couldn't open ${what}. Type the details below instead.`);
     }
   }
 
@@ -176,6 +229,20 @@ export function ContactImport({ onImport }: ContactImportProps) {
           Picker: {hasPicker ? "available" : "not available"}
           <br />
           Fields: {reported ?? (hasPicker ? "checking…" : "—")}
+          <br />
+          UA: {typeof navigator === "undefined" ? "—" : navigator.userAgent}
+        </p>
+      ) : null}
+
+      {/* Telling a Chrome user to open Chrome is the fastest way to lose them,
+          so the nudge only appears for the browsers that actually lack it. */}
+      {!hasPicker && android && !chrome ? (
+        <p className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-foreground">
+          <strong className="font-bold">
+            {samsung ? "Samsung Internet" : "This browser"} can&rsquo;t open your contacts.
+          </strong>{" "}
+          Chrome on this phone can, in one tap — open{" "}
+          <span className="font-semibold">{joinHost()}</span> in Chrome instead.
         </p>
       ) : null}
 
@@ -185,7 +252,9 @@ export function ContactImport({ onImport }: ContactImportProps) {
         <p className="text-xs leading-relaxed text-ink-muted">
           {hasPicker
             ? "Typing their name is usually quickest."
-            : "iPhone: in Contacts, share the person → Save to Files, then pick it here. Typing their name is usually quicker."}
+            : android
+              ? "Typing their name is usually quickest."
+              : "iPhone: in Contacts, share the person → Save to Files, then pick it here. Typing their name is usually quicker."}
         </p>
       )}
     </div>
