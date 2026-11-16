@@ -111,9 +111,10 @@ export function ContactImport({ onImport }: ContactImportProps) {
     if (props.length === 0) props.push("name");
 
     // Asking for a property a browser doesn't know makes select() reject
-    // outright, and the browsers that report nothing from getProperties() are
-    // exactly the ones likely to support fewer. So narrow and try again rather
-    // than give up on a phone that would have managed the name.
+    // outright, so narrow and try again. A long shot rather than a fix: the
+    // picker needs user activation and the first call has already spent it,
+    // so a retry usually fails too. getProperties() above is what actually
+    // keeps us out of this, and this is only here for the phone it misses.
     const attempts = [props, ["name", "tel"], ["name"]];
 
     try {
