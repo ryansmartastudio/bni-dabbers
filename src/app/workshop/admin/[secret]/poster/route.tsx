@@ -1,5 +1,6 @@
 import { renderToBuffer } from "@react-pdf/renderer";
 import { getWorkshopJoinUrl } from "@/lib/workshop";
+import { PICKER_CHECK_PATH } from "@/lib/workshop/picker-setup";
 import { generateQrDataUrl } from "@/lib/qr";
 import { isValidAdminSecret } from "@/lib/workshop/admin";
 import { getChapterSettings } from "@/lib/workshop/settings";
@@ -19,9 +20,11 @@ export async function GET(
   }
 
   const joinUrl = getWorkshopJoinUrl();
-  const [settings, qrDataUrl] = await Promise.all([
+  const checkUrl = `${joinUrl}${PICKER_CHECK_PATH}`;
+  const [settings, qrDataUrl, checkQrDataUrl] = await Promise.all([
     getChapterSettings(),
     generateQrDataUrl(joinUrl, 900),
+    generateQrDataUrl(checkUrl, 600),
   ]);
 
   const buffer = await renderToBuffer(
@@ -29,6 +32,8 @@ export async function GET(
       joinUrl={joinUrl}
       chapterLogoUrl={settings.chapterLogoUrl}
       qrDataUrl={qrDataUrl}
+      checkUrl={checkUrl}
+      checkQrDataUrl={checkQrDataUrl}
     />,
   );
 

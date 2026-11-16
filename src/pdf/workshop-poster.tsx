@@ -1,5 +1,10 @@
 import { Document, Image, Page, Text, View } from "@react-pdf/renderer";
 import { TEAMS } from "@/lib/workshop/config";
+import {
+  IOS_VERSION_PATH,
+  IPHONE_STEPS,
+  PDF_ARROW,
+} from "@/lib/workshop/picker-setup";
 import { PDF_FONT_FAMILY } from "@/pdf/fonts";
 
 const RED = "#CF2030";
@@ -12,6 +17,9 @@ type PosterProps = {
   joinUrl: string;
   chapterLogoUrl: string | null;
   qrDataUrl: string;
+  /** Page two: where to check the setting actually took. */
+  checkUrl: string;
+  checkQrDataUrl: string;
 };
 
 /**
@@ -19,7 +27,13 @@ type PosterProps = {
  * only things that matter are the code, the URL as a fallback, and the one rule
  * people get wrong.
  */
-export function WorkshopPoster({ joinUrl, chapterLogoUrl, qrDataUrl }: PosterProps) {
+export function WorkshopPoster({
+  joinUrl,
+  chapterLogoUrl,
+  qrDataUrl,
+  checkUrl,
+  checkQrDataUrl,
+}: PosterProps) {
   const display = joinUrl.replace(/^https?:\/\//, "");
 
   return (
@@ -157,6 +171,211 @@ export function WorkshopPoster({ joinUrl, chapterLogoUrl, qrDataUrl }: PosterPro
         >
           <Text style={{ fontSize: 10.5, fontWeight: 700, color: INK, textAlign: "center" }}>
             Seat already full? Keep going — every extra name scores TRIPLE POINTS.
+          </Text>
+        </View>
+
+        <Text
+          style={{
+            position: "absolute",
+            bottom: 18,
+            left: 44,
+            right: 44,
+            fontSize: 7.5,
+            color: MUTED,
+            textAlign: "center",
+          }}
+        >
+          BNI Dabbers · Cheshire East · Growth Workshop
+        </Text>
+      </Page>
+
+      {/*
+        Page two goes on the tables in the weeks before. A phone that can pull
+        a name straight out of contacts adds people in seconds; one that can't
+        is typing, and the difference across a room is most of a round.
+      */}
+      <Page
+        size="A4"
+        style={{
+          fontFamily: PDF_FONT_FAMILY,
+          backgroundColor: "#FFFFFF",
+          paddingTop: 0,
+          paddingBottom: 36,
+          paddingHorizontal: 44,
+        }}
+      >
+        <View style={{ height: 10, backgroundColor: RED, marginHorizontal: -44 }} />
+
+        <View style={{ alignItems: "center", marginTop: 24 }}>
+          {chapterLogoUrl ? (
+            <Image src={chapterLogoUrl} style={{ height: 36, objectFit: "contain" }} />
+          ) : (
+            <Text style={{ fontSize: 16, fontWeight: 700, color: RED }}>BNI DABBERS</Text>
+          )}
+          <Text
+            style={{
+              marginTop: 9,
+              fontSize: 9,
+              letterSpacing: 2.2,
+              color: MUTED,
+              fontWeight: 700,
+            }}
+          >
+            BEFORE THE WORKSHOP · iPHONE ONLY
+          </Text>
+        </View>
+
+        <Text
+          style={{
+            marginTop: 14,
+            fontSize: 28,
+            fontWeight: 700,
+            color: INK,
+            textAlign: "center",
+            letterSpacing: -0.5,
+          }}
+        >
+          Two minutes now saves you typing
+        </Text>
+
+        <Text
+          style={{
+            marginTop: 8,
+            fontSize: 11,
+            color: MUTED,
+            textAlign: "center",
+            lineHeight: 1.5,
+          }}
+        >
+          On the day you&apos;ll be adding people you could invite. iPhones can pull them
+          straight from your contacts — but only once you switch this on. Android phones
+          can already do it, so there&apos;s nothing to change.
+        </Text>
+
+        <Text
+          style={{
+            marginTop: 18,
+            fontSize: 9,
+            letterSpacing: 1.8,
+            color: MUTED,
+            fontWeight: 700,
+          }}
+        >
+          STEP 1 — FIND THE RIGHT MENU FOR YOUR iOS
+        </Text>
+        <Text style={{ marginTop: 4, fontSize: 9.5, color: MUTED }}>
+          Check yours in {IOS_VERSION_PATH.join(PDF_ARROW)}.
+        </Text>
+
+        <View style={{ marginTop: 8, gap: 6 }}>
+          {IPHONE_STEPS.map((group) => (
+            <View
+              key={group.version}
+              style={{
+                borderWidth: 1,
+                borderColor: BORDER,
+                borderLeftWidth: 4,
+                borderLeftColor: RED,
+                borderRadius: 6,
+                paddingVertical: 8,
+                paddingHorizontal: 12,
+              }}
+            >
+              <Text style={{ fontSize: 8, fontWeight: 700, letterSpacing: 1.2, color: MUTED }}>
+                {group.version.toUpperCase()}
+              </Text>
+              <Text style={{ marginTop: 3, fontSize: 12, fontWeight: 700, color: INK }}>
+                {group.path.join(PDF_ARROW)}
+              </Text>
+            </View>
+          ))}
+        </View>
+
+        <Text
+          style={{
+            marginTop: 16,
+            fontSize: 9,
+            letterSpacing: 1.8,
+            color: MUTED,
+            fontWeight: 700,
+          }}
+        >
+          STEP 2 — SWITCH IT ON
+        </Text>
+        <View
+          style={{
+            marginTop: 6,
+            borderWidth: 1,
+            borderColor: BORDER,
+            borderRadius: 6,
+            paddingVertical: 10,
+            paddingHorizontal: 12,
+          }}
+        >
+          <Text style={{ fontSize: 11, color: INK, lineHeight: 1.55 }}>
+            Scroll down that list to{" "}
+            <Text style={{ fontWeight: 700 }}>Contact Picker API</Text> and turn it on. It is
+            a long list and alphabetical. Then fully close Safari — swipe up from the bottom
+            of the screen and flick Safari away.
+          </Text>
+          <Text style={{ marginTop: 6, fontSize: 9.5, color: MUTED, lineHeight: 1.5 }}>
+            No Feature Flags? Look for Experimental Features in the same place — older iOS
+            calls it that.
+          </Text>
+        </View>
+
+        <Text
+          style={{
+            marginTop: 16,
+            fontSize: 9,
+            letterSpacing: 1.8,
+            color: MUTED,
+            fontWeight: 700,
+          }}
+        >
+          STEP 3 — CHECK IT WORKED
+        </Text>
+
+        <View
+          style={{
+            marginTop: 6,
+            flexDirection: "row",
+            alignItems: "center",
+            gap: 16,
+            borderWidth: 2,
+            borderColor: INK,
+            borderRadius: 8,
+            padding: 12,
+          }}
+        >
+          <Image src={checkQrDataUrl} style={{ width: 118, height: 118 }} />
+          <View style={{ flex: 1 }}>
+            <Text style={{ fontSize: 13, fontWeight: 700, color: INK, lineHeight: 1.35 }}>
+              Scan this and the page tells you straight away whether your phone is ready.
+            </Text>
+            <Text style={{ marginTop: 6, fontSize: 10.5, fontWeight: 700, color: RED }}>
+              {checkUrl.replace(/^https?:\/\//, "")}
+            </Text>
+            <Text style={{ marginTop: 4, fontSize: 9, color: MUTED, lineHeight: 1.45 }}>
+              It also repeats these steps, so you don&apos;t need to keep this card.
+            </Text>
+          </View>
+        </View>
+
+        <View
+          style={{
+            marginTop: 16,
+            borderWidth: 2,
+            borderColor: GOLD,
+            backgroundColor: "#FFF6D6",
+            borderRadius: 8,
+            paddingVertical: 9,
+            paddingHorizontal: 14,
+          }}
+        >
+          <Text style={{ fontSize: 10.5, color: INK, textAlign: "center", lineHeight: 1.5 }}>
+            Can&apos;t find it, or it won&apos;t switch on? Don&apos;t worry — you can still
+            type names in on the day, which most people do anyway. This just makes it quicker.
           </Text>
         </View>
 
