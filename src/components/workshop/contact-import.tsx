@@ -182,14 +182,17 @@ export function ContactImport({ onImport }: ContactImportProps) {
       // gesture. Either way the box below is the way in.
     }
 
-    if (clipboard.trim() && apply(clipboard)) return;
+    // Only fill the form straight from the clipboard when what is on it is
+    // unmistakably a contact. A copied URL or a line of a message parses to
+    // something — a name, as far as the parser is concerned — and dropping
+    // that into the form unannounced is worse than one more tap. A phone
+    // number or an address is the signal; anything else goes in the box,
+    // where they can see what it found before using it.
+    const read = clipboard.trim() ? parseContactText(clipboard) : null;
+    if (read && (read.phone || read.email) && apply(clipboard)) return;
 
     setDraft(clipboard);
-    setNote(
-      clipboard.trim()
-        ? "Couldn't find a name or number in what you copied. Have a look below."
-        : null,
-    );
+    setNote(null);
     requestAnimationFrame(() => boxRef.current?.focus());
   }
 
