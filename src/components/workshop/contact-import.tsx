@@ -10,7 +10,7 @@ import {
   subscribeNoop,
   type ContactsApi,
 } from "@/lib/workshop/contacts-api";
-import { parseVCard, type ParsedContact } from "@/lib/workshop/vcard";
+import { parseContactText, type ParsedContact } from "@/lib/workshop/vcard";
 
 type ContactImportProps = {
   onImport: (contact: ParsedContact) => void;
@@ -42,15 +42,23 @@ function joinHost(): string {
 }
 
 /**
- * Two ways in, because the platforms are not equal.
+ * Three ways in, because the platforms are not equal.
  *
- * Android Chrome has the picker outright. Safari has it too, but only once the
- * Contact Picker API flag is switched on in Settings, so it appears for some
- * iPhones and not others — which is why this is a feature test rather than a
- * check of the platform.
+ * Android Chrome has the Contact Picker API outright. Safari has it too, but
+ * only once a flag is switched on in Settings, so it appears for some iPhones
+ * and not others — which is why that is a feature test rather than a check of
+ * the platform.
  *
- * The contact-card option stays on every device: a browser that reports no
- * picker but reads files perfectly well should not be left with no import.
+ * Samsung Internet has neither: no picker, no setting that adds one, and
+ * sharing a contact into a file input hands back an empty stub named after the
+ * contact's row id. Pasting is what is left, and it is the one route that
+ * needs nothing of the browser beyond a clipboard — which is also why it
+ * carries the iPhones whose owners never found the flag.
+ *
+ * The contact-card route stays off Android entirely. There it leads into a
+ * chooser offering the camera and a file browser, and a contact shared through
+ * those arrives empty; on iOS the same route is the Save to Files path, which
+ * works, so it stays.
  */
 export function ContactImport({ onImport }: ContactImportProps) {
   const hasPicker = useSyncExternalStore(subscribeNoop, hasContactsApi, () => false);
@@ -66,7 +74,10 @@ export function ContactImport({ onImport }: ContactImportProps) {
   const chrome = useSyncExternalStore(subscribeNoop, isChrome, () => false);
   const [reported, setReported] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
-  const fileRef = useRef<HTMLInputElement>(null);
+  // null means the paste box is closed. A string, including an empty one,
+  // means it is open and holding that.
+  const [draft, setDraft] = useState<string | null>(null);
+  const boxRef = useRef<HTMLTextAreaElement>(null);
 
   // Which properties this browser will actually return. Safari's
   // implementation supports fewer than Chrome's, and asking for one it does
@@ -98,10 +109,20 @@ export function ContactImport({ onImport }: ContactImportProps) {
     };
   }, [hasPicker]);
 
+  /** Fill the form from whatever text we were handed. */
+  function apply(text: string): boolean {
+    const parsed = parseContactText(text);
+    if (!parsed) return false;
+    onImport(parsed);
+    setNote(null);
+    setDraft(null);
+    return true;
+  }
+
   async function pickFromPhone() {
     const api = getContactsApi();
     if (!api) {
-      setNote("This browser won't open your contacts. Use a contact card or type below.");
+      setNote("This browser won't open your contacts. Paste them instead, or type below.");
       return;
     }
 
@@ -143,8 +164,33 @@ export function ContactImport({ onImport }: ContactImportProps) {
       setNote(null);
     } catch (error) {
       console.error("Contact picker failed", error);
-      setNote("Couldn't open your contacts. Use a contact card or type the details below.");
+      setNote("Couldn't open your contacts. Paste their details instead, or type them below.");
     }
+  }
+
+  /**
+   * Read the clipboard if the browser will allow it, and open the box if not.
+   * Reading needs permission the first time and the prompt only appears off a
+   * tap, so this runs straight off the button with no await before it.
+   */
+  async function pasteContact() {
+    let clipboard = "";
+    try {
+      clipboard = (await navigator.clipboard?.readText()) ?? "";
+    } catch {
+      // Denied, or this browser only hands over the clipboard on a real paste
+      // gesture. Either way the box below is the way in.
+    }
+
+    if (clipboard.trim() && apply(clipboard)) return;
+
+    setDraft(clipboard);
+    setNote(
+      clipboard.trim()
+        ? "Couldn't find a name or number in what you copied. Have a look below."
+        : null,
+    );
+    requestAnimationFrame(() => boxRef.current?.focus());
   }
 
   async function readVCard(event: React.ChangeEvent<HTMLInputElement>) {
@@ -157,27 +203,22 @@ export function ContactImport({ onImport }: ContactImportProps) {
     // which file sent us round in circles for a week.
     const what = `${file.name || "that file"} (${file.type || "no type"}, ${file.size} bytes)`;
 
-    // Sharing a contact out of Samsung's Contacts app into a file input hands
+    // Sharing a contact out of a phone's Contacts app into a file input hands
     // over an empty stub named after the contact's row id. There is nothing to
     // read and no amount of retrying will produce one, so say so plainly
     // rather than making it look like a failure they can fix by trying again.
     if (file.size === 0) {
       setNote(
-        "Your phone handed over an empty file, which is what it does when sharing a contact straight into a browser. Type the name below — or open this page in Chrome, where you can pick from your contacts in one tap.",
+        "Your phone handed over an empty file, which is what it does when sharing a contact straight into a browser. Copy their details and use Paste a contact instead, or type the name below.",
       );
       return;
     }
 
     try {
-      const parsed = parseVCard(await readFileText(file));
-      if (!parsed) {
-        setNote(
-          `${what} isn't a contact card. Share the person from your Contacts app and save it as a .vcf first — or just type the name below.`,
-        );
-        return;
-      }
-      onImport(parsed);
-      setNote(null);
+      if (apply(await readFileText(file))) return;
+      setNote(
+        `${what} isn't a contact card. Share the person from your Contacts app and save it as a .vcf first — or just type the name below.`,
+      );
     } catch (error) {
       console.error("Contact card read failed", error);
       setNote(`Couldn't open ${what}. Type the details below instead.`);
@@ -190,6 +231,55 @@ export function ContactImport({ onImport }: ContactImportProps) {
         <button type="button" onClick={pickFromPhone} className="workshop-import">
           Choose from my contacts
         </button>
+      ) : (
+        <button type="button" onClick={pasteContact} className="workshop-import">
+          Paste a contact
+        </button>
+      )}
+
+      {draft !== null ? (
+        <div className="rounded-xl border-[1.5px] border-border bg-white p-3">
+          <label className="block">
+            <span className="mb-1.5 block text-[13px] font-bold text-foreground">
+              Paste their details here
+            </span>
+            <textarea
+              ref={boxRef}
+              value={draft}
+              onChange={(event) => setDraft(event.target.value)}
+              rows={4}
+              placeholder={"Harry Smith\nSmith Joinery\n07700 900123"}
+              className="w-full rounded-xl border-[1.5px] border-[#BDBDC1] bg-white px-3 py-3 text-base outline-none transition focus:border-bni focus:ring-2 focus:ring-bni/25"
+            />
+          </label>
+          <div className="mt-2 flex gap-2">
+            <button
+              type="button"
+              onClick={() => {
+                if (!apply(draft)) {
+                  setNote("Couldn't find a name or number in that. Type the details in below.");
+                }
+              }}
+              className="flex-1 rounded-xl bg-bni px-3 py-2.5 text-sm font-bold text-white"
+            >
+              Use this
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setDraft(null);
+                setNote(null);
+              }}
+              className="rounded-xl border-[1.5px] border-border px-3 py-2.5 text-sm font-bold text-foreground"
+            >
+              Cancel
+            </button>
+          </div>
+          <p className="mt-2 text-xs leading-relaxed text-ink-muted">
+            A whole contact card, a couple of lines, or just a name and a number — it will
+            pull out what it can.
+          </p>
+        </div>
       ) : null}
 
       {/*
@@ -198,30 +288,26 @@ export function ContactImport({ onImport }: ContactImportProps) {
         by some mobile browsers, so the chooser either never opened or never
         returned the file.
 
-        The `accept` filter is what puts the Contacts app in Android's chooser:
-        it resolves apps that can hand over a vCard, and Contacts is one. Take
-        it away and the chooser offers the camera and a file browser instead,
-        and sharing a contact through those hands back an empty stub. It stays
-        off on iOS, where a strict filter greys out the very card people are
-        trying to pick.
+        Android is excluded above the button, not filtered here: there is no
+        `accept` value that makes that chooser hand back a readable contact.
       */}
-      <label className={hasPicker ? "workshop-import is-secondary" : "workshop-import"}>
-        <input
-          ref={fileRef}
-          type="file"
-          accept={android ? ".vcf,text/vcard,text/x-vcard,text/directory" : undefined}
-          onChange={readVCard}
-          className="sr-only"
-        />
-        {hasPicker ? "Or use a contact card" : "Import a contact card"}
-      </label>
+      {android ? null : (
+        <label className="workshop-import is-secondary">
+          <input type="file" accept=".vcf,text/vcard" onChange={readVCard} className="sr-only" />
+          {hasPicker ? "Or use a contact card" : "Or use a contact card (.vcf)"}
+        </label>
+      )}
 
       {showDiagnostics ? (
         <p className="rounded-lg bg-surface-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground">
           Picker: {hasPicker ? "available" : "not available"}
           <br />
-          ContactsManager:{" "}
-          {typeof window === "undefined" ? "—" : "ContactsManager" in window ? "yes" : "no"}
+          Clipboard read:{" "}
+          {typeof navigator === "undefined"
+            ? "—"
+            : typeof navigator.clipboard?.readText === "function"
+              ? "yes"
+              : "no"}
           <br />
           Fields: {reported ?? (hasPicker ? "checking…" : "—")}
           <br />
@@ -234,11 +320,12 @@ export function ContactImport({ onImport }: ContactImportProps) {
       {!hasPicker && android && !chrome ? (
         <p className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-foreground">
           <strong className="font-bold">
-            {samsung ? "Samsung Internet" : "This browser"} has no one-tap contact picker.
+            {samsung ? "Samsung Internet" : "This browser"} can&apos;t open your contacts
+            directly.
           </strong>{" "}
-          Tap <span className="font-semibold">Import a contact card</span> above and choose
-          Contacts. For one-tap, open{" "}
-          <span className="font-semibold">{joinHost()}</span> in Chrome instead.
+          In your Contacts app, open the person and copy or share their details, then come
+          back and tap <span className="font-semibold">Paste a contact</span>. For one tap,
+          open <span className="font-semibold">{joinHost()}</span> in Chrome instead.
         </p>
       ) : null}
 
@@ -246,11 +333,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
         <p className="text-xs font-semibold leading-relaxed text-bni">{note}</p>
       ) : (
         <p className="text-xs leading-relaxed text-ink-muted">
-          {hasPicker
-            ? "Typing their name is usually quickest."
-            : android
-              ? "Typing their name is usually quickest."
-              : "iPhone: in Contacts, share the person → Save to Files, then pick it here. Typing their name is usually quicker."}
+          Typing their name is usually quickest.
         </p>
       )}
     </div>

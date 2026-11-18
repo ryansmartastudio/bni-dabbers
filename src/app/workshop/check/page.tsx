@@ -25,7 +25,8 @@ export default function WorkshopCheckPage() {
         On the day you&rsquo;ll add people you could invite as visitors. iPhones can pull
         them straight from your contacts, but only once you switch one setting on. Most
         Android phones can already — except Samsung Internet, which can&rsquo;t do it at
-        all, so Samsung owners should use Chrome.
+        all. If yours can&rsquo;t, you can paste someone in instead, and this page will
+        show you how.
       </p>
 
       <PickerCheck />
