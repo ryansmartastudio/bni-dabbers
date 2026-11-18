@@ -347,6 +347,23 @@ export function ContactImport({ onImport }: ContactImportProps) {
         </p>
       ) : null}
 
+      {/*
+        iPhones without the flag get no nudge from the Android branch above,
+        and they are the larger group: the Contact Picker API is off by
+        default in every iOS to date, so most of the room will never have
+        switched it on. Pasting is the better route for them anyway — a
+        copied contact card carries the company across, and the picker, by
+        the spec, cannot.
+      */}
+      {!hasPicker && !android ? (
+        <p className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-foreground">
+          <strong className="font-bold">On iPhone?</strong> In Contacts, open the person and
+          share or copy their details, then tap{" "}
+          <span className="font-semibold">Or paste a contact</span>. That brings their
+          company across too.
+        </p>
+      ) : null}
+
       {note ? (
         <p className="text-xs font-semibold leading-relaxed text-bni">{note}</p>
       ) : (
