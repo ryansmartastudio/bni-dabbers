@@ -310,11 +310,14 @@ export async function updateContact(
 ): Promise<ClaimResult> {
   const patch: Record<string, unknown> = { updatedAt: new Date() };
 
+  // Clearing it is allowed, because the room is allowed to add a name without
+  // one. The column is NOT NULL, so an empty company is stored as the empty
+  // string rather than null, which is also what a submission with no company
+  // writes — the dedupe keys stay comparable either way.
   const company = tidy(edits.company, 80);
   if (company !== undefined) {
-    if (company === null) return { ok: false, error: "Company can't be empty." };
-    patch.company = company;
-    patch.companyKey = normaliseText(company);
+    patch.company = company ?? "";
+    patch.companyKey = normaliseText(company ?? "");
   }
   const phone = tidy(edits.phone, 40);
   if (phone !== undefined) patch.phone = phone;

@@ -67,7 +67,7 @@ export function ContactSheet({
               {contact.contactName}
             </h2>
             <p className="truncate text-sm text-muted">
-              {contact.company} · {contact.seat}
+              {[contact.company, contact.seat].filter(Boolean).join(" · ")}
             </p>
           </div>
           <button
@@ -284,7 +284,10 @@ function fillTemplate(
   const body = template.body
     .replaceAll("{{FirstName}}", firstName)
     .replaceAll("{{Name}}", contact.contactName)
-    .replaceAll("{{Company}}", contact.company)
+    // Every template builds a sentence around this, so an empty company has
+    // to become something that still reads: "what you do at ." is worse than
+    // no message at all.
+    .replaceAll("{{Company}}", contact.company.trim() || "your business")
     .replaceAll("{{MyName}}", me)
     .replaceAll("{{MeetingDate}}", meetingLabel);
   return template.subject ? `Subject: ${template.subject}\n\n${body}` : body;

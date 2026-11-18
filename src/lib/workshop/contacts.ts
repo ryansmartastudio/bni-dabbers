@@ -87,13 +87,17 @@ export function validateInput(input: SubmitInput): { ok: true; value: ValidInput
   const company = input.company.trim();
   const category = input.category.trim();
 
-  if (!name || !company) {
-    return { ok: false, error: "Contact name and company are needed." };
+  // The name is the only thing we insist on. Company, phone and email are all
+  // optional: in the room people are adding someone they know from memory, and
+  // a field they cannot fill is a reason to give up on the name altogether.
+  // A name on its own is still a name Harry can chase.
+  if (!name) {
+    return { ok: false, error: "A contact name is needed." };
   }
   if (isOther && !category) {
     return {
       ok: false,
-      error: "Contact name, company and their category are needed, so we know who they are.",
+      error: "Add what this person does, so we know which seat they'd fill.",
     };
   }
 
@@ -232,9 +236,19 @@ export async function submitContact(
     if (which === "email") {
       return { ok: false, error: `That email address is already on the list${byTeam ? `, added by ${byTeam}` : ""}.` };
     }
+    // Name and company together are what make a person unique here, so with
+    // no company two different people of the same name collide. Say how to
+    // tell them apart rather than just refusing, and never read out "at "
+    // with nothing after it.
+    const who = value.company
+      ? `${value.contactName} at ${value.company}`
+      : value.contactName;
+    const added = byTeam ? `, added by ${byTeam}` : "";
     return {
       ok: false,
-      error: `${value.contactName} at ${value.company} is already on the list${byTeam ? `, added by ${byTeam}` : ""}.`,
+      error: value.company
+        ? `${who} is already on the list${added}.`
+        : `${who} is already on the list${added}. If yours is a different ${value.contactName}, add their company to tell them apart.`,
     };
   }
 }

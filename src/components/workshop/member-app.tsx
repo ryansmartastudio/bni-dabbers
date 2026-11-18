@@ -308,7 +308,8 @@ export function MemberApp({
               <div className="mt-2 space-y-3">
                 <Field id="workshop-contact-name" label="Contact name" value={form.name} autoComplete="name"
                   onChange={(v) => setForm((f) => ({ ...f, name: v }))} />
-                <Field id="workshop-contact-company" label="Company" value={form.company} autoComplete="organization"
+                <Field id="workshop-contact-company" label="Company" hint="optional"
+                  value={form.company} autoComplete="organization"
                   onChange={(v) => setForm((f) => ({ ...f, company: v }))} />
                 {chosen.index === OTHER_SEAT ? (
                   <Field label="Category" hint="e.g. Plumber, Dentist" value={form.category}
