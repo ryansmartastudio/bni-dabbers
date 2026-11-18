@@ -49,16 +49,18 @@ function joinHost(): string {
  * and not others — which is why that is a feature test rather than a check of
  * the platform.
  *
- * Samsung Internet has neither: no picker, no setting that adds one, and
- * sharing a contact into a file input hands back an empty stub named after the
- * contact's row id. Pasting is what is left, and it is the one route that
- * needs nothing of the browser beyond a clipboard — which is also why it
- * carries the iPhones whose owners never found the flag.
+ * Samsung Internet has no picker and no setting that adds one, so the contact
+ * card is its route in, and it works: Harry used it on the Friday. What broke
+ * it afterwards was an `accept` filter added here in the belief that it was
+ * what put Contacts in Android's chooser. It is not — it greys out the very
+ * card people are trying to pick, and a contact shared through whatever is
+ * left comes back as an empty stub named after its row id. So there is no
+ * filter on this input, on any platform, and the file is validated by
+ * parsing it instead.
  *
- * The contact-card route stays off Android entirely. There it leads into a
- * chooser offering the camera and a file browser, and a contact shared through
- * those arrives empty; on iOS the same route is the Save to Files path, which
- * works, so it stays.
+ * Pasting is the third way, and the only one that asks nothing of the
+ * browser beyond a clipboard. It is there for the phone the other two miss —
+ * including the iPhones whose owners never found the flag.
  */
 export function ContactImport({ onImport }: ContactImportProps) {
   const hasPicker = useSyncExternalStore(subscribeNoop, hasContactsApi, () => false);
@@ -74,6 +76,9 @@ export function ContactImport({ onImport }: ContactImportProps) {
   const chrome = useSyncExternalStore(subscribeNoop, isChrome, () => false);
   const [reported, setReported] = useState<string | null>(null);
   const [note, setNote] = useState<string | null>(null);
+  // A picker that reported itself available and then failed leaves the two
+  // messages below pointing at a button that isn't on screen, so offer it.
+  const [pickerFailed, setPickerFailed] = useState(false);
   // null means the paste box is closed. A string, including an empty one,
   // means it is open and holding that.
   const [draft, setDraft] = useState<string | null>(null);
@@ -122,6 +127,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
   async function pickFromPhone() {
     const api = getContactsApi();
     if (!api) {
+      setPickerFailed(true);
       setNote("This browser won't open your contacts. Paste them instead, or type below.");
       return;
     }
@@ -164,6 +170,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
       setNote(null);
     } catch (error) {
       console.error("Contact picker failed", error);
+      setPickerFailed(true);
       setNote("Couldn't open your contacts. Paste their details instead, or type them below.");
     }
   }
@@ -212,7 +219,7 @@ export function ContactImport({ onImport }: ContactImportProps) {
     // rather than making it look like a failure they can fix by trying again.
     if (file.size === 0) {
       setNote(
-        "Your phone handed over an empty file, which is what it does when sharing a contact straight into a browser. Copy their details and use Paste a contact instead, or type the name below.",
+        "Your phone handed over an empty file, which is what it does when a contact is shared straight into a browser. Copy the person in your Contacts app and use \u201cOr paste a contact\u201d instead, or type the name below.",
       );
       return;
     }
@@ -234,9 +241,33 @@ export function ContactImport({ onImport }: ContactImportProps) {
         <button type="button" onClick={pickFromPhone} className="workshop-import">
           Choose from my contacts
         </button>
-      ) : (
-        <button type="button" onClick={pasteContact} className="workshop-import">
-          Paste a contact
+      ) : null}
+
+
+      {/*
+        A label wrapping a visually hidden input, rather than display:none plus
+        a programmatic click. A file input hidden with display:none is skipped
+        by some mobile browsers, so the chooser either never opened or never
+        returned the file.
+
+        No `accept` filter, deliberately. A strict one greys out the card
+        people are trying to pick on iOS, and on Android it changes which app
+        answers the chooser — the one that does hands back an empty stub. This
+        is the shape that worked on the Friday; the file is validated by
+        parsing it.
+      */}
+      <label className={hasPicker ? "workshop-import is-secondary" : "workshop-import"}>
+        <input type="file" onChange={readVCard} className="sr-only" />
+        {hasPicker ? "Or use a contact card" : "Import a contact card"}
+      </label>
+
+      {hasPicker && !pickerFailed ? null : (
+        <button
+          type="button"
+          onClick={pasteContact}
+          className="workshop-import is-secondary"
+        >
+          Or paste a contact
         </button>
       )}
 
@@ -285,22 +316,6 @@ export function ContactImport({ onImport }: ContactImportProps) {
         </div>
       ) : null}
 
-      {/*
-        A label wrapping a visually hidden input, rather than display:none plus
-        a programmatic click. A file input hidden with display:none is skipped
-        by some mobile browsers, so the chooser either never opened or never
-        returned the file.
-
-        Android is excluded above the button, not filtered here: there is no
-        `accept` value that makes that chooser hand back a readable contact.
-      */}
-      {android ? null : (
-        <label className="workshop-import is-secondary">
-          <input type="file" accept=".vcf,text/vcard" onChange={readVCard} className="sr-only" />
-          {hasPicker ? "Or use a contact card" : "Or use a contact card (.vcf)"}
-        </label>
-      )}
-
       {showDiagnostics ? (
         <p className="rounded-lg bg-surface-muted px-3 py-2 font-mono text-[11px] leading-relaxed text-foreground">
           Picker: {hasPicker ? "available" : "not available"}
@@ -323,12 +338,12 @@ export function ContactImport({ onImport }: ContactImportProps) {
       {!hasPicker && android && !chrome ? (
         <p className="rounded-lg border border-border bg-surface-muted px-3 py-2 text-xs leading-relaxed text-foreground">
           <strong className="font-bold">
-            {samsung ? "Samsung Internet" : "This browser"} can&apos;t open your contacts
-            directly.
+            {samsung ? "Samsung Internet" : "This browser"} has no one-tap contact picker.
           </strong>{" "}
-          In your Contacts app, open the person and copy or share their details, then come
-          back and tap <span className="font-semibold">Paste a contact</span>. For one tap,
-          open <span className="font-semibold">{joinHost()}</span> in Chrome instead.
+          Tap <span className="font-semibold">Import a contact card</span> above and choose
+          Contacts. If your phone hands back an empty file, copy the person instead and use{" "}
+          <span className="font-semibold">Or paste a contact</span>, which always works. For
+          one tap, open <span className="font-semibold">{joinHost()}</span> in Chrome.
         </p>
       ) : null}
 

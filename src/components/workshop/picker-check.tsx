@@ -249,7 +249,7 @@ export function AndroidNote() {
       <p className="mt-1.5 text-[15px] font-semibold leading-relaxed text-foreground">
         {chrome
           ? "There's nothing to switch on — Chrome handles this already. The iPhone steps below don't apply to you."
-          : `${samsung ? "Samsung Internet" : "This browser"} has no one-tap contact picker, and no setting adds one. On the day you can copy someone out of your Contacts app and tap "Paste a contact" — or open the workshop in Chrome, where it is one tap.`}
+          : `${samsung ? "Samsung Internet" : "This browser"} has no one-tap contact picker, and no setting adds one. On the day, tap "Import a contact card" and choose Contacts; if that comes back empty, you can paste the person in instead. Chrome on this phone does it in one tap.`}
       </p>
       <p className="mt-2 text-sm text-muted">
         {chrome
