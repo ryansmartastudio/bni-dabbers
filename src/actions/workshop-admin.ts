@@ -95,6 +95,7 @@ export async function updateRoundLengths(
  */
 async function handOverToFreshSession(session: {
   id: string;
+  chapterId: string;
   round1Seconds: number;
   round2Seconds: number;
   constants: unknown;
@@ -106,6 +107,8 @@ async function handOverToFreshSession(session: {
     .where(eq(workshopSessions.id, session.id));
 
   await db.insert(workshopSessions).values({
+    // Carried, not looked up: the new run belongs to whoever ran the old one.
+    chapterId: session.chapterId,
     round1Seconds: session.round1Seconds,
     round2Seconds: session.round2Seconds,
     constants: session.constants as never,

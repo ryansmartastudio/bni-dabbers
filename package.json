@@ -15,7 +15,8 @@
     "db:migrate-0010": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0010.ts",
     "db:migrate-0011": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0011.ts",
     "db:migrate-0012": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0012.ts",
-    "db:backfill-slugs": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/backfill-slugs.ts"
+    "db:backfill-slugs": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/backfill-slugs.ts",
+    "db:migrate-0017": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0017.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",

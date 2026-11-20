@@ -1,7 +1,18 @@
 import { db } from "../src/db";
-import { chapterSettings, charityLinks, members } from "../src/db/schema";
+import { chapters, chapterSettings, charityLinks, members } from "../src/db/schema";
+import { DEFAULT_CHAPTER_SLUG } from "../src/lib/chapters";
 
 async function seed() {
+  // The chapter is the tenant row everything else hangs off, so it goes first.
+  const existingChapter = await db.query.chapters.findFirst();
+  const [chapter] = existingChapter
+    ? [existingChapter]
+    : await db
+        .insert(chapters)
+        .values({ name: "BNI Dabbers", slug: DEFAULT_CHAPTER_SLUG })
+        .returning();
+  const chapterId = chapter!.id;
+
   const existingSettings = await db.query.chapterSettings.findFirst();
   if (!existingSettings) {
     await db.insert(chapterSettings).values({
@@ -48,6 +59,7 @@ async function seed() {
   if (!existingMembers.length) {
     await db.insert(members).values([
       {
+        chapterId,
         firstName: "Ryan",
         lastName: "McCandless",
         company: "Smartastudio",
@@ -61,6 +73,7 @@ async function seed() {
         sortOrder: 0,
       },
       {
+        chapterId,
         firstName: "Sample",
         lastName: "Member",
         company: "Example Ltd",

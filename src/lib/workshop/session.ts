@@ -1,5 +1,6 @@
 import { count, desc, eq } from "drizzle-orm";
 import { db } from "@/db";
+import { getDefaultChapterId } from "@/lib/chapters";
 import {
   workshopContacts,
   workshopParticipants,
@@ -50,12 +51,16 @@ async function newestLiveSession(): Promise<WorkshopSession | undefined> {
  * contacts between them. Losers of that race swallow the conflict and read
  * back the session that won.
  */
-export async function getLiveSession(): Promise<WorkshopSession> {
+export async function getLiveSession(
+  chapterId?: string,
+): Promise<WorkshopSession> {
+  const chapter = chapterId ?? (await getDefaultChapterId());
   const existing = await newestLiveSession();
   if (existing) return existing;
 
   try {
     await db.insert(workshopSessions).values({
+      chapterId: chapter,
       round1Seconds: ROUND_DURATIONS.round1,
       round2Seconds: ROUND_DURATIONS.round2,
     });

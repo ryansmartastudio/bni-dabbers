@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { eq } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/db";
+import { getDefaultChapterId } from "@/lib/chapters";
 import { members } from "@/db/schema";
 import { requireAdmin } from "@/lib/auth";
 import { removeClerkAccessForMember } from "@/lib/clerk-members";
@@ -107,6 +108,7 @@ export async function createMember(data: MemberFormValues): Promise<MemberSaveRe
       .insert(members)
       .values({
         ...parsed,
+        chapterId: await getDefaultChapterId(),
         slug,
         linkedinUrl: parsed.linkedinUrl || null,
         websiteUrl: parsed.websiteUrl || null,

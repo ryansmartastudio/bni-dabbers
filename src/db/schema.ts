@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import {
   boolean,
+  date,
   index,
   integer,
   numeric,
@@ -39,8 +40,30 @@ export const pageKindEnum = pgEnum("page_kind", [
   "article",
 ]);
 
+/**
+ * A chapter is the tenant boundary.
+ *
+ * Dabbers is chapter one and, for now, the only one. The column exists on
+ * every table that holds a chapter's own data so that opening this up to
+ * another chapter later is configuration rather than a migration of live
+ * records — which is the part that would otherwise have to happen under
+ * pressure, with real visitors in the table.
+ */
+export const chapters = pgTable("chapters", {
+  id: uuid("id").defaultRandom().primaryKey(),
+  name: text("name").notNull(),
+  slug: text("slug").notNull().unique(),
+  isActive: boolean("is_active").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+});
+
 export const members = pgTable("members", {
   id: uuid("id").defaultRandom().primaryKey(),
+  chapterId: uuid("chapter_id")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   company: text("company").notNull(),
@@ -203,6 +226,9 @@ export const workshopStateEnum = pgEnum("workshop_state", [
  */
 export const workshopSessions = pgTable("workshop_sessions", {
   id: uuid("id").defaultRandom().primaryKey(),
+  chapterId: uuid("chapter_id")
+    .notNull()
+    .references(() => chapters.id, { onDelete: "cascade" }),
   state: workshopStateEnum("state").default("waiting").notNull(),
   /** Server clock is authoritative; every client derives its countdown from these. */
   round1StartedAt: timestamp("round1_started_at", { withTimezone: true }),
@@ -227,9 +253,10 @@ export const workshopSessions = pgTable("workshop_sessions", {
     .notNull(),
 }, (table) => [
   // Only one session may be live, so a cold start under load cannot split
-  // contacts across several.
+  // contacts across several. Scoped to the chapter rather than global: two
+  // chapters running a workshop on the same Thursday is the point of tenancy.
   uniqueIndex("workshop_sessions_one_live_idx")
-    .on(table.isLive)
+    .on(table.chapterId)
     .where(sql`${table.isLive}`),
 ]);
 
@@ -310,6 +337,186 @@ export const workshopParticipants = pgTable(
     index("workshop_participants_session_idx").on(table.sessionId, table.joinedAt),
   ],
 );
+
+/* ---------------------------------------------------------------------------
+   The CRM.
+
+   Deliberately NOT built on workshop_contacts. That table is the record of
+   what happened in the room — round, seat, submitting team, points, and
+   session-scoped unique indexes that make the scoring work. Months of
+   follow-up churn would destroy it, a manually added visitor has no round or
+   seat to put in its NOT NULL columns, and the next workshop has to keep
+   working while this is being built. So the room's record stays as it is and
+   a promotion step copies contacts across into the pipeline.
+   --------------------------------------------------------------------------- */
+
+export const crmStageEnum = pgEnum("crm_stage", [
+  "to_invite",
+  "invited",
+  "visit_booked",
+  "visited",
+  "joined",
+  "not_now",
+]);
+
+export const crmNoteKindEnum = pgEnum("crm_note_kind", [
+  "note",
+  "stage_change",
+  "claim",
+  "release",
+  "reminder_sent",
+  "reminder_answered",
+  "system",
+]);
+
+export const crmAnswerEnum = pgEnum("crm_answer", ["yes", "no"]);
+
+export const crmVisitors = pgTable(
+  "crm_visitors",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chapterId: uuid("chapter_id")
+      .notNull()
+      .references(() => chapters.id, { onDelete: "cascade" }),
+    /** Which workshop produced this visitor. Null means someone typed them in. */
+    sourceWorkshopSessionId: uuid("source_workshop_session_id").references(
+      () => workshopSessions.id,
+      { onDelete: "set null" },
+    ),
+    /** Provenance, and what makes the promotion step idempotent. */
+    sourceWorkshopContactId: uuid("source_workshop_contact_id").references(
+      () => workshopContacts.id,
+      { onDelete: "set null" },
+    ),
+    stage: crmStageEnum("stage").default("to_invite").notNull(),
+    name: text("name").notNull(),
+    company: text("company"),
+    phone: text("phone"),
+    email: text("email"),
+    website: text("website"),
+    /** The seat or trade they would fill. */
+    category: text("category"),
+    /** The member who has taken on inviting them. One at a time. */
+    ownerMemberId: uuid("owner_member_id").references(() => members.id, {
+      onDelete: "set null",
+    }),
+    ownerClaimedAt: timestamp("owner_claimed_at", { withTimezone: true }),
+    invitedAt: timestamp("invited_at", { withTimezone: true }),
+    visitBookedFor: date("visit_booked_for"),
+    visitedAt: timestamp("visited_at", { withTimezone: true }),
+    closedAt: timestamp("closed_at", { withTimezone: true }),
+    addedByMemberId: uuid("added_by_member_id").references(() => members.id, {
+      onDelete: "set null",
+    }),
+    /**
+     * Advisory only — NOT unique. The same person met at two workshops is two
+     * records that share no history, which is the rule we agreed. These keys
+     * exist so adding someone can warn "there is already a Jane Smith at Acme
+     * from November", not so the database can refuse them.
+     */
+    nameKey: text("name_key").notNull(),
+    companyKey: text("company_key").notNull(),
+    phoneKey: text("phone_key"),
+    emailKey: text("email_key"),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("crm_visitors_board_idx").on(table.chapterId, table.stage),
+    index("crm_visitors_owner_idx").on(table.chapterId, table.ownerMemberId),
+    index("crm_visitors_dupe_idx").on(
+      table.chapterId,
+      table.nameKey,
+      table.companyKey,
+    ),
+    // Running the promotion twice must not create a second copy.
+    uniqueIndex("crm_visitors_source_contact_idx")
+      .on(table.sourceWorkshopContactId)
+      .where(sql`${table.sourceWorkshopContactId} is not null`),
+  ],
+);
+
+/**
+ * One chronological story per visitor: what people wrote and what the system
+ * did, in the same timeline. This is the notes feature and the audit trail at
+ * once — the portal today has neither, and a release silently destroys the
+ * fact that anyone ever claimed or invited them.
+ */
+export const crmNotes = pgTable(
+  "crm_notes",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chapterId: uuid("chapter_id")
+      .notNull()
+      .references(() => chapters.id, { onDelete: "cascade" }),
+    visitorId: uuid("visitor_id")
+      .notNull()
+      .references(() => crmVisitors.id, { onDelete: "cascade" }),
+    /** Null for anything the system wrote, or a member since removed. */
+    authorMemberId: uuid("author_member_id").references(() => members.id, {
+      onDelete: "set null",
+    }),
+    kind: crmNoteKindEnum("kind").default("note").notNull(),
+    body: text("body").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("crm_notes_visitor_idx").on(table.visitorId, table.createdAt),
+    index("crm_notes_chapter_idx").on(table.chapterId, table.createdAt),
+  ],
+);
+
+/**
+ * A scheduled nudge, and the single-use link that answers it.
+ *
+ * Only the SHA-256 of the token is stored. The token itself exists in the
+ * email and nowhere else, so a copy of this table opens nothing.
+ */
+export const crmReminders = pgTable(
+  "crm_reminders",
+  {
+    id: uuid("id").defaultRandom().primaryKey(),
+    chapterId: uuid("chapter_id")
+      .notNull()
+      .references(() => chapters.id, { onDelete: "cascade" }),
+    visitorId: uuid("visitor_id")
+      .notNull()
+      .references(() => crmVisitors.id, { onDelete: "cascade" }),
+    memberId: uuid("member_id")
+      .notNull()
+      .references(() => members.id, { onDelete: "cascade" }),
+    /** 1-4. The cap is what stops this becoming spam. */
+    attempt: integer("attempt").default(1).notNull(),
+    dueAt: timestamp("due_at", { withTimezone: true }).notNull(),
+    /** Stamped only once Resend has accepted it, so a crash cannot double-send. */
+    sentAt: timestamp("sent_at", { withTimezone: true }),
+    answeredAt: timestamp("answered_at", { withTimezone: true }),
+    answer: crmAnswerEnum("answer"),
+    tokenHash: text("token_hash").notNull().unique(),
+    tokenExpiresAt: timestamp("token_expires_at", {
+      withTimezone: true,
+    }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => [
+    index("crm_reminders_due_idx").on(table.dueAt),
+    index("crm_reminders_visitor_idx").on(table.visitorId, table.createdAt),
+  ],
+);
+
+export type Chapter = typeof chapters.$inferSelect;
+export type CrmVisitor = typeof crmVisitors.$inferSelect;
+export type NewCrmVisitor = typeof crmVisitors.$inferInsert;
+export type CrmNote = typeof crmNotes.$inferSelect;
+export type CrmReminder = typeof crmReminders.$inferSelect;
 
 export type WorkshopParticipant = typeof workshopParticipants.$inferSelect;
 export type WorkshopSession = typeof workshopSessions.$inferSelect;
