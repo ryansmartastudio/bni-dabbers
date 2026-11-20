@@ -195,3 +195,31 @@ export const INVITE_TIPS = [
     body: "Walking in alone at 06:45 is the hardest part for a guest. Saying you will be there to meet them removes the last reason to back out.",
   },
 ];
+
+/**
+ * Fills the placeholders so what lands on the clipboard is ready to send.
+ *
+ * Lives beside the templates rather than in a component, because both the
+ * workshop portal and the CRM send these and two copies of this function
+ * would drift — which is exactly what happened with the contact-picker
+ * capability test.
+ */
+export function fillTemplate(
+  template: MessageTemplate,
+  person: { name: string; company?: string | null },
+  me: string,
+  meetingLabel: string,
+): string {
+  const trimmed = person.name.trim();
+  const firstName = trimmed.split(/\s+/)[0] ?? trimmed;
+  const body = template.body
+    .replaceAll("{{FirstName}}", firstName)
+    .replaceAll("{{Name}}", trimmed)
+    // Every template builds a sentence around this, so an empty company has
+    // to become something that still reads: "what you do at ." is worse than
+    // no message at all.
+    .replaceAll("{{Company}}", person.company?.trim() || "your business")
+    .replaceAll("{{MyName}}", me)
+    .replaceAll("{{MeetingDate}}", meetingLabel);
+  return template.subject ? `Subject: ${template.subject}\n\n${body}` : body;
+}

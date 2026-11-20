@@ -17,6 +17,12 @@ const isAdminRoute = createRouteMatcher([
 ]);
 
 const isProtectedRoute = createRouteMatcher([
+  // The CRM holds visitors' names, numbers and emails — other people's
+  // personal data — so it is members-only. Note it must stay on the main
+  // domain: handleWorkshopRequest() returns early below, before
+  // auth.protect() is ever reached, so anything served on the workshop host
+  // is public by construction.
+  "/crm(.*)",
   "/members(.*)",
   "/exports(.*)",
   "/settings(.*)",

@@ -17,6 +17,7 @@ import {
   MESSAGE_TEMPLATES,
   PODCASTS,
   type MessageTemplate,
+  fillTemplate,
 } from "@/lib/workshop/toolkit";
 
 type Tab = "details" | "messages" | "tips";
@@ -273,26 +274,6 @@ function Field({
   );
 }
 
-/** Fills the placeholders so what lands on the clipboard is ready to send. */
-function fillTemplate(
-  template: MessageTemplate,
-  contact: PortalContact,
-  me: string,
-  meetingLabel: string,
-): string {
-  const firstName = contact.contactName.trim().split(/\s+/)[0] ?? contact.contactName;
-  const body = template.body
-    .replaceAll("{{FirstName}}", firstName)
-    .replaceAll("{{Name}}", contact.contactName)
-    // Every template builds a sentence around this, so an empty company has
-    // to become something that still reads: "what you do at ." is worse than
-    // no message at all.
-    .replaceAll("{{Company}}", contact.company.trim() || "your business")
-    .replaceAll("{{MyName}}", me)
-    .replaceAll("{{MeetingDate}}", meetingLabel);
-  return template.subject ? `Subject: ${template.subject}\n\n${body}` : body;
-}
-
 function Messages({
   contact,
   me,
@@ -305,7 +286,12 @@ function Messages({
   const [copied, setCopied] = useState<string | null>(null);
 
   async function copy(template: MessageTemplate) {
-    const text = fillTemplate(template, contact, me, meetingLabel);
+    const text = fillTemplate(
+      template,
+      { name: contact.contactName, company: contact.company },
+      me,
+      meetingLabel,
+    );
     try {
       await navigator.clipboard.writeText(text);
       setCopied(template.id);
@@ -340,7 +326,12 @@ function Messages({
             </button>
           </div>
           <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-surface-muted px-3 py-3 font-sans text-[13px] leading-relaxed text-foreground">
-            {fillTemplate(template, contact, me, meetingLabel)}
+            {fillTemplate(
+      template,
+      { name: contact.contactName, company: contact.company },
+      me,
+      meetingLabel,
+    )}
           </pre>
         </div>
       ))}
