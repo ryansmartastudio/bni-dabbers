@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   crmNotes,
@@ -353,7 +353,14 @@ export type DuplicateMatch = {
  */
 export async function findPossibleDuplicates(
   chapterId: string,
-  input: { name: string; company?: string | null; phone?: string | null; email?: string | null },
+  input: {
+    name: string;
+    company?: string | null;
+    phone?: string | null;
+    email?: string | null;
+    /** Set when asking on behalf of an existing record, so it skips itself. */
+    excludeId?: string;
+  },
 ): Promise<DuplicateMatch[]> {
   const nKey = normaliseText(input.name);
   const pKey = phoneKey(input.phone);
@@ -379,7 +386,13 @@ export async function findPossibleDuplicates(
       workshopSessions,
       eq(workshopSessions.id, crmVisitors.sourceWorkshopSessionId),
     )
-    .where(and(eq(crmVisitors.chapterId, chapterId), or(...clauses)))
+    .where(
+      and(
+        eq(crmVisitors.chapterId, chapterId),
+        input.excludeId ? ne(crmVisitors.id, input.excludeId) : undefined,
+        or(...clauses),
+      ),
+    )
     .limit(5);
 
   return rows.map((row) => ({

@@ -3,7 +3,12 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { addNote, claimForMe, moveVisitor, releaseMine } from "@/actions/crm";
-import { CRM_STAGES, STAGE_LABELS, type CrmStage } from "@/lib/crm/visitors";
+import {
+  CRM_STAGES,
+  STAGE_LABELS,
+  type CrmStage,
+  type DuplicateMatch,
+} from "@/lib/crm/visitors";
 import {
   INVITE_TIPS,
   MESSAGE_TEMPLATES,
@@ -38,6 +43,7 @@ type TimelineEntry = {
 type Props = {
   visitor: Visitor;
   timeline: TimelineEntry[];
+  duplicates: DuplicateMatch[];
   meId: string;
   meName: string;
   meetingLabel: string;
@@ -74,6 +80,7 @@ function when(iso: string): string {
 export function VisitorDetail({
   visitor,
   timeline,
+  duplicates,
   meId,
   meName,
   meetingLabel,
@@ -133,6 +140,37 @@ export function VisitorDetail({
           {STAGE_LABELS[visitor.stage]}
         </span>
       </header>
+
+      {duplicates.length > 0 ? (
+        <aside className="mt-4 rounded-2xl border border-border bg-surface-muted p-3">
+          <p className="text-sm font-bold text-foreground">
+            {duplicates.length === 1
+              ? "This might be the same person as"
+              : "This might be the same person as any of"}
+          </p>
+          <ul className="mt-1.5 space-y-1">
+            {duplicates.map((dupe) => (
+              <li key={dupe.id} className="text-sm">
+                <Link
+                  href={`/crm/visitor/${dupe.id}`}
+                  className="font-semibold text-foreground underline underline-offset-2"
+                >
+                  {dupe.name}
+                </Link>
+                <span className="text-muted">
+                  {dupe.company ? ` · ${dupe.company}` : ""} ·{" "}
+                  {STAGE_LABELS[dupe.stage]}
+                  {dupe.sourceLabel ? ` · from ${dupe.sourceLabel}` : ""}
+                </span>
+              </li>
+            ))}
+          </ul>
+          <p className="mt-1.5 text-xs text-muted">
+            Records are kept separate on purpose. Worth a look before you ring
+            them, so two of you don&rsquo;t invite the same person.
+          </p>
+        </aside>
+      ) : null}
 
       {error ? (
         <p role="alert" className="mt-4 text-sm font-semibold text-bni">

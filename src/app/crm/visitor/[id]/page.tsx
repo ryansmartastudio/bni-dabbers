@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VisitorDetail } from "@/components/crm/visitor-detail";
 import { formatNextMeetingDate } from "@/lib/meeting-date";
-import { getVisitor, listTimeline } from "@/lib/crm/visitors";
+import { findPossibleDuplicates, getVisitor, listTimeline } from "@/lib/crm/visitors";
 import { requireChapterMember } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
@@ -25,6 +25,17 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
 
   const timeline = await listTimeline(member.chapterId, id);
 
+  // Three people were suggested twice at the November workshop alone. Records
+  // are deliberately never merged, so the warning is how two members avoid
+  // inviting the same person twice.
+  const duplicates = await findPossibleDuplicates(member.chapterId, {
+    name: visitor.name,
+    company: visitor.company,
+    phone: visitor.phone,
+    email: visitor.email,
+    excludeId: visitor.id,
+  });
+
   return (
     <VisitorDetail
       visitor={{
@@ -43,6 +54,7 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
         createdAt: visitor.createdAt.toISOString(),
       }}
       timeline={timeline}
+      duplicates={duplicates}
       meId={member.id}
       meName={`${member.firstName} ${member.lastName}`.trim()}
       meetingLabel={formatNextMeetingDate("Thursday") ?? "the next Thursday"}

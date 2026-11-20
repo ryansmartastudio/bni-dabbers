@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { claimForMe, moveVisitor, releaseMine } from "@/actions/crm";
+import { AddVisitor } from "@/components/crm/add-visitor";
 import {
   CLOSED_STAGES,
   CRM_STAGES,
@@ -89,19 +90,22 @@ export function PipelineBoard({ visitors, meId, meName }: Props) {
 
   return (
     <div className="mx-auto max-w-[1600px] px-4 py-8 sm:px-6">
-      <header className="mb-6">
-        <h1 className="text-2xl font-bold text-foreground">Visitor pipeline</h1>
-        <p className="mt-1 text-sm text-muted">
-          Everyone the chapter could invite, and where each one has got to.{" "}
-          {unclaimed > 0 ? (
-            <>
-              <strong className="font-semibold text-foreground">{unclaimed}</strong> still
-              need someone to take them on.
-            </>
-          ) : (
-            "Every visitor has someone on it."
-          )}
-        </p>
+      <header className="mb-6 flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h1 className="text-2xl font-bold text-foreground">Visitor pipeline</h1>
+          <p className="mt-1 text-sm text-muted">
+            Everyone the chapter could invite, and where each one has got to.{" "}
+            {unclaimed > 0 ? (
+              <>
+                <strong className="font-semibold text-foreground">{unclaimed}</strong>{" "}
+                still need someone to take them on.
+              </>
+            ) : (
+              "Every visitor has someone on it."
+            )}
+          </p>
+        </div>
+        <AddVisitor />
       </header>
 
       <div className="mb-5 flex flex-wrap items-center gap-2">
