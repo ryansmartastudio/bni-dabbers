@@ -3,18 +3,14 @@
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { addNote, claimForMe, moveVisitor, releaseMine } from "@/actions/crm";
+import { MessagePicker } from "@/components/crm/message-picker";
 import {
   CRM_STAGES,
   STAGE_LABELS,
   type CrmStage,
   type DuplicateMatch,
 } from "@/lib/crm/visitors";
-import {
-  INVITE_TIPS,
-  MESSAGE_TEMPLATES,
-  fillTemplate,
-  type MessageTemplate,
-} from "@/lib/workshop/toolkit";
+import { INVITE_TIPS } from "@/lib/workshop/toolkit";
 
 type Visitor = {
   id: string;
@@ -87,8 +83,6 @@ export function VisitorDetail({
 }: Props) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
-  const [template, setTemplate] = useState<MessageTemplate>(MESSAGE_TEMPLATES[0]!);
-  const [copied, setCopied] = useState(false);
   const [pending, startTransition] = useTransition();
 
   const isMine = visitor.ownerMemberId === meId;
@@ -100,23 +94,6 @@ export function VisitorDetail({
       const result = await action();
       if (!result.ok) setError(result.error ?? "That didn't work.");
     });
-  }
-
-  const message = fillTemplate(
-    template,
-    { name: visitor.name, company: visitor.company },
-    meName,
-    meetingLabel,
-  );
-
-  async function copyMessage() {
-    try {
-      await navigator.clipboard.writeText(message);
-      setCopied(true);
-      window.setTimeout(() => setCopied(false), 1800);
-    } catch {
-      setError("Couldn't copy it. Select the text and copy it by hand.");
-    }
   }
 
   return (
@@ -333,37 +310,11 @@ export function VisitorDetail({
             </dl>
           </section>
 
-          <section className="rounded-2xl border border-border bg-white p-4">
-            <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-ink-muted">
-              Something to send
-            </h2>
-            <select
-              value={template.id}
-              onChange={(event) =>
-                setTemplate(
-                  MESSAGE_TEMPLATES.find((item) => item.id === event.target.value) ??
-                    MESSAGE_TEMPLATES[0]!,
-                )
-              }
-              className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground"
-            >
-              {MESSAGE_TEMPLATES.map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.channel} · {item.label}
-                </option>
-              ))}
-            </select>
-            <p className="mt-2 whitespace-pre-wrap rounded-xl bg-surface-muted p-2.5 text-xs leading-relaxed text-foreground">
-              {message}
-            </p>
-            <button
-              type="button"
-              onClick={copyMessage}
-              className="mt-2 w-full rounded-xl border border-border px-4 py-2.5 text-sm font-bold text-foreground"
-            >
-              {copied ? "Copied" : "Copy message"}
-            </button>
-          </section>
+          <MessagePicker
+            person={{ name: visitor.name, company: visitor.company }}
+            me={meName}
+            meetingLabel={meetingLabel}
+          />
 
           <section className="rounded-2xl border border-border bg-white p-4">
             <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-ink-muted">

@@ -16,12 +16,22 @@ const isAdminRoute = createRouteMatcher([
   "/enquiries(.*)",
 ]);
 
+/**
+ * The one-tap reminder links, which must work from an email without signing
+ * in. The token in the path is the credential: it is single-purpose, expires,
+ * and only its hash is stored. Listed before the protected matcher below so
+ * the exception is impossible to miss when editing that list.
+ */
+const isReminderLink = createRouteMatcher(["/crm/r/(.*)"]);
+
 const isProtectedRoute = createRouteMatcher([
   // The CRM holds visitors' names, numbers and emails — other people's
   // personal data — so it is members-only. Note it must stay on the main
   // domain: handleWorkshopRequest() returns early below, before
   // auth.protect() is ever reached, so anything served on the workshop host
-  // is public by construction.
+  // is public by construction. /crm/r/... is the one exception, carved out
+  // above rather than by narrowing this pattern, so a new /crm page is
+  // protected by default.
   "/crm(.*)",
   "/members(.*)",
   "/exports(.*)",
@@ -82,7 +92,7 @@ export default clerkMiddleware(
       return workshopResponse;
     }
 
-    if (isProtectedRoute(req)) {
+    if (isProtectedRoute(req) && !isReminderLink(req)) {
       await auth.protect();
     }
 
