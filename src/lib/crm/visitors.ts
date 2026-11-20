@@ -88,10 +88,14 @@ export async function listPipeline(chapterId: string): Promise<PipelineVisitor[]
       ownerFirst: members.firstName,
       ownerLast: members.lastName,
       sessionCreatedAt: workshopSessions.createdAt,
+      // Table names are written out rather than interpolated: Drizzle renders
+      // an interpolated column unqualified ("id"), and inside this subquery
+      // that resolves to crm_notes.id, not crm_visitors.id -- a predicate that
+      // is false for every row. Qualified text keeps the correlation honest.
       noteCount: sql<number>`(
-        select count(*)::int from ${crmNotes}
-        where ${crmNotes.visitorId} = ${crmVisitors.id}
-          and ${crmNotes.kind} = 'note'
+        select count(*)::int from crm_notes
+        where crm_notes.visitor_id = crm_visitors.id
+          and crm_notes.kind = 'note'
       )`,
     })
     .from(crmVisitors)
@@ -453,7 +457,13 @@ export async function promoteWorkshopSession(
   const inserted = await db
     .insert(crmVisitors)
     .values(rows)
-    .onConflictDoNothing({ target: crmVisitors.sourceWorkshopContactId })
+    // crm_visitors_source_contact_idx is a PARTIAL unique index, and Postgres
+    // will only infer a partial index when the statement repeats its predicate
+    // -- without targetWhere this fails outright with 42P10.
+    .onConflictDoNothing({
+      target: crmVisitors.sourceWorkshopContactId,
+      where: sql`${crmVisitors.sourceWorkshopContactId} is not null`,
+    })
     .returning({ id: crmVisitors.id, name: crmVisitors.name });
 
   // The notes the room wrote are the first entry on each timeline rather than
