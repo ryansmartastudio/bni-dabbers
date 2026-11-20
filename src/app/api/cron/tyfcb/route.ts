@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { ENQUIRY_TO_EMAIL } from "@/lib/constants";
+import { isAuthorisedCron } from "@/lib/cron-auth";
 import { sendEmail } from "@/lib/email/resend";
 import { getChapterSettings } from "@/lib/settings";
 import { isTyfcbStale } from "@/lib/tyfcb";
@@ -8,10 +9,7 @@ import { syncTyfcbFromBni } from "@/lib/tyfcb-sync";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
-  const authHeader = request.headers.get("authorization");
-  const expected = process.env.CRON_SECRET;
-
-  if (!expected || authHeader !== `Bearer ${expected}`) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 

@@ -1,4 +1,3 @@
-import { createHash, timingSafeEqual } from "node:crypto";
 import { NextResponse } from "next/server";
 import { buildCrmReminderEmail } from "@/lib/email/crm-reminder-email";
 import { sendEmail } from "@/lib/email/resend";
@@ -9,6 +8,7 @@ import {
   recordReminder,
   type DueReminder,
 } from "@/lib/crm/reminders";
+import { isAuthorisedCron } from "@/lib/cron-auth";
 import { getChapterSettings } from "@/lib/settings";
 import { absoluteUrl } from "@/lib/site-url";
 
@@ -20,14 +20,6 @@ export const dynamic = "force-dynamic";
  * so nothing is lost by trickling them out.
  */
 const MAX_PER_MEMBER_PER_RUN = 3;
-
-/** Compare digests, so the check takes the same time whatever is sent. */
-function secretMatches(header: string | null, expected: string): boolean {
-  if (!header) return false;
-  const a = createHash("sha256").update(header).digest();
-  const b = createHash("sha256").update(`Bearer ${expected}`).digest();
-  return timingSafeEqual(a, b);
-}
 
 function thin(due: DueReminder[]): { send: DueReminder[]; held: DueReminder[] } {
   const perMember = new Map<string, number>();
@@ -55,8 +47,7 @@ function thin(due: DueReminder[]): { send: DueReminder[]; held: DueReminder[] } 
  * somebody has looked at first.
  */
 export async function GET(request: Request) {
-  const expected = process.env.CRON_SECRET;
-  if (!expected || !secretMatches(request.headers.get("authorization"), expected)) {
+  if (!isAuthorisedCron(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
