@@ -10,9 +10,9 @@ import {
   buildMemberLinkedAdminNotice,
   buildMemberLinkedEmail,
 } from "@/lib/email/member-linked-email";
+import { getCrmUrl } from "@/lib/crm-host";
 import { sendEmail } from "@/lib/email/resend";
 import { getChapterSettings } from "@/lib/settings";
-import { absoluteUrl } from "@/lib/site-url";
 
 export type MemberLinkDiagnostics = {
   signedInEmails: string[];
@@ -252,7 +252,7 @@ async function notifyMemberLinked(member: Member, userId: string) {
       settings,
       member,
       signedInWith,
-      pipelineUrl: absoluteUrl("/crm"),
+      pipelineUrl: getCrmUrl(),
       when,
     });
     await sendEmail({

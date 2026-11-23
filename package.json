@@ -20,7 +20,8 @@
     "crm:promote": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/promote-session.ts",
     "test:reminders": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-reminders.ts",
     "test:crm-cron": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-cron.ts",
-    "test:crm-reports": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-reports.ts"
+    "test:crm-reports": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-reports.ts",
+    "test:crm-host": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-host.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",

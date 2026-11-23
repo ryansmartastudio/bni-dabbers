@@ -63,3 +63,16 @@ export function isCrmAdminPath(pathname: string): boolean {
     pathname.startsWith(`${CRM_PATH_PREFIX}/reports/`)
   );
 }
+
+/**
+ * Where to send a member, for links that leave the app.
+ *
+ * Emails point at the subdomain now that it resolves. The main domain still
+ * serves every one of these paths, so a link already in somebody's inbox
+ * keeps working either way -- but a reminder should land people in the CRM
+ * rather than part-way through the marketing site.
+ */
+export function getCrmUrl(path = "/"): string {
+  const suffix = path === "/" ? "" : path.startsWith("/") ? path : `/${path}`;
+  return `https://${CRM_HOST}${suffix}`;
+}

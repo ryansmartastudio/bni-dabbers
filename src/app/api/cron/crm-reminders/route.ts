@@ -8,9 +8,9 @@ import {
   recordReminder,
   type DueReminder,
 } from "@/lib/crm/reminders";
+import { getCrmUrl } from "@/lib/crm-host";
 import { isAuthorisedCron } from "@/lib/cron-auth";
 import { getChapterSettings } from "@/lib/settings";
-import { absoluteUrl } from "@/lib/site-url";
 
 export const dynamic = "force-dynamic";
 
@@ -87,8 +87,8 @@ export async function GET(request: Request) {
         visitorCompany: item.visitorCompany,
         attempt: item.attempt,
         maxAttempts: MAX_ATTEMPTS,
-        yesUrl: absoluteUrl(`/crm/r/${token}/yes`),
-        noUrl: absoluteUrl(`/crm/r/${token}/no`),
+        yesUrl: getCrmUrl(`/r/${token}/yes`),
+        noUrl: getCrmUrl(`/r/${token}/no`),
       });
 
       await sendEmail({

@@ -38,6 +38,39 @@ const ContactMap = dynamic(
   },
 );
 
+/**
+ * The two-by-three grip everybody recognises as "this moves".
+ *
+ * Decorative: the whole card is the drag target, not just this, because
+ * aiming at a 12px handle to move a card across a board is a worse version
+ * of grabbing the card. It is the signal, not the mechanism -- which is also
+ * why it is aria-hidden. The stage dropdown is the accessible path, and it
+ * sits on every card already.
+ */
+function Grip({ className = "" }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 10 16"
+      width="10"
+      height="16"
+      aria-hidden="true"
+      className={className}
+    >
+      {[0, 1].map((column) =>
+        [0, 1, 2].map((row) => (
+          <circle
+            key={`${column}-${row}`}
+            cx={2 + column * 6}
+            cy={3 + row * 5}
+            r="1.35"
+            fill="currentColor"
+          />
+        )),
+      )}
+    </svg>
+  );
+}
+
 type Scope = "all" | "mine" | "unclaimed";
 
 type Props = {
@@ -349,16 +382,27 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
                           setDragging(null);
                           setOver(null);
                         }}
-                        className={`rounded-xl border border-border bg-white p-2.5 ${
+                        className={`group relative rounded-xl border border-border bg-white p-2.5 ${
                           canMove && !pending ? "cursor-grab active:cursor-grabbing" : ""
                         } ${dragging === visitor.id ? "opacity-40" : ""}`}
                       >
+                        {canMove && !pending ? (
+                          <Grip
+                            className={`absolute right-1.5 top-2 text-ink-muted transition-opacity ${
+                              dragging === visitor.id
+                                ? "opacity-80"
+                                : "opacity-0 group-hover:opacity-70 group-focus-within:opacity-70"
+                            }`}
+                          />
+                        ) : null}
                         <Link
                           href={`/crm/visitor/${visitor.id}`}
                           // An anchor drags its own URL by default, which
                           // would beat the card's drag and drop nothing here.
                           draggable={false}
-                          className="block text-sm font-bold leading-tight text-foreground underline-offset-2 hover:underline"
+                          className={`block text-sm font-bold leading-tight text-foreground underline-offset-2 hover:underline ${
+                            canMove && !pending ? "pr-4" : ""
+                          }`}
                         >
                           {visitor.name}
                         </Link>
