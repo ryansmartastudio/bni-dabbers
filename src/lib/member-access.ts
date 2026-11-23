@@ -1,10 +1,18 @@
 import { auth } from "@clerk/nextjs/server";
 import { clerkClient } from "@clerk/nextjs/server";
-import { and, desc, eq, inArray, isNull, ne, or, sql } from "drizzle-orm";
+import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { memberInvites, members, type Member } from "@/db/schema";
 import { requireAuth } from "@/lib/auth";
+import { ENQUIRY_TO_EMAIL } from "@/lib/constants";
+import {
+  buildMemberLinkedAdminNotice,
+  buildMemberLinkedEmail,
+} from "@/lib/email/member-linked-email";
+import { sendEmail } from "@/lib/email/resend";
+import { getChapterSettings } from "@/lib/settings";
+import { absoluteUrl } from "@/lib/site-url";
 
 export type MemberLinkDiagnostics = {
   signedInEmails: string[];
@@ -182,20 +190,27 @@ async function linkMemberFromClaims(
   // Conditional, not a plain update: the check above and this write are two
   // round trips, and self sign-up means two people can be inside that gap at
   // once. Letting the second write win would silently steal the first one's
-  // account. Matching their own id as well keeps a re-link idempotent.
-  const [linked] = await db
+  // account.
+  //
+  // Split into two statements rather than one OR so that "this is the first
+  // link" is decided by the database. Only one request can match an unlinked
+  // row, so exactly one notification goes out however many arrive at once;
+  // the second statement keeps a re-link idempotent and silent.
+  const [firstLink] = await db
     .update(members)
-    .set({
-      clerkUserId: userId,
-      updatedAt: new Date(),
-    })
-    .where(
-      and(
-        eq(members.id, memberId),
-        or(isNull(members.clerkUserId), eq(members.clerkUserId, userId)),
-      ),
-    )
+    .set({ clerkUserId: userId, updatedAt: new Date() })
+    .where(and(eq(members.id, memberId), isNull(members.clerkUserId)))
     .returning();
+
+  const linked =
+    firstLink ??
+    (
+      await db
+        .update(members)
+        .set({ updatedAt: new Date() })
+        .where(and(eq(members.id, memberId), eq(members.clerkUserId, userId)))
+        .returning()
+    )[0];
 
   if (!linked) {
     return null;
@@ -203,7 +218,67 @@ async function linkMemberFromClaims(
 
   await ensureClerkMemberMetadata(userId, memberId);
   await acceptInviteForMember(memberId, userId);
+
+  if (firstLink) {
+    await notifyMemberLinked(firstLink, userId);
+  }
+
   return linked;
+}
+
+/**
+ * Tell the member, and the chapter, that an account now reaches the pipeline.
+ *
+ * Member emails are published on the directory and several are shared
+ * business inboxes, so control of a mailbox is the whole of the gate. This
+ * cannot close that gate, but it means nobody gains access quietly. The
+ * copy to the chapter matters most for exactly the shared-inbox case, where
+ * the member's own notification lands in the same mailbox as the intruder.
+ *
+ * Never allowed to break a sign-in: a failure here is logged and swallowed.
+ */
+async function notifyMemberLinked(member: Member, userId: string) {
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const signedInWith =
+      user.emailAddresses.find((a) => a.id === user.primaryEmailAddressId)
+        ?.emailAddress ?? member.email;
+
+    const settings = await getChapterSettings();
+    const when = new Date();
+
+    const toMember = buildMemberLinkedEmail({
+      settings,
+      member,
+      signedInWith,
+      pipelineUrl: absoluteUrl("/crm"),
+      when,
+    });
+    await sendEmail({
+      to: member.email,
+      subject: toMember.subject,
+      html: toMember.html,
+      text: toMember.text,
+    });
+
+    if (ENQUIRY_TO_EMAIL) {
+      const notice = buildMemberLinkedAdminNotice({
+        settings,
+        member,
+        signedInWith,
+        when,
+      });
+      await sendEmail({
+        to: ENQUIRY_TO_EMAIL,
+        subject: notice.subject,
+        html: notice.html,
+        text: notice.text,
+      });
+    }
+  } catch (error) {
+    console.error("Could not send the account-linked notice", error);
+  }
 }
 
 export async function getMemberLinkDiagnostics(): Promise<MemberLinkDiagnostics | null> {

@@ -11,6 +11,9 @@ const navLinks = [
   { href: "/trades", label: "Trades", public: true },
   { href: "/insights", label: "Insights", public: true },
   { href: "/visit", label: "Visit", public: true },
+  // linkedMember, not auth: the pipeline needs an active member row, so
+  // showing it to a signed-in stranger would only bounce them to /my-profile.
+  { href: "/crm", label: "Pipeline", linkedMember: true },
   { href: "/members", label: "Members", auth: true },
   { href: "/my-profile", label: "My profile", linkedMember: true },
   { href: "/exports", label: "Exports", auth: true },
