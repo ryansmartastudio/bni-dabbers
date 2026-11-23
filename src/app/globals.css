@@ -181,6 +181,35 @@ body:has(#workshop-root) > footer {
   display: none;
 }
 
+/*
+ * The CRM does the same: its own sidebar replaces the site nav, for the same
+ * reason and by the same means. Only the signed-in CRM carries #crm-root --
+ * the reminder pages at /crm/r/... are reached from an email by somebody who
+ * may not be signed in, and they keep the ordinary site chrome.
+ */
+body:has(#crm-root) > header,
+body:has(#crm-root) > footer {
+  display: none;
+}
+
+/*
+ * The CRM is an app surface, not a document: the page itself does not
+ * scroll, the board's columns do. That needs a hard height the whole way
+ * down -- a min-height lets the content grow instead, and then every inner
+ * overflow:auto has nothing to scroll within.
+ */
+html:has(#crm-root),
+body:has(#crm-root) {
+  height: 100dvh;
+  overflow: hidden;
+}
+
+body:has(#crm-root) > main {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
 /* ---------- Visitor workshop ---------- */
 
 .workshop-timer {

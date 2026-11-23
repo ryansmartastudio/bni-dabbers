@@ -2,6 +2,12 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { isClerkProxyEnabled } from "@/lib/clerk-config";
 import {
+  CRM_NOINDEX,
+  isCrmHost,
+  isCrmReminderPath,
+  toCrmPath,
+} from "@/lib/crm-host";
+import {
   WORKSHOP_NOINDEX,
   isWorkshopHost,
   isWorkshopPath,
@@ -90,6 +96,31 @@ export default clerkMiddleware(
     const workshopResponse = handleWorkshopRequest(req);
     if (workshopResponse) {
       return workshopResponse;
+    }
+
+    // The CRM subdomain. Unlike the workshop above, this does NOT return
+    // before auth: the CRM holds other people's names, numbers and emails, so
+    // the rewrite happens here, after protection, and the decision is made on
+    // the rewritten path. Anything on this host that is not a reminder link
+    // needs a signed-in member, so a route added later is private by default.
+    if (isCrmHost(req.headers.get("host"))) {
+      const target = toCrmPath(req.nextUrl.pathname);
+
+      if (!isCrmReminderPath(target)) {
+        await auth.protect();
+      }
+
+      let response: NextResponse;
+      if (target === req.nextUrl.pathname) {
+        response = NextResponse.next();
+      } else {
+        const url = req.nextUrl.clone();
+        url.pathname = target;
+        response = NextResponse.rewrite(url);
+      }
+
+      response.headers.set("x-robots-tag", CRM_NOINDEX);
+      return response;
     }
 
     if (isProtectedRoute(req) && !isReminderLink(req)) {

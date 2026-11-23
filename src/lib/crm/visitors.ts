@@ -129,6 +129,46 @@ export async function listPipeline(chapterId: string): Promise<PipelineVisitor[]
   }));
 }
 
+export type PipelineCounts = {
+  all: number;
+  mine: number;
+  unclaimed: number;
+  /** Claimed over a week ago and still not invited -- the reminder's quarry. */
+  needsChasing: number;
+};
+
+/**
+ * The numbers the sidebar carries.
+ *
+ * A separate aggregate rather than counting listPipeline's rows, so the shell
+ * does not have to load every visitor on a page that may not show them.
+ */
+export async function countPipeline(
+  chapterId: string,
+  memberId: string,
+): Promise<PipelineCounts> {
+  const [row] = await db
+    .select({
+      all: sql<number>`count(*)::int`,
+      mine: sql<number>`count(*) filter (where ${crmVisitors.ownerMemberId} = ${memberId})::int`,
+      unclaimed: sql<number>`count(*) filter (where ${crmVisitors.ownerMemberId} is null)::int`,
+      needsChasing: sql<number>`count(*) filter (
+        where ${crmVisitors.ownerMemberId} is not null
+          and ${crmVisitors.stage} = 'to_invite'
+          and ${crmVisitors.ownerClaimedAt} < now() - interval '7 days'
+      )::int`,
+    })
+    .from(crmVisitors)
+    .where(eq(crmVisitors.chapterId, chapterId));
+
+  return {
+    all: row?.all ?? 0,
+    mine: row?.mine ?? 0,
+    unclaimed: row?.unclaimed ?? 0,
+    needsChasing: row?.needsChasing ?? 0,
+  };
+}
+
 export async function getVisitor(
   chapterId: string,
   visitorId: string,

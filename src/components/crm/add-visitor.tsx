@@ -31,7 +31,7 @@ const FIELDS: { key: Field; label: string; hint?: string; type?: string }[] = [
  * a plumber" is a real lead, and demanding an email address is how leads get
  * left in someone's head instead of the pipeline.
  */
-export function AddVisitor() {
+export function AddVisitor({ full = false }: { full?: boolean } = {}) {
   const router = useRouter();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [open, setOpen] = useState(false);
@@ -100,7 +100,9 @@ export function AddVisitor() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="rounded-xl bg-bni px-4 py-2 text-sm font-bold text-white"
+        className={`rounded-xl bg-bni px-4 py-2 text-sm font-bold text-white ${
+          full ? "w-full py-2.5" : ""
+        }`}
       >
         Add a visitor
       </button>
