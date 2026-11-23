@@ -7,7 +7,7 @@ import {
   type WorkshopContact,
 } from "@/db/schema";
 import { OTHER_SEAT, getTeam, isTeamId, type TeamId } from "@/lib/workshop/config";
-import { normaliseText } from "@/lib/workshop/normalise";
+import { emailKey, normaliseText, phoneKey } from "@/lib/workshop/normalise";
 import { memberKey } from "@/lib/workshop/roster";
 
 /**
@@ -271,7 +271,7 @@ export type ContactEdits = {
   notes?: string;
 };
 
-function tidy(value: string | undefined, max: number): string | null | undefined {
+export function tidy(value: string | undefined, max: number): string | null | undefined {
   if (value === undefined) return undefined;
   const cleaned = value
     .replace(/[\u0000-\u001f\u007f]/g, " ")
@@ -319,29 +319,66 @@ export async function updateContact(
     patch.company = company ?? "";
     patch.companyKey = normaliseText(company ?? "");
   }
+  // The keys back the dedupe indexes, so editing a number without
+  // recomputing its key leaves the index pointing at the old one and the
+  // next duplicate goes unnoticed. companyKey above has always done this.
   const phone = tidy(edits.phone, 40);
-  if (phone !== undefined) patch.phone = phone;
+  if (phone !== undefined) {
+    patch.phone = phone;
+    patch.phoneKey = phoneKey(phone);
+  }
   const email = tidy(edits.email, 120);
-  if (email !== undefined) patch.email = email;
+  if (email !== undefined) {
+    patch.email = email;
+    patch.emailKey = emailKey(email);
+  }
   const notes = tidy(edits.notes, 500);
   if (notes !== undefined) patch.notes = notes;
   const website = tidyWebsite(edits.website);
   if (website !== undefined) patch.website = website;
 
-  const [row] = await db
-    .update(workshopContacts)
-    .set(patch)
-    .where(
-      and(
-        eq(workshopContacts.id, contactId),
-        eq(workshopContacts.sessionId, sessionId),
-        eq(workshopContacts.claimedByKey, memberKey(memberName)),
-      ),
-    )
-    .returning();
+  // Now that the keys are recomputed, an edit can collide with the session's
+  // dedupe indexes where it previously could not. That throws, and the
+  // caller turns any throw into "Signed out. Enter the password again." --
+  // which on workshop day would send somebody hunting for a password over a
+  // duplicate phone number. Name the real problem instead.
+  let row;
+  try {
+    [row] = await db
+      .update(workshopContacts)
+      .set(patch)
+      .where(
+        and(
+          eq(workshopContacts.id, contactId),
+          eq(workshopContacts.sessionId, sessionId),
+          eq(workshopContacts.claimedByKey, memberKey(memberName)),
+        ),
+      )
+      .returning();
+  } catch (error) {
+    const clash = duplicateIndex(error);
+    if (clash) return { ok: false, error: clash };
+    throw error;
+  }
 
   if (!row) return { ok: false, error: "Claim this contact before editing it." };
   return { ok: true, contact: toPortalContact(row) };
+}
+
+/** 23505 is Postgres for "that would be a duplicate". */
+function duplicateIndex(error: unknown): string | null {
+  const cause = (error as { cause?: unknown })?.cause ?? error;
+  const code = (cause as { code?: unknown })?.code;
+  if (code !== "23505") return null;
+
+  const constraint = String((cause as { constraint?: unknown })?.constraint ?? "");
+  if (constraint.includes("phone")) {
+    return "Somebody in this session already has that phone number.";
+  }
+  if (constraint.includes("email")) {
+    return "Somebody in this session already has that email address.";
+  }
+  return "That name and company are already on the board for this session.";
 }
 
 /** Marks that the invitation has actually gone out, or undoes that. */

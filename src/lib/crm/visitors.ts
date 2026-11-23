@@ -9,6 +9,7 @@ import {
   type CrmVisitor,
 } from "@/db/schema";
 import { emailKey, normaliseText, phoneKey } from "@/lib/workshop/normalise";
+import { tidy, tidyWebsite } from "@/lib/workshop/portal";
 
 /**
  * The pipeline.
@@ -374,6 +375,120 @@ export async function releaseVisitor(
   });
 
   return { ok: true, data: released };
+}
+
+export type VisitorEdits = {
+  name?: string;
+  company?: string;
+  category?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  /** yyyy-mm-dd, or empty to clear it. */
+  visitBookedFor?: string;
+};
+
+const EDIT_LABELS: Record<keyof VisitorEdits, string> = {
+  name: "Name",
+  company: "Company",
+  category: "What they do",
+  phone: "Phone",
+  email: "Email",
+  website: "Website",
+  visitBookedFor: "Visit booked for",
+};
+
+function shorten(value: string): string {
+  return value.length > 48 ? `${value.slice(0, 47)}…` : value;
+}
+
+/** One readable line per change, so the timeline says what actually moved. */
+function describeChange(label: string, before: string | null, after: string | null): string {
+  if (before && after) return `${label} "${shorten(before)}" → "${shorten(after)}"`;
+  if (after) return `${label} set to "${shorten(after)}"`;
+  return `${label} cleared (was "${shorten(before ?? "")}")`;
+}
+
+/**
+ * Correct a visitor's details.
+ *
+ * Open to any member of the chapter, unlike the stage. A wrong phone number
+ * is a fact about a person rather than a claim on them, and making the
+ * correction wait on whoever took them on is how a pipeline fills up with
+ * numbers nobody can ring. Every change is written to the timeline with the
+ * old value, so "open" does not mean "untraceable".
+ */
+export async function updateVisitorDetails(
+  chapterId: string,
+  visitorId: string,
+  actingMemberId: string,
+  actingMemberName: string,
+  edits: VisitorEdits,
+): Promise<CrmResult<CrmVisitor>> {
+  const existing = await getVisitor(chapterId, visitorId);
+  if (!existing) return { ok: false, error: "That visitor is no longer on the list." };
+
+  const name = tidy(edits.name, 120);
+  if (edits.name !== undefined && !name) {
+    return { ok: false, error: "A visitor needs a name." };
+  }
+
+  const patch: Record<string, unknown> = {};
+  const changes: string[] = [];
+
+  const apply = (
+    field: keyof VisitorEdits,
+    column: string,
+    next: string | null | undefined,
+    before: string | null,
+  ) => {
+    if (next === undefined || next === before) return;
+    patch[column] = next;
+    changes.push(describeChange(EDIT_LABELS[field], before, next));
+  };
+
+  apply("name", "name", name, existing.name);
+  apply("company", "company", tidy(edits.company, 80), existing.company);
+  apply("category", "category", tidy(edits.category, 80), existing.category);
+  apply("phone", "phone", tidy(edits.phone, 40), existing.phone);
+  apply("email", "email", tidy(edits.email, 120), existing.email);
+  apply("website", "website", tidyWebsite(edits.website), existing.website);
+
+  if (edits.visitBookedFor !== undefined) {
+    // A date column, so an empty string has to become null rather than "".
+    const raw = edits.visitBookedFor.trim();
+    const next = /^\d{4}-\d{2}-\d{2}$/.test(raw) ? raw : null;
+    if (raw && !next) return { ok: false, error: "That date didn't look right." };
+    apply("visitBookedFor", "visitBookedFor", next, existing.visitBookedFor ?? null);
+  }
+
+  if (changes.length === 0) return { ok: true, data: existing };
+
+  // The keys back the duplicate warning, so they are recomputed whenever the
+  // field behind them moves -- otherwise the warning quietly stops matching.
+  if ("name" in patch) patch.nameKey = normaliseText(patch.name as string);
+  if ("company" in patch) patch.companyKey = normaliseText((patch.company as string) ?? "");
+  if ("phone" in patch) patch.phoneKey = phoneKey(patch.phone as string | null);
+  if ("email" in patch) patch.emailKey = emailKey(patch.email as string | null);
+  patch.updatedAt = new Date();
+
+  const [updated] = await db
+    .update(crmVisitors)
+    .set(patch)
+    .where(and(eq(crmVisitors.id, visitorId), eq(crmVisitors.chapterId, chapterId)))
+    .returning();
+
+  if (!updated) return { ok: false, error: "Couldn't save that. Try again." };
+
+  await addTimelineEntry({
+    chapterId,
+    visitorId,
+    authorMemberId: actingMemberId,
+    kind: "system",
+    body: `${actingMemberName} updated the details — ${changes.join("; ")}`,
+  });
+
+  return { ok: true, data: updated };
 }
 
 export type DuplicateMatch = {

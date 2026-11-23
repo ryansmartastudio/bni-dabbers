@@ -13,8 +13,10 @@ import {
   promoteWorkshopSession,
   releaseVisitor,
   setStage,
+  updateVisitorDetails,
   type DuplicateMatch,
   type PromotionSummary,
+  type VisitorEdits,
 } from "@/lib/crm/visitors";
 import { requireChapterMember } from "@/lib/member-access";
 import { emailKey, normaliseText, phoneKey } from "@/lib/workshop/normalise";
@@ -132,6 +134,33 @@ export async function addNote(
 
     revalidatePath(`/crm/visitor/${visitorId}`);
     revalidatePath("/crm");
+    return { ok: true, data: null };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Correct a visitor's details. Open to any member of the chapter, like
+ * notes and unlike the stage, with every change recorded on the timeline.
+ */
+export async function editVisitor(
+  visitorId: string,
+  edits: VisitorEdits,
+): Promise<Result<null>> {
+  try {
+    const { chapterId, memberId, memberName } = await acting();
+    const result = await updateVisitorDetails(
+      chapterId,
+      visitorId,
+      memberId,
+      memberName,
+      edits,
+    );
+    if (!result.ok) return result;
+
+    revalidatePath("/crm");
+    revalidatePath(`/crm/visitor/${visitorId}`);
     return { ok: true, data: null };
   } catch (error) {
     return fail(error);

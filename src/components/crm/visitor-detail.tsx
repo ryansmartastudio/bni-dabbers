@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { addNote, claimForMe, moveVisitor, releaseMine } from "@/actions/crm";
 import { MessagePicker } from "@/components/crm/message-picker";
+import { VisitorDetailsPanel } from "@/components/crm/visitor-details-panel";
 import {
   CRM_STAGES,
   STAGE_LABELS,
@@ -283,56 +284,19 @@ export function VisitorDetail({
               ) : null}
             </section>
 
-            <section className="rounded-2xl border border-border bg-white p-4">
-              <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-ink-muted">
-                Details
-              </h2>
-              <dl className="mt-2 space-y-1.5 text-sm">
-                {(
-                  [
-                    [
-                      "Phone",
-                      visitor.phone,
-                      visitor.phone ? `tel:${visitor.phone}` : null,
-                    ],
-                    [
-                      "Email",
-                      visitor.email,
-                      visitor.email ? `mailto:${visitor.email}` : null,
-                    ],
-                    ["Website", visitor.website, visitor.website],
-                  ] as const
-                ).map(([label, value, href]) => (
-                  <div key={label}>
-                    <dt className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
-                      {label}
-                    </dt>
-                    <dd className="break-words text-foreground">
-                      {value ? (
-                        href ? (
-                          <a
-                            className="underline underline-offset-2"
-                            href={href}
-                          >
-                            {value}
-                          </a>
-                        ) : (
-                          value
-                        )
-                      ) : (
-                        <span className="text-ink-muted">Not recorded</span>
-                      )}
-                    </dd>
-                  </div>
-                ))}
-                <div>
-                  <dt className="text-[11px] font-bold uppercase tracking-[0.06em] text-ink-muted">
-                    Added
-                  </dt>
-                  <dd className="text-foreground">{when(visitor.createdAt)}</dd>
-                </div>
-              </dl>
-            </section>
+            <VisitorDetailsPanel
+              visitor={{
+                id: visitor.id,
+                name: visitor.name,
+                company: visitor.company,
+                category: visitor.category,
+                phone: visitor.phone,
+                email: visitor.email,
+                website: visitor.website,
+                visitBookedFor: visitor.visitBookedFor,
+                createdAt: visitor.createdAt,
+              }}
+            />
 
             <MessagePicker
               person={{ name: visitor.name, company: visitor.company }}
