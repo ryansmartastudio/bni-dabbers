@@ -12,6 +12,7 @@ type Props = {
   meName: string;
   chapterName: string;
   counts: Counts;
+  isAdmin: boolean;
 };
 
 const SCOPES = [
@@ -29,7 +30,7 @@ const SCOPES = [
  * mine" is somewhere you went, so the back button and a pasted link should
  * both honour it.
  */
-export function CrmSidebar({ meName, chapterName, counts }: Props) {
+export function CrmSidebar({ meName, chapterName, counts, isAdmin }: Props) {
   const pathname = usePathname();
   const params = useSearchParams();
   const [open, setOpen] = useState(false);
@@ -107,6 +108,26 @@ export function CrmSidebar({ meName, chapterName, counts }: Props) {
       <div className="mt-4">
         <AddVisitor full />
       </div>
+
+      {isAdmin ? (
+        <>
+          <p className="px-2 pb-1 pt-5 text-[11px] font-bold uppercase tracking-[0.07em] text-ink-muted">
+            Chapter
+          </p>
+          <Link
+            href="/crm/reports"
+            onClick={close}
+            aria-current={pathname === "/crm/reports" ? "page" : undefined}
+            className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+              pathname === "/crm/reports"
+                ? "bg-bni text-white"
+                : "text-foreground hover:bg-surface-muted"
+            }`}
+          >
+            Reports
+          </Link>
+        </>
+      ) : null}
 
       <div className="mt-auto space-y-2 pt-4">
         <Link

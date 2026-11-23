@@ -366,6 +366,21 @@ export async function requireLinkedMember() {
  * the existing screen explains why they cannot get in, rather than to a
  * members list that will not tell them anything.
  */
+/**
+ * A member, and an admin.
+ *
+ * requireAdmin() sends non-admins to /members, which is the wrong place to
+ * land from inside the CRM -- and on the subdomain it is a different host
+ * entirely. This keeps people in the CRM they were already in.
+ */
+export async function requireChapterAdmin() {
+  const context = await requireChapterMember();
+  if (context.role !== "admin") {
+    redirect("/crm");
+  }
+  return context;
+}
+
 export async function requireChapterMember() {
   const context = await requireAuth();
   const member = await getCurrentMember();

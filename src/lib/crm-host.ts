@@ -49,3 +49,17 @@ export function toCrmPath(pathname: string): string {
 export function isCrmReminderPath(pathname: string): boolean {
   return pathname.startsWith(`${CRM_PATH_PREFIX}/r/`);
 }
+
+/**
+ * CRM routes that need the admin role on top of membership.
+ *
+ * Matched on the path after rewriting so one rule covers both hosts. Without
+ * it the subdomain would skip the middleware's admin check entirely, since
+ * that check sits after the CRM branch returns.
+ */
+export function isCrmAdminPath(pathname: string): boolean {
+  return (
+    pathname === `${CRM_PATH_PREFIX}/reports` ||
+    pathname.startsWith(`${CRM_PATH_PREFIX}/reports/`)
+  );
+}

@@ -19,7 +19,8 @@
     "db:migrate-0017": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0017.ts",
     "crm:promote": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/promote-session.ts",
     "test:reminders": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-reminders.ts",
-    "test:crm-cron": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-cron.ts"
+    "test:crm-cron": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-cron.ts",
+    "test:crm-reports": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-reports.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",

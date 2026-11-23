@@ -76,6 +76,18 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
+  // The card being dragged, and the column under the pointer.
+  const [dragging, setDragging] = useState<string | null>(null);
+  const [over, setOver] = useState<CrmStage | null>(null);
+
+  // Where a card has been dropped but the server has not come back yet. A
+  // card that stays in its old column until the round trip finishes reads as
+  // a failed drag, so it moves at once and is put back only if the move is
+  // refused.
+  const [moved, setMoved] = useState<Record<string, CrmStage>>({});
+  const stageOf = (visitor: PipelineVisitor): CrmStage =>
+    moved[visitor.id] ?? visitor.stage;
+
   const sources = useMemo(() => {
     const seen = new Map<string, string>();
     for (const visitor of visitors) {
@@ -114,15 +126,46 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
   const byStage = useMemo(() => {
     const groups = new Map<CrmStage, PipelineVisitor[]>();
     for (const stage of CRM_STAGES) groups.set(stage, []);
-    for (const visitor of filtered) groups.get(visitor.stage)?.push(visitor);
+    for (const visitor of filtered) {
+      groups.get(moved[visitor.id] ?? visitor.stage)?.push(visitor);
+    }
     return groups;
-  }, [filtered]);
+  }, [filtered, moved]);
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>) {
     setError(null);
     startTransition(async () => {
       const result = await action();
       if (!result.ok) setError(result.error ?? "That didn't work.");
+    });
+  }
+
+  function drop(stage: CrmStage) {
+    const id = dragging;
+    setOver(null);
+    setDragging(null);
+    if (!id) return;
+
+    const visitor = visitors.find((item) => item.id === id);
+    if (!visitor || stageOf(visitor) === stage) return;
+
+    const before = moved[id];
+    setMoved((previous) => ({ ...previous, [id]: stage }));
+    setError(null);
+
+    startTransition(async () => {
+      const result = await moveVisitor(id, stage);
+      if (!result.ok) {
+        // Put it back where it came from, rather than leaving it somewhere
+        // the database never agreed to.
+        setMoved((previous) => {
+          const next = { ...previous };
+          if (before) next[id] = before;
+          else delete next[id];
+          return next;
+        });
+        setError(result.error ?? "That didn't work.");
+      }
     });
   }
 
@@ -254,8 +297,30 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
             return (
               <section
                 key={stage}
-                className={`flex w-[16.5rem] shrink-0 flex-col rounded-2xl ${
-                  closed ? "bg-surface-muted" : "bg-surface-muted/60"
+                onDragOver={(event) => {
+                  if (!dragging) return;
+                  // Without preventDefault the browser refuses the drop.
+                  event.preventDefault();
+                  event.dataTransfer.dropEffect = "move";
+                  if (over !== stage) setOver(stage);
+                }}
+                onDragLeave={(event) => {
+                  // Moving between a column's own children fires dragleave on
+                  // the section; only clear when the pointer has really left.
+                  if (!event.currentTarget.contains(event.relatedTarget as Node)) {
+                    setOver((current) => (current === stage ? null : current));
+                  }
+                }}
+                onDrop={(event) => {
+                  event.preventDefault();
+                  drop(stage);
+                }}
+                className={`flex w-[16.5rem] shrink-0 flex-col rounded-2xl transition-colors ${
+                  over === stage
+                    ? "bg-bni/10 outline-2 outline-dashed outline-bni/40"
+                    : closed
+                      ? "bg-surface-muted"
+                      : "bg-surface-muted/60"
                 }`}
                 aria-label={`${STAGE_LABELS[stage]}, ${column.length}`}
               >
@@ -273,10 +338,26 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
                     return (
                       <article
                         key={visitor.id}
-                        className="rounded-xl border border-border bg-white p-2.5"
+                        draggable={canMove && !pending}
+                        onDragStart={(event) => {
+                          setDragging(visitor.id);
+                          event.dataTransfer.effectAllowed = "move";
+                          // Firefox starts no drag at all without payload.
+                          event.dataTransfer.setData("text/plain", visitor.id);
+                        }}
+                        onDragEnd={() => {
+                          setDragging(null);
+                          setOver(null);
+                        }}
+                        className={`rounded-xl border border-border bg-white p-2.5 ${
+                          canMove && !pending ? "cursor-grab active:cursor-grabbing" : ""
+                        } ${dragging === visitor.id ? "opacity-40" : ""}`}
                       >
                         <Link
                           href={`/crm/visitor/${visitor.id}`}
+                          // An anchor drags its own URL by default, which
+                          // would beat the card's drag and drop nothing here.
+                          draggable={false}
                           className="block text-sm font-bold leading-tight text-foreground underline-offset-2 hover:underline"
                         >
                           {visitor.name}
@@ -314,7 +395,7 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
                                 Stage for {visitor.name}
                               </span>
                               <select
-                                value={visitor.stage}
+                                value={stageOf(visitor)}
                                 disabled={pending}
                                 onChange={(event) =>
                                   run(() =>

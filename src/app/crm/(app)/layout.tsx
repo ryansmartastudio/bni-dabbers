@@ -27,7 +27,7 @@ export const metadata: Metadata = {
  * a member. They live in their own segment.
  */
 export default async function CrmLayout({ children }: LayoutProps<"/crm">) {
-  const { member } = await requireChapterMember();
+  const { member, role } = await requireChapterMember();
   const [counts, settings] = await Promise.all([
     countPipeline(member.chapterId, member.id),
     getChapterSettings(),
@@ -39,6 +39,7 @@ export default async function CrmLayout({ children }: LayoutProps<"/crm">) {
         meName={`${member.firstName} ${member.lastName}`.trim()}
         chapterName={settings.chapterName}
         counts={counts}
+        isAdmin={role === "admin"}
       />
       <div className="flex min-w-0 flex-1 flex-col">{children}</div>
     </div>

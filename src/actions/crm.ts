@@ -35,7 +35,24 @@ async function acting() {
   };
 }
 
+/**
+ * Next signals redirect() and notFound() by throwing, so a blanket catch
+ * turns an expired session into "something went wrong" rather than a trip to
+ * the sign-in page. Those two are rethrown; everything else is a real fault.
+ */
+function isControlFlow(error: unknown): boolean {
+  if (typeof error !== "object" || error === null || !("digest" in error)) {
+    return false;
+  }
+  const digest = (error as { digest?: unknown }).digest;
+  return (
+    typeof digest === "string" &&
+    (digest.startsWith("NEXT_REDIRECT") || digest === "NEXT_NOT_FOUND")
+  );
+}
+
 function fail(error: unknown): { ok: false; error: string } {
+  if (isControlFlow(error)) throw error;
   console.error("CRM action failed", error);
   return { ok: false, error: "Something went wrong. Try again." };
 }

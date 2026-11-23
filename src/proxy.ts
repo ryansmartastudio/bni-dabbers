@@ -3,6 +3,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { isClerkProxyEnabled } from "@/lib/clerk-config";
 import {
   CRM_NOINDEX,
+  isCrmAdminPath,
   isCrmHost,
   isCrmReminderPath,
   toCrmPath,
@@ -15,6 +16,7 @@ import {
 } from "@/lib/workshop";
 
 const isAdminRoute = createRouteMatcher([
+  "/crm/reports(.*)",
   "/members/new(.*)",
   "/members/(.*)/edit(.*)",
   "/settings(.*)",
@@ -108,6 +110,18 @@ export default clerkMiddleware(
 
       if (!isCrmReminderPath(target)) {
         await auth.protect();
+
+        // The admin check below this block is never reached on this host,
+        // because the branch returns. Reports are chapter-wide figures about
+        // who is doing what, so they get the same gate on both hosts.
+        if (isCrmAdminPath(target)) {
+          const { sessionClaims } = await auth();
+          const role = (sessionClaims?.metadata as { role?: string } | undefined)
+            ?.role;
+          if (role !== "admin") {
+            return Response.redirect(new URL("/", req.url));
+          }
+        }
       }
 
       let response: NextResponse;
