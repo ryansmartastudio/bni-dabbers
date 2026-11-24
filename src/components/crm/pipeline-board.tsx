@@ -315,6 +315,7 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
             onRelease={(id) => run(() => releaseMine(id))}
             pending={pending}
             reduced={reduced}
+            unseatedLabel="Other trades"
           />
         </div>
       ) : (

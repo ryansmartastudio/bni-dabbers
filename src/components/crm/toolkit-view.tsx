@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { WhatItIsWorth } from "@/components/crm/what-it-is-worth";
+import type { ProjectionInputs } from "@/lib/crm/projections";
 import {
   GRIP_STEPS,
   INVITE_TIPS,
@@ -17,6 +19,7 @@ import {
 type Props = {
   meName: string;
   facts: ChapterMessageFacts;
+  projections: ProjectionInputs;
 };
 
 /**
@@ -27,7 +30,7 @@ type Props = {
  * still in them. Nobody copies a template with the brackets still in it on
  * purpose, but plenty of people do it by accident at 06:30.
  */
-export function ToolkitView({ meName, facts }: Props) {
+export function ToolkitView({ meName, facts, projections }: Props) {
   const [name, setName] = useState("");
   const [company, setCompany] = useState("");
   const [trade, setTrade] = useState("");
@@ -79,6 +82,13 @@ export function ToolkitView({ meName, facts }: Props) {
             <Fact label="What to call it" value={facts.groupName} />
           </dl>
         </section>
+
+        <div className="mt-5">
+          <WhatItIsWorth
+            constants={projections.constants}
+            pipelineCount={projections.pipelineCount}
+          />
+        </div>
 
         <section className="mt-5 rounded-2xl border border-border bg-white p-4">
           <h2 className="text-[13px] font-bold uppercase tracking-[0.06em] text-ink-muted">

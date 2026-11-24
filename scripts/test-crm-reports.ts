@@ -2,7 +2,7 @@
  * The admin report's aggregates, against a throwaway chapter with figures
  * worked out by hand. Real rows are counted before and after and compared.
  */
-import { eq, sql } from "drizzle-orm";
+import { and, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { chapters, crmNotes, crmReminders, crmVisitors, members } from "../src/db/schema";
 import { getChapterReport } from "../src/lib/crm/reports";
@@ -127,7 +127,25 @@ async function main() {
     const other = await getChapterReport(await getDefaultChapterId());
     check("the real chapter's report excludes this one",
       !other.claimedVisitors.some((v) => v.name.startsWith("Ann ")));
-    check("and counts only its own", other.totals.all === 107, `${other.totals.all}`);
+    // Counted independently rather than hardcoded. The old assertion said
+    // 107, which was true the day it was written and broke the moment a
+    // member added somebody -- a test that has to be edited whenever real
+    // data changes stops being a test and becomes a chore.
+    const realChapterId = await getDefaultChapterId();
+    const [live] = await db
+      .select({ n: sql<number>`count(*)::int` })
+      .from(crmVisitors)
+      .where(
+        and(
+          eq(crmVisitors.chapterId, realChapterId),
+          isNull(crmVisitors.archivedAt),
+        ),
+      );
+    check("and counts only its own",
+      other.totals.all === (live?.n ?? -1),
+      `report ${other.totals.all} vs ${live?.n}`);
+    check("which is not zero, so the check means something",
+      (live?.n ?? 0) > 0);
   } finally {
     if (chapterId) {
       await db.delete(chapters).where(eq(chapters.id, chapterId));

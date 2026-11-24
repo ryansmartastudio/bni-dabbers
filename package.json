@@ -31,7 +31,8 @@
     "test:crm-archive": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-archive.ts",
     "crm:welcome": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/send-crm-welcome.ts",
     "db:migrate-0019": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/run-migration-0019.ts",
-    "test:crm-welcome": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-welcome.ts"
+    "test:crm-welcome": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-welcome.ts",
+    "test:map-seats": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-map-seats.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",

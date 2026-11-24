@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { ToolkitView } from "@/components/crm/toolkit-view";
 import { getChapterMessageFacts } from "@/lib/crm/message-facts";
+import { getProjectionInputs } from "@/lib/crm/projections";
 import { requireChapterMember } from "@/lib/member-access";
 
 export const dynamic = "force-dynamic";
@@ -19,12 +20,16 @@ export const metadata: Metadata = {
  */
 export default async function CrmToolkitPage() {
   const { member } = await requireChapterMember();
-  const facts = await getChapterMessageFacts(member.chapterId);
+  const [facts, projections] = await Promise.all([
+    getChapterMessageFacts(member.chapterId),
+    getProjectionInputs(member.chapterId),
+  ]);
 
   return (
     <ToolkitView
       meName={`${member.firstName} ${member.lastName}`.trim()}
       facts={facts}
+      projections={projections}
     />
   );
 }

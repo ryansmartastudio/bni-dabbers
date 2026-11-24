@@ -69,6 +69,7 @@ const SHORT_TEAM: Record<string, string> = {
   "Business Services": "Business",
   "Marketing & Visual": "Marketing",
   "No seat yet": "No seat",
+  "Other trades": "Other",
 };
 
 function shortSeat(label: string): string {
@@ -213,10 +214,10 @@ function scaleFor(n: number): MapScale {
   return { leaf: 212, label: 219, font: 9.2, dot: 4.2, maxChars: 22, ringIn: 344, ringOut: 378 };
 }
 
-function buildTree(contacts: PortalContact[]): TeamNode[] {
+function buildTree(contacts: PortalContact[], unseatedLabel: string): TeamNode[] {
   const order: Array<{ key: string; name: string; accent: string }> = [
     ...TEAMS.map((t) => ({ key: t.id as string, name: t.name, accent: t.accent })),
-    { key: UNSEATED, name: "No seat yet", accent: UNSEATED_ACCENT },
+    { key: UNSEATED, name: unseatedLabel, accent: UNSEATED_ACCENT },
   ];
 
   const byTeam = new Map<string, Map<string, PortalContact[]>>();
@@ -351,6 +352,11 @@ export function ContactMap({
   onRelease,
   pending,
   reduced,
+  // On the workshop board these really are seats nobody has filled yet.
+  // In the CRM they are trades the chapter has no seat for, which is a
+  // different thing -- and "No seat yet" there reads as a fault in the map
+  // rather than as a fact about the room.
+  unseatedLabel = "No seat yet",
 }: {
   contacts: PortalContact[];
   me: string;
@@ -363,6 +369,7 @@ export function ContactMap({
   onRelease: (id: string) => void;
   pending: boolean;
   reduced: boolean;
+  unseatedLabel?: string;
 }) {
   const [hover, setHover] = useState<HoverTarget>(null);
   // The hover card carries a claim button, so leaving a name has to give the
@@ -384,7 +391,10 @@ export function ContactMap({
     view: View;
   } | null>(null);
 
-  const tree = useMemo(() => buildTree(contacts), [contacts]);
+  const tree = useMemo(
+    () => buildTree(contacts, unseatedLabel),
+    [contacts, unseatedLabel],
+  );
   const scale = scaleFor(contacts.length);
   const mineKey = normaliseText(me);
 
