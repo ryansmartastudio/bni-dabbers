@@ -248,6 +248,14 @@ async function main() {
     check("the preheader carries the address",
       sample.html.includes("using amy@example.test"), sample.html.slice(0, 400));
     check("no em dash in the plain text", !sample.text.includes("\u2014"));
+    // The production Clerk instance offers email and password only. An
+    // earlier draft told everyone to press "Continue with Google", a button
+    // that is not on the page -- checked against the live sign-up page, not
+    // against the dev one, which does have it.
+    check("it does not promise a Google button",
+      !/google/i.test(sample.text) && !/google/i.test(sample.html));
+    check("it says what the form actually asks for",
+      sample.text.includes("your email and a password you pick"));
   } finally {
     await db.delete(chapters).where(eq(chapters.id, chapterId));
     console.log("\nThrowaway chapter deleted.");

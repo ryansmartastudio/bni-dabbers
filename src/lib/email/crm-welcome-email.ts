@@ -106,7 +106,7 @@ export function buildCrmWelcomeEmail({
             that is how the chapter recognises you, so another one will leave you looking at a holding page instead of the pipeline.
           </p>
           <p style="margin:0;font-size:15px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
-            Or press Continue with Google if that address is a Google one. Either way there is nothing to pay.
+            Two boxes, your email and a password you pick. Nothing to pay and no code to wait for.
           </p>
         </td>
       </tr>
@@ -138,7 +138,7 @@ export function buildCrmWelcomeEmail({
     "",
     "YOU HAVE NOT GOT A PASSWORD YET, SO SET ONE",
     `The first link opens the sign-up page, where you choose your own password. Use ${address} as the email address: that is how the chapter recognises you, so another one will leave you looking at a holding page instead of the pipeline.`,
-    "Or press Continue with Google if that address is a Google one. Either way there is nothing to pay.",
+    "Two boxes, your email and a password you pick. Nothing to pay and no code to wait for.",
     "",
     `There is also an invite toolkit in there, with the messages, the rules behind them and the podcasts: ${toolkitUrl}`,
     "",
