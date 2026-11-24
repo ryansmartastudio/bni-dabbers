@@ -4,7 +4,9 @@
  */
 import {
   CRM_HOST,
+  getCrmSignUpUrl,
   isCrmAuthPassthroughPath,
+  isCrmMemberPassthroughPath,
   getCrmUrl,
   isCrmAdminPath,
   isCrmHost,
@@ -108,6 +110,35 @@ check("the subdomain path maps onto the admin rule",
   isCrmAdminPath(toCrmPath("/members")) && isCrmAdminPath(toCrmPath("/reports")));
 check("a lookalike is not admin-gated into existence",
   !isCrmAdminPath("/crm/membership"));
+
+console.log("\nThe holding page has to be reachable on this host");
+// requireChapterMember() sends anyone it cannot match to /my-profile, which
+// is exactly what happens when somebody signs up with a personal address.
+// Rewritten under /crm that is a 404, so the likeliest mistake a new member
+// can make used to end at a dead page instead of the screen explaining it.
+check("/my-profile serves itself", isCrmMemberPassthroughPath("/my-profile"));
+check("and anything under it", isCrmMemberPassthroughPath("/my-profile/edit"));
+check("it is NOT one of the public auth paths",
+  !isCrmAuthPassthroughPath("/my-profile"));
+check("the board is not a member passthrough",
+  !isCrmMemberPassthroughPath("/"));
+check("nor the toolkit", !isCrmMemberPassthroughPath("/toolkit"));
+check("nor a lookalike", !isCrmMemberPassthroughPath("/my-profiles"));
+check("without it, the holding page is a 404 route",
+  toCrmPath("/my-profile") === "/crm/my-profile");
+
+console.log("\nWhere a brand-new member is sent");
+const signUp = getCrmSignUpUrl();
+// Pointing at the board bounces somebody with no account to /sign-in, which
+// asks for a password they have never set. That is where Harry stopped.
+check("it is the sign-up page, not the board", signUp.includes("/sign-up"));
+check("it is not the sign-in page", !signUp.includes("/sign-in"));
+check("it is on the CRM host", signUp.startsWith(`https://${CRM_HOST}/`));
+check("it carries a redirect back", signUp.includes("redirect_url="));
+check("the redirect is relative, so it cannot point elsewhere",
+  signUp.endsWith("redirect_url=%2F"), signUp);
+check("sign-up itself is never rewritten under /crm",
+  isCrmAuthPassthroughPath("/sign-up"));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

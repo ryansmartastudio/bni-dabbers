@@ -132,6 +132,16 @@ async function main() {
       outbox[0]?.html.includes("amy@example.test") === true);
     check("it links to the CRM subdomain",
       outbox[0]?.html.includes("https://crm.bnidabbers.co.uk") === true);
+    // The whole point of the rewrite: a member with no account must land on
+    // sign-up, not on a sign-in form asking for a password they never set.
+    check("the main button goes to sign-up",
+      outbox[0]?.html.includes("/sign-up?redirect_url=") === true);
+    check("the plain text sends them there too",
+      outbox[0]?.text.includes("/sign-up?redirect_url=") === true);
+    check("it says to set a password, not to sign in",
+      outbox[0]?.text.toLowerCase().includes("you have not got a password yet") === true);
+    check("but somebody who already has one still gets a way in",
+      outbox[0]?.text.includes("Already set one up?") === true);
     check("and to the toolkit",
       outbox[0]?.html.includes("https://crm.bnidabbers.co.uk/toolkit") === true);
     check("no unresolved template holes",
@@ -215,6 +225,7 @@ async function main() {
       settings,
       member: { firstName: "Amy", email: "amy@example.test" },
       crmUrl: "https://crm.bnidabbers.co.uk",
+      signUpUrl: "https://crm.bnidabbers.co.uk/sign-up?redirect_url=%2F",
       toolkitUrl: "https://crm.bnidabbers.co.uk/toolkit",
       unclaimedCount: 107,
       totalCount: 107,
@@ -227,6 +238,7 @@ async function main() {
       settings,
       member: { firstName: "Amy", email: "amy@example.test" },
       crmUrl: "https://crm.bnidabbers.co.uk",
+      signUpUrl: "https://crm.bnidabbers.co.uk/sign-up?redirect_url=%2F",
       toolkitUrl: "https://crm.bnidabbers.co.uk/toolkit",
       unclaimedCount: 40,
       totalCount: 107,
@@ -234,7 +246,7 @@ async function main() {
     check("and so does a partial count",
       some.text.includes("40 of them still have nobody"), some.text.slice(0, 200));
     check("the preheader carries the address",
-      sample.html.includes("Sign in with amy@example.test"));
+      sample.html.includes("using amy@example.test"), sample.html.slice(0, 400));
     check("no em dash in the plain text", !sample.text.includes("\u2014"));
   } finally {
     await db.delete(chapters).where(eq(chapters.id, chapterId));

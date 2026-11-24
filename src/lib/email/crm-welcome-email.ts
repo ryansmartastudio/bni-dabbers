@@ -11,6 +11,8 @@ type Input = {
   settings: Settings;
   member: Pick<Member, "firstName" | "email">;
   crmUrl: string;
+  /** Where somebody with no account yet should start. */
+  signUpUrl: string;
   toolkitUrl: string;
   /** How many people are sitting in the pipeline waiting for somebody. */
   unclaimedCount: number;
@@ -43,6 +45,7 @@ export function buildCrmWelcomeEmail({
   settings,
   member,
   crmUrl,
+  signUpUrl,
   toolkitUrl,
   unclaimedCount,
   totalCount,
@@ -51,7 +54,7 @@ export function buildCrmWelcomeEmail({
   const address = member.email.trim();
   const host = crmUrl.replace(/^https?:\/\//, "").replace(/\/$/, "");
 
-  const preheader = `Sign in with ${address}. ${unclaimedCount} visitors still need somebody.`;
+  const preheader = `Set your password, using ${address}. ${unclaimedCount} visitors still need somebody.`;
 
   // Today every one of the 107 is unclaimed, and "107 people, of whom 107"
   // reads like a mail merge that has gone wrong. It will not always be all
@@ -85,20 +88,25 @@ export function buildCrmWelcomeEmail({
       <li>Add somebody who never came up at the workshop, or bring a whole list in from a spreadsheet.</li>
     </ul>
 
-    ${renderEmailButton(crmUrl, "Open the pipeline")}
+    ${renderEmailButton(signUpUrl, "Set up your sign-in")}
+
+    <p style="margin:-12px 0 24px;font-size:14px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
+      Already set one up? <a href="${escapeHtml(crmUrl)}" style="color:${EMAIL_BRAND.bniRed};text-decoration:underline;">Go straight to the pipeline</a>.
+    </p>
 
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin:0 0 24px;background-color:${EMAIL_BRAND.surfaceMuted};border:1px solid ${EMAIL_BRAND.border};border-radius:12px;">
       <tr>
         <td style="padding:16px 20px;">
           <p style="margin:0 0 8px;font-size:15px;line-height:1.6;font-weight:700;color:${EMAIL_BRAND.textPrimary};">
-            Sign in with this address
+            You have not got a password yet, so set one
           </p>
           <p style="margin:0 0 8px;font-size:15px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
-            Use <strong style="color:${EMAIL_BRAND.textPrimary};">${escapeHtml(address)}</strong> when you create your sign-in.
-            That is how the chapter recognises you, so another address will leave you locked out looking at a holding page.
+            The button above opens the sign-up page, where you choose your own password.
+            Use <strong style="color:${EMAIL_BRAND.textPrimary};">${escapeHtml(address)}</strong> as the email address:
+            that is how the chapter recognises you, so another one will leave you looking at a holding page instead of the pipeline.
           </p>
           <p style="margin:0;font-size:15px;line-height:1.6;color:${EMAIL_BRAND.textSecondary};">
-            Choose your own password, or carry on with Google if that address is a Google one. There is no code to enter and nothing to pay.
+            Or press Continue with Google if that address is a Google one. Either way there is nothing to pay.
           </p>
         </td>
       </tr>
@@ -125,11 +133,12 @@ export function buildCrmWelcomeEmail({
     "- Copy a message that is already written and filled in, for WhatsApp, LinkedIn or email.",
     "- Add somebody who never came up at the workshop, or bring a whole list in from a spreadsheet.",
     "",
-    `Open the pipeline: ${crmUrl}`,
+    `Set up your sign-in: ${signUpUrl}`,
+    `Already set one up? Go straight to the pipeline: ${crmUrl}`,
     "",
-    "SIGN IN WITH THIS ADDRESS",
-    `Use ${address} when you create your sign-in. That is how the chapter recognises you, so another address will leave you locked out looking at a holding page.`,
-    "Choose your own password, or carry on with Google if that address is a Google one. There is no code to enter and nothing to pay.",
+    "YOU HAVE NOT GOT A PASSWORD YET, SO SET ONE",
+    `The first link opens the sign-up page, where you choose your own password. Use ${address} as the email address: that is how the chapter recognises you, so another one will leave you looking at a holding page instead of the pipeline.`,
+    "Or press Continue with Google if that address is a Google one. Either way there is nothing to pay.",
     "",
     `There is also an invite toolkit in there, with the messages, the rules behind them and the podcasts: ${toolkitUrl}`,
     "",

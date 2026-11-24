@@ -18,7 +18,7 @@ import { and, asc, eq, isNull, sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { crmVisitors, members } from "../src/db/schema";
 import { getDefaultChapterId } from "../src/lib/chapters";
-import { getCrmUrl } from "../src/lib/crm-host";
+import { getCrmSignUpUrl, getCrmUrl } from "../src/lib/crm-host";
 import { buildCrmWelcomeEmail } from "../src/lib/email/crm-welcome-email";
 import {
   getResendFromEmail,
@@ -111,6 +111,7 @@ async function main() {
       settings,
       member,
       crmUrl: getCrmUrl("/"),
+      signUpUrl: getCrmSignUpUrl(),
       toolkitUrl: getCrmUrl("/toolkit"),
       unclaimedCount: counts?.unclaimed ?? 0,
       totalCount: counts?.total ?? 0,

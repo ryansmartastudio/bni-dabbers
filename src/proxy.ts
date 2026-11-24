@@ -6,6 +6,7 @@ import {
   isCrmAdminPath,
   isCrmAuthPassthroughPath,
   isCrmHost,
+  isCrmMemberPassthroughPath,
   isCrmReminderPath,
   toCrmPath,
 } from "@/lib/crm-host";
@@ -114,6 +115,16 @@ export default clerkMiddleware(
         const passthrough = NextResponse.next();
         passthrough.headers.set("x-robots-tag", CRM_NOINDEX);
         return passthrough;
+      }
+
+      // Member pages that are not under /crm but have to work here, such as
+      // the "we don't recognise you" screen at /my-profile. Protected, but
+      // served from their own route rather than rewritten into a 404.
+      if (isCrmMemberPassthroughPath(req.nextUrl.pathname)) {
+        await auth.protect();
+        const memberPage = NextResponse.next();
+        memberPage.headers.set("x-robots-tag", CRM_NOINDEX);
+        return memberPage;
       }
 
       const target = toCrmPath(req.nextUrl.pathname);

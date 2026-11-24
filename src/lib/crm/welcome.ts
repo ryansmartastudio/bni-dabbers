@@ -1,7 +1,7 @@
 import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { crmVisitors, members } from "@/db/schema";
-import { getCrmUrl } from "@/lib/crm-host";
+import { getCrmSignUpUrl, getCrmUrl } from "@/lib/crm-host";
 import { buildCrmWelcomeEmail } from "@/lib/email/crm-welcome-email";
 import { sendEmailBatch } from "@/lib/email/resend";
 import { getChapterSettings } from "@/lib/settings";
@@ -144,6 +144,7 @@ export async function sendWelcomeEmails(
         settings,
         member: { firstName: row.firstName, email },
         crmUrl: getCrmUrl("/"),
+        signUpUrl: getCrmSignUpUrl(),
         toolkitUrl: getCrmUrl("/toolkit"),
         unclaimedCount: counts?.unclaimed ?? 0,
         totalCount: counts?.total ?? 0,

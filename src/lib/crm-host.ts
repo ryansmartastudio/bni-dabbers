@@ -79,6 +79,22 @@ function isUnder(pathname: string, prefix: string): boolean {
 }
 
 /**
+ * Member pages that live outside /crm but must still work on this host.
+ *
+ * /my-profile is the one that matters. requireChapterMember() sends anyone
+ * it cannot match to it, which is exactly what happens when somebody signs
+ * up with a personal address instead of the one the chapter holds. Rewritten
+ * under /crm that is a 404, so the most likely mistake a new member can make
+ * led to a dead end instead of the screen that explains it.
+ *
+ * Unlike the auth paths above these are NOT public: the caller still has to
+ * protect them.
+ */
+export function isCrmMemberPassthroughPath(pathname: string): boolean {
+  return isUnder(pathname, "/my-profile");
+}
+
+/**
  * CRM routes that need the admin role on top of membership.
  *
  * Matched on the path after rewriting so one rule covers both hosts. Without
@@ -105,4 +121,19 @@ export function isCrmAdminPath(pathname: string): boolean {
 export function getCrmUrl(path = "/"): string {
   const suffix = path === "/" ? "" : path.startsWith("/") ? path : `/${path}`;
   return `https://${CRM_HOST}${suffix}`;
+}
+
+/**
+ * Where to send somebody who has no account yet.
+ *
+ * The welcome email used to point at the board. For a member who has never
+ * signed in that bounces to /sign-in, which asks for a password they have
+ * never set -- so the first person to try it stopped there. This opens the
+ * sign-up page instead, and sends them to the board once they are through.
+ *
+ * The redirect is relative on purpose: same-origin, so it needs no entry in
+ * Clerk's allowed-redirect list and cannot be pointed somewhere else.
+ */
+export function getCrmSignUpUrl(): string {
+  return `${getCrmUrl("/sign-up")}?redirect_url=${encodeURIComponent("/")}`;
 }
