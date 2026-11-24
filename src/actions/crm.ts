@@ -27,6 +27,7 @@ import {
   type ImportOutcome,
   type ImportPlan,
 } from "@/lib/crm/import";
+import { setChapterAdmin } from "@/lib/crm/chapter-admins";
 import {
   sendWelcomeEmails,
   type WelcomeSendResult,
@@ -161,6 +162,34 @@ export async function restoreToChapter(
     revalidatePath("/crm/archive");
     revalidatePath(`/crm/visitor/${visitorId}`);
     return { ok: true, data: null };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Naming another member a chapter admin, or taking it back.
+ *
+ * Admin-only, obviously. Works on somebody who has never signed in, which
+ * is the point: the chapter decides who runs it before they get round to
+ * making an account.
+ */
+export async function setAdmin(
+  memberId: string,
+  shouldBeAdmin: boolean,
+): Promise<Result<{ name: string; applied: boolean }>> {
+  try {
+    const { member, userId } = await requireChapterAdmin();
+    const result = await setChapterAdmin(
+      member.chapterId,
+      memberId,
+      shouldBeAdmin,
+      userId,
+    );
+    if (!result.ok) return result;
+
+    revalidatePath("/crm/members");
+    return { ok: true, data: result.data };
   } catch (error) {
     return fail(error);
   }

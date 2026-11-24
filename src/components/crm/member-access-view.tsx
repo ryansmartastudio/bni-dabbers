@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import { sendWelcomeTo } from "@/actions/crm";
+import { sendWelcomeTo, setAdmin } from "@/actions/crm";
 import type { WelcomeRecipient, WelcomeSendResult } from "@/lib/crm/welcome";
 
 function when(iso: string): string {
@@ -36,6 +36,7 @@ export function MemberAccessView({
   const [pending, startTransition] = useTransition();
 
   const signedIn = recipients.filter((r) => r.signedIn).length;
+  const admins = recipients.filter((r) => r.isAdmin).length;
   const emailed = recipients.filter((r) => r.emailedAt).length;
 
   function toggle(id: string) {
@@ -56,6 +57,14 @@ export function MemberAccessView({
   function clear() {
     setChosen(new Set());
     setConfirming(false);
+  }
+
+  function toggleAdmin(id: string, next: boolean) {
+    setError(null);
+    startTransition(async () => {
+      const outcome = await setAdmin(id, next);
+      if (!outcome.ok) setError(outcome.error);
+    });
   }
 
   function send() {
@@ -81,15 +90,16 @@ export function MemberAccessView({
         <header className="mb-5">
           <h1 className="text-xl font-bold text-foreground">Member access</h1>
           <p className="mt-0.5 text-sm text-muted">
-            Who can get into the pipeline, and who still needs telling. Admins
-            only.
+            Who can get into the pipeline, who still needs telling, and who
+            runs it. Admins only.
           </p>
         </header>
 
-        <div className="grid grid-cols-3 gap-2">
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
           <Figure value={recipients.length} label="active members" />
           <Figure value={signedIn} label="have signed in" />
           <Figure value={emailed} label="have been emailed" />
+          <Figure value={admins} label="chapter admins" />
         </div>
 
         {result ? (
@@ -243,6 +253,31 @@ export function MemberAccessView({
                       <span className="text-bni">Not told yet</span>
                     )}
                   </span>
+                  {/* A button inside the label would be caught by the
+                      label's own click, so it stops the event rather than
+                      silently ticking the checkbox as well. */}
+                  <button
+                    type="button"
+                    disabled={pending}
+                    onClick={(event) => {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      toggleAdmin(person.id, !person.isAdmin);
+                    }}
+                    aria-pressed={person.isAdmin}
+                    title={
+                      person.isAdmin
+                        ? "Sees the reports and this page. Press to remove."
+                        : "Press to let them see the reports and this page."
+                    }
+                    className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-bold transition disabled:opacity-50 ${
+                      person.isAdmin
+                        ? "bg-bni text-white"
+                        : "border border-border text-ink-muted hover:text-foreground"
+                    }`}
+                  >
+                    {person.isAdmin ? "Admin" : "Make admin"}
+                  </button>
                 </label>
               </li>
             );

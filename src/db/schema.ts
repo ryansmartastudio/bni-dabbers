@@ -91,6 +91,12 @@ export const members = pgTable("members", {
     .$type<ProfileVisibility>()
     .default({})
     .notNull(),
+  /**
+   * Should see the chapter's reports and member access. Held here rather
+   * than only in Clerk because a member can be named an admin before they
+   * have ever signed in, which is exactly when it is usually decided.
+   */
+  isChapterAdmin: boolean("is_chapter_admin").default(false).notNull(),
   /** When this member was emailed to say the CRM is open. */
   crmWelcomeSentAt: timestamp("crm_welcome_sent_at", { withTimezone: true }),
   clerkUserId: text("clerk_user_id").unique(),

@@ -26,6 +26,8 @@ export type WelcomeRecipient = {
   seat: string;
   /** They have signed in at least once, so they already know it exists. */
   signedIn: boolean;
+  /** Named a chapter admin, whether or not they have signed in yet. */
+  isAdmin: boolean;
   /** When we last told them, or null. */
   emailedAt: string | null;
 };
@@ -41,6 +43,7 @@ export async function listWelcomeRecipients(
       email: members.email,
       seat: members.bniSeat,
       clerkUserId: members.clerkUserId,
+      isAdmin: members.isChapterAdmin,
       sentAt: members.crmWelcomeSentAt,
     })
     .from(members)
@@ -53,6 +56,7 @@ export async function listWelcomeRecipients(
     email: row.email,
     seat: row.seat,
     signedIn: row.clerkUserId !== null,
+    isAdmin: row.isAdmin,
     emailedAt: row.sentAt?.toISOString() ?? null,
   }));
 }

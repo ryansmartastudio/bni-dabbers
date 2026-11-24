@@ -4,7 +4,7 @@ import { and, desc, eq, inArray, isNull, ne, sql } from "drizzle-orm";
 import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { memberInvites, members, type Member } from "@/db/schema";
-import { requireAuth } from "@/lib/auth";
+import { getRoleFromClaims, requireAuth, type UserRole } from "@/lib/auth";
 import { ENQUIRY_TO_EMAIL } from "@/lib/constants";
 import {
   buildMemberLinkedAdminNotice,
@@ -306,19 +306,70 @@ export async function getMemberLinkDiagnostics(): Promise<MemberLinkDiagnostics 
   };
 }
 
+/**
+ * Gives a flagged member the Clerk role that actually opens the reports.
+ *
+ * Clerk's public metadata stays the single thing the middleware, the page
+ * guards and the sidebar all read, so nothing else has to change. This is
+ * the one place that keeps it in step with the member record, which is
+ * where a chapter decides who its admins are -- often before the person has
+ * signed up at all.
+ *
+ * Only ever promotes. Taking admin away is done from the Settings screen
+ * that already exists, so a flag nobody has cleared cannot silently
+ * reinstate somebody who was removed on purpose.
+ *
+ * Fails quietly: a Clerk outage must not stop a member reading the board.
+ * The next request tries again, and nothing is cached in between.
+ */
+async function syncChapterAdminRole(
+  member: Member,
+  userId: string,
+  currentRole: UserRole,
+): Promise<void> {
+  if (!member.isChapterAdmin || currentRole === "admin") return;
+
+  try {
+    const client = await clerkClient();
+    const user = await client.users.getUser(userId);
+    const metadata = (user.publicMetadata ?? {}) as Record<string, unknown>;
+    if (metadata.role === "admin") return;
+
+    await client.users.updateUserMetadata(userId, {
+      publicMetadata: { ...metadata, role: "admin" },
+    });
+  } catch (error) {
+    console.error("Could not sync chapter admin role", error);
+  }
+}
+
 export async function getCurrentMember(): Promise<Member | null> {
   const { userId, sessionClaims } = await auth();
   if (!userId) return null;
+
+  const member = await resolveCurrentMember(userId, sessionClaims as Record<string, unknown>);
+  if (member) {
+    await syncChapterAdminRole(
+      member,
+      userId,
+      getRoleFromClaims(sessionClaims as Record<string, unknown>),
+    );
+  }
+  return member;
+}
+
+/** The three-tier linker. Unchanged; see the comments on each tier. */
+async function resolveCurrentMember(
+  userId: string,
+  sessionClaims: Record<string, unknown>,
+): Promise<Member | null> {
 
   const byClerkId = await db.query.members.findFirst({
     where: eq(members.clerkUserId, userId),
   });
   if (byClerkId) return byClerkId;
 
-  const memberIdFromMetadata = await getMemberIdForUser(
-    userId,
-    sessionClaims as Record<string, unknown>,
-  );
+  const memberIdFromMetadata = await getMemberIdForUser(userId, sessionClaims);
 
   if (memberIdFromMetadata) {
     const linked = await linkMemberFromClaims(userId, memberIdFromMetadata, {
