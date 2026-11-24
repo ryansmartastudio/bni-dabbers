@@ -24,7 +24,10 @@ export default async function CrmPage({ searchParams }: PageProps<"/crm">) {
       meId={member.id}
       meName={`${member.firstName} ${member.lastName}`.trim()}
       scope={readScope(scope)}
-      view={view === "map" ? "map" : "board"}
+      // The map is the default: it answers "which seats are still empty"
+      // at a glance, which is the question the pipeline exists for. The board
+      // is a click away and stays in the URL once chosen.
+      view={view === "board" ? "board" : "map"}
     />
   );
 }

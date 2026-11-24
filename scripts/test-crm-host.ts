@@ -4,6 +4,7 @@
  */
 import {
   CRM_HOST,
+  isCrmAuthPassthroughPath,
   getCrmUrl,
   isCrmAdminPath,
   isCrmHost,
@@ -66,6 +67,30 @@ check("no double slash", !getCrmUrl("/r/tok/yes").includes("co.uk//"));
 // What an email link resolves to once the proxy has rewritten it.
 check("an email link lands on a real route",
   toCrmPath("/r/tok/yes") === "/crm/r/tok/yes" && isCrmReminderPath(toCrmPath("/r/tok/yes")));
+
+console.log("\nClerk's own paths on the CRM host");
+// The subdomain rewrites everything under /crm and protects it. Left to that
+// rule, /sign-in becomes /crm/sign-in, which needs a member, so the browser is
+// sent to /sign-in and round it goes. This is that infinite redirect.
+check("the sign-in page serves itself", isCrmAuthPassthroughPath("/sign-in"));
+check("and its catch-all segments", isCrmAuthPassthroughPath("/sign-in/factor-two"));
+check("the sign-up page too", isCrmAuthPassthroughPath("/sign-up"));
+check("and its catch-all segments", isCrmAuthPassthroughPath("/sign-up/verify-email-address"));
+check("the frontend-API proxy is untouched", isCrmAuthPassthroughPath("/__clerk/v1/client"));
+check("including its root", isCrmAuthPassthroughPath("/__clerk"));
+// If any of these became a passthrough the CRM would be readable signed out.
+check("the board is NOT a passthrough", !isCrmAuthPassthroughPath("/"));
+check("the toolkit is NOT a passthrough", !isCrmAuthPassthroughPath("/toolkit"));
+check("reports are NOT a passthrough", !isCrmAuthPassthroughPath("/reports"));
+check("a visitor page is NOT a passthrough", !isCrmAuthPassthroughPath("/visitor/abc"));
+check("a lookalike is NOT a passthrough", !isCrmAuthPassthroughPath("/sign-in-now"));
+check("nor is a nested lookalike", !isCrmAuthPassthroughPath("/crm/sign-in"));
+check("nor is a clerk lookalike", !isCrmAuthPassthroughPath("/__clerkish/x"));
+
+// The whole loop in one assertion: what the proxy would have done before.
+check("without the exemption, sign-in needs a sign-in",
+  toCrmPath("/sign-in") === "/crm/sign-in" && !isCrmReminderPath(toCrmPath("/sign-in")));
+check("with it, sign-in is never rewritten", isCrmAuthPassthroughPath("/sign-in"));
 
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

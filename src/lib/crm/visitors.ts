@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, isNull, ne, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, isNotNull, isNull, ne, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   crmNotes,
@@ -62,6 +62,7 @@ export type PipelineVisitor = {
   invitedAt: string | null;
   visitBookedFor: string | null;
   visitedAt: string | null;
+  archivedAt: string | null;
   sourceWorkshopSessionId: string | null;
   sourceLabel: string | null;
   createdAt: string;
@@ -82,7 +83,10 @@ function sourceLabel(createdAt: Date | null): string | null {
   });
 }
 
-export async function listPipeline(chapterId: string): Promise<PipelineVisitor[]> {
+export async function listPipeline(
+  chapterId: string,
+  options: { archived?: boolean } = {},
+): Promise<PipelineVisitor[]> {
   const rows = await db
     .select({
       visitor: crmVisitors,
@@ -105,8 +109,17 @@ export async function listPipeline(chapterId: string): Promise<PipelineVisitor[]
       workshopSessions,
       eq(workshopSessions.id, crmVisitors.sourceWorkshopSessionId),
     )
-    .where(eq(crmVisitors.chapterId, chapterId))
-    .orderBy(asc(crmVisitors.name));
+    .where(
+      and(
+        eq(crmVisitors.chapterId, chapterId),
+        options.archived
+          ? isNotNull(crmVisitors.archivedAt)
+          : isNull(crmVisitors.archivedAt),
+      ),
+    )
+    .orderBy(
+      options.archived ? desc(crmVisitors.archivedAt) : asc(crmVisitors.name),
+    );
 
   return rows.map(({ visitor, ownerFirst, ownerLast, sessionCreatedAt, noteCount }) => ({
     id: visitor.id,
@@ -126,11 +139,13 @@ export async function listPipeline(chapterId: string): Promise<PipelineVisitor[]
     sourceWorkshopSessionId: visitor.sourceWorkshopSessionId,
     sourceLabel: sourceLabel(sessionCreatedAt ?? null),
     createdAt: visitor.createdAt.toISOString(),
+    archivedAt: iso(visitor.archivedAt),
     noteCount,
   }));
 }
 
 export type PipelineCounts = {
+  archived: number;
   all: number;
   mine: number;
   unclaimed: number;
@@ -160,9 +175,24 @@ export async function countPipeline(
       )::int`,
     })
     .from(crmVisitors)
-    .where(eq(crmVisitors.chapterId, chapterId));
+    // Archived people are out of the pipeline, so they are out of every
+    // figure the sidebar shows except their own.
+    .where(
+      and(eq(crmVisitors.chapterId, chapterId), isNull(crmVisitors.archivedAt)),
+    );
+
+  const [archivedRow] = await db
+    .select({ archived: sql<number>`count(*)::int` })
+    .from(crmVisitors)
+    .where(
+      and(
+        eq(crmVisitors.chapterId, chapterId),
+        isNotNull(crmVisitors.archivedAt),
+      ),
+    );
 
   return {
+    archived: archivedRow?.archived ?? 0,
     all: row?.all ?? 0,
     mine: row?.mine ?? 0,
     unclaimed: row?.unclaimed ?? 0,
@@ -492,6 +522,8 @@ export async function updateVisitorDetails(
 }
 
 export type DuplicateMatch = {
+  /** Archived matches are still shown -- see findPossibleDuplicates. */
+  archived: boolean;
   id: string;
   name: string;
   company: string | null;
@@ -505,6 +537,10 @@ export type DuplicateMatch = {
  * Advisory by design. The same person met at two workshops is two records
  * sharing no history, so this warns rather than refuses — a hard block would
  * stop a member adding a genuinely different Jane Smith.
+ *
+ * Archived records are deliberately still matched. Somebody archived because
+ * they said no is precisely who a member should be warned about before
+ * inviting them again; hiding them would make the archive a way to lose that.
  */
 export async function findPossibleDuplicates(
   chapterId: string,
@@ -534,6 +570,7 @@ export async function findPossibleDuplicates(
       name: crmVisitors.name,
       company: crmVisitors.company,
       stage: crmVisitors.stage,
+      archivedAt: crmVisitors.archivedAt,
       sessionCreatedAt: workshopSessions.createdAt,
     })
     .from(crmVisitors)
@@ -548,6 +585,11 @@ export async function findPossibleDuplicates(
         or(...clauses),
       ),
     )
+    // Live matches first: an active record is the more urgent clash. Plain
+    // asc() would do the opposite -- Postgres sorts NULLs last on ascending,
+    // and a live row is the one with a NULL archived_at. Written out and
+    // qualified, because an interpolated column renders unqualified.
+    .orderBy(sql`crm_visitors.archived_at asc nulls first`)
     .limit(5);
 
   return rows.map((row) => ({
@@ -555,6 +597,7 @@ export async function findPossibleDuplicates(
     name: row.name,
     company: row.company,
     stage: row.stage as CrmStage,
+    archived: row.archivedAt !== null,
     sourceLabel: sourceLabel(row.sessionCreatedAt ?? null),
   }));
 }
@@ -665,4 +708,122 @@ export async function promoteWorkshopSession(
   }
 
   return { added: inserted.length, skipped: contacts.length - inserted.length };
+}
+
+/**
+ * Take somebody out of the pipeline without destroying what happened.
+ *
+ * The reversible option, and the one the UI pushes. The record keeps its
+ * timeline, so "we archived them in March because they'd joined another
+ * chapter" is still answerable a year later. Archived people are invisible
+ * to the board, the counts, the reports and the reminder cron, but they
+ * still raise a duplicate warning, which is the point: archiving should not
+ * be a way to forget that somebody already said no.
+ */
+export async function archiveVisitor(
+  chapterId: string,
+  visitorId: string,
+  actingMemberId: string,
+  actingMemberName: string,
+  reason?: string,
+): Promise<CrmResult<CrmVisitor>> {
+  const existing = await getVisitor(chapterId, visitorId);
+  if (!existing) return { ok: false, error: "Couldn't find them." };
+  if (existing.archivedAt) return { ok: true, data: existing };
+
+  const [updated] = await db
+    .update(crmVisitors)
+    .set({
+      archivedAt: new Date(),
+      archivedByMemberId: actingMemberId,
+      // Archiving releases them. Leaving a claim on an archived record means
+      // it still counts against the member who took them on, in a list they
+      // can no longer see.
+      ownerMemberId: null,
+      ownerClaimedAt: null,
+      updatedAt: new Date(),
+    })
+    .where(
+      and(
+        eq(crmVisitors.id, visitorId),
+        eq(crmVisitors.chapterId, chapterId),
+        isNull(crmVisitors.archivedAt),
+      ),
+    )
+    .returning();
+
+  if (!updated) return { ok: false, error: "Couldn't archive them. Try again." };
+
+  const note = reason?.trim();
+  await addTimelineEntry({
+    chapterId,
+    visitorId,
+    authorMemberId: actingMemberId,
+    kind: "system",
+    body: note
+      ? `${actingMemberName} archived them: ${note}`
+      : `${actingMemberName} archived them.`,
+  });
+
+  return { ok: true, data: updated };
+}
+
+/** Back into the pipeline, unclaimed, with the archiving still on record. */
+export async function restoreVisitor(
+  chapterId: string,
+  visitorId: string,
+  actingMemberId: string,
+  actingMemberName: string,
+): Promise<CrmResult<CrmVisitor>> {
+  const [updated] = await db
+    .update(crmVisitors)
+    .set({ archivedAt: null, archivedByMemberId: null, updatedAt: new Date() })
+    .where(
+      and(
+        eq(crmVisitors.id, visitorId),
+        eq(crmVisitors.chapterId, chapterId),
+        isNotNull(crmVisitors.archivedAt),
+      ),
+    )
+    .returning();
+
+  if (!updated) return { ok: false, error: "They aren't in the archive." };
+
+  await addTimelineEntry({
+    chapterId,
+    visitorId,
+    authorMemberId: actingMemberId,
+    kind: "system",
+    body: `${actingMemberName} restored them to the pipeline.`,
+  });
+
+  return { ok: true, data: updated };
+}
+
+export type DeletedVisitor = { id: string; name: string };
+
+/**
+ * Gone. Not archived -- gone, with the timeline and reminders it carried.
+ *
+ * Admin-only and deliberately awkward to reach, because this is the only
+ * operation in the CRM that destroys the record of what happened. It exists
+ * because "take my details off your system" is a request a chapter has to be
+ * able to honour, and an archive that still holds a phone number does not
+ * honour it.
+ *
+ * crm_notes and crm_reminders cascade from crm_visitors, so one delete takes
+ * the lot. Nothing is written to a timeline afterwards: there is nothing left
+ * to write it against.
+ */
+export async function deleteVisitor(
+  chapterId: string,
+  visitorId: string,
+): Promise<CrmResult<DeletedVisitor>> {
+  const [deleted] = await db
+    .delete(crmVisitors)
+    .where(and(eq(crmVisitors.id, visitorId), eq(crmVisitors.chapterId, chapterId)))
+    .returning({ id: crmVisitors.id, name: crmVisitors.name });
+
+  if (!deleted) return { ok: false, error: "Couldn't find them." };
+  return { ok: true, data: deleted };
 }

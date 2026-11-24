@@ -7,18 +7,27 @@ import { requireAdmin } from "@/lib/auth";
 import { getDefaultChapterId } from "@/lib/chapters";
 import {
   addTimelineEntry,
+  archiveVisitor,
   claimVisitor,
+  deleteVisitor,
   findPossibleDuplicates,
   isCrmStage,
   promoteWorkshopSession,
   releaseVisitor,
+  restoreVisitor,
   setStage,
   updateVisitorDetails,
   type DuplicateMatch,
   type PromotionSummary,
   type VisitorEdits,
 } from "@/lib/crm/visitors";
-import { requireChapterMember } from "@/lib/member-access";
+import {
+  planImport,
+  runImport,
+  type ImportOutcome,
+  type ImportPlan,
+} from "@/lib/crm/import";
+import { requireChapterAdmin, requireChapterMember } from "@/lib/member-access";
 import { emailKey, normaliseText, phoneKey } from "@/lib/workshop/normalise";
 
 export type Result<T> = { ok: true; data: T } | { ok: false; error: string };
@@ -100,6 +109,77 @@ export async function releaseMine(visitorId: string): Promise<Result<null>> {
     revalidatePath("/crm");
     revalidatePath(`/crm/visitor/${visitorId}`);
     return { ok: true, data: null };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Archiving is open to any member, like notes and details.
+ *
+ * It is reversible and it leaves the timeline intact, so the cost of a wrong
+ * archive is one click to put it back. Making it admin-only would mean a
+ * board full of people nobody can tidy away until Ryan is at a computer.
+ */
+export async function archiveForChapter(
+  visitorId: string,
+  reason?: string,
+): Promise<Result<null>> {
+  try {
+    const { chapterId, memberId, memberName } = await acting();
+    const result = await archiveVisitor(
+      chapterId,
+      visitorId,
+      memberId,
+      memberName,
+      reason,
+    );
+    if (!result.ok) return result;
+
+    revalidatePath("/crm");
+    revalidatePath("/crm/archive");
+    revalidatePath(`/crm/visitor/${visitorId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+export async function restoreToChapter(
+  visitorId: string,
+): Promise<Result<null>> {
+  try {
+    const { chapterId, memberId, memberName } = await acting();
+    const result = await restoreVisitor(chapterId, visitorId, memberId, memberName);
+    if (!result.ok) return result;
+
+    revalidatePath("/crm");
+    revalidatePath("/crm/archive");
+    revalidatePath(`/crm/visitor/${visitorId}`);
+    return { ok: true, data: null };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Permanent, and admin-only.
+ *
+ * Unlike every other action here this one destroys the timeline as well as
+ * the person, so it is gated on the role rather than on membership. The
+ * confirmation the UI asks for is not the safeguard -- this is.
+ */
+export async function deleteForever(
+  visitorId: string,
+): Promise<Result<{ name: string }>> {
+  try {
+    const { member } = await requireChapterAdmin();
+    const result = await deleteVisitor(member.chapterId, visitorId);
+    if (!result.ok) return result;
+
+    revalidatePath("/crm");
+    revalidatePath("/crm/archive");
+    return { ok: true, data: { name: result.data.name } };
   } catch (error) {
     return fail(error);
   }
@@ -253,6 +333,48 @@ export async function addVisitor(
 
     revalidatePath("/crm");
     return { ok: true, data: { id: created.id } };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * What a spreadsheet would do, without doing any of it.
+ *
+ * Open to any member, like adding one by hand. It writes nothing, so the
+ * worst a mistake here costs is a second look at the preview.
+ */
+export async function previewImport(text: string): Promise<Result<ImportPlan>> {
+  try {
+    const { chapterId } = await acting();
+    const result = await planImport(chapterId, text);
+    if (!result.ok) return result;
+    return { ok: true, data: result.data };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Commit the import.
+ *
+ * Takes the file text again rather than the previewed rows. The preview is a
+ * description of what would happen, not the instruction -- re-planning
+ * server-side means an edited payload cannot write rows the member never saw.
+ */
+export async function confirmImport(
+  text: string,
+  skipDuplicates: boolean,
+): Promise<Result<ImportOutcome>> {
+  try {
+    const { chapterId, memberId, memberName } = await acting();
+    const result = await runImport(chapterId, memberId, memberName, text, {
+      skipDuplicates,
+    });
+    if (!result.ok) return result;
+
+    revalidatePath("/crm");
+    return { ok: true, data: result.data };
   } catch (error) {
     return fail(error);
   }

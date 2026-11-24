@@ -409,6 +409,17 @@ export const crmVisitors = pgTable(
       onDelete: "set null",
     }),
     /**
+     * Out of the pipeline without being destroyed. Archiving is the reversible
+     * option and the one the UI pushes; a permanent delete is admin-only and
+     * takes the timeline with it, which is the whole reason it is not the
+     * default.
+     */
+    archivedAt: timestamp("archived_at", { withTimezone: true }),
+    archivedByMemberId: uuid("archived_by_member_id").references(
+      () => members.id,
+      { onDelete: "set null" },
+    ),
+    /**
      * Advisory only — NOT unique. The same person met at two workshops is two
      * records that share no history, which is the rule we agreed. These keys
      * exist so adding someone can warn "there is already a Jane Smith at Acme
@@ -427,6 +438,10 @@ export const crmVisitors = pgTable(
   },
   (table) => [
     index("crm_visitors_board_idx").on(table.chapterId, table.stage),
+    // The board reads live rows only, so its index should too.
+    index("crm_visitors_live_board_idx")
+      .on(table.chapterId, table.stage)
+      .where(sql`${table.archivedAt} is null`),
     index("crm_visitors_owner_idx").on(table.chapterId, table.ownerMemberId),
     index("crm_visitors_dupe_idx").on(
       table.chapterId,

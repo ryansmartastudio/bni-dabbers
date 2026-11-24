@@ -16,7 +16,7 @@ type VisitorPageProps = PageProps<"/crm/visitor/[id]">;
 
 export default async function VisitorPage({ params }: VisitorPageProps) {
   const { id } = await params;
-  const { member } = await requireChapterMember();
+  const { member, role } = await requireChapterMember();
 
   // Scoped by the member's chapter, so a visitor id from another chapter is
   // a 404 rather than a read.
@@ -57,6 +57,7 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
         ownerClaimedAt: visitor.ownerClaimedAt?.toISOString() ?? null,
         invitedAt: visitor.invitedAt?.toISOString() ?? null,
         visitBookedFor: visitor.visitBookedFor ?? null,
+        archivedAt: visitor.archivedAt?.toISOString() ?? null,
         createdAt: visitor.createdAt.toISOString(),
       }}
       timeline={timeline}
@@ -64,6 +65,7 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
       meId={member.id}
       meName={`${member.firstName} ${member.lastName}`.trim()}
       facts={facts}
+      isAdmin={role === "admin"}
     />
   );
 }

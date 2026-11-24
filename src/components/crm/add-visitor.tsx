@@ -169,7 +169,7 @@ export function AddVisitor({ full = false }: { full?: boolean } = {}) {
                     </Link>
                     <span className="text-muted">
                       {dupe.company ? ` · ${dupe.company}` : ""} ·{" "}
-                      {STAGE_LABELS[dupe.stage]}
+                      {dupe.archived ? "archived" : STAGE_LABELS[dupe.stage]}
                       {dupe.sourceLabel ? ` · from ${dupe.sourceLabel}` : ""}
                     </span>
                   </li>

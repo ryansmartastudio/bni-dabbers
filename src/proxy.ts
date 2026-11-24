@@ -4,6 +4,7 @@ import { isClerkProxyEnabled } from "@/lib/clerk-config";
 import {
   CRM_NOINDEX,
   isCrmAdminPath,
+  isCrmAuthPassthroughPath,
   isCrmHost,
   isCrmReminderPath,
   toCrmPath,
@@ -106,6 +107,15 @@ export default clerkMiddleware(
     // the rewritten path. Anything on this host that is not a reminder link
     // needs a signed-in member, so a route added later is private by default.
     if (isCrmHost(req.headers.get("host"))) {
+      // Clerk's own pages and its frontend-API proxy serve themselves on this
+      // host. Rewriting them under /crm makes the sign-in page require a
+      // sign-in, which is an infinite redirect.
+      if (isCrmAuthPassthroughPath(req.nextUrl.pathname)) {
+        const passthrough = NextResponse.next();
+        passthrough.headers.set("x-robots-tag", CRM_NOINDEX);
+        return passthrough;
+      }
+
       const target = toCrmPath(req.nextUrl.pathname);
 
       if (!isCrmReminderPath(target)) {

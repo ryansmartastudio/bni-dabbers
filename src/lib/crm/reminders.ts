@@ -79,6 +79,7 @@ export async function findDueReminders(now = new Date()): Promise<DueReminder[]>
     from crm_visitors v
     join members m on m.id = v.owner_member_id
     where v.stage = 'to_invite'
+      and v.archived_at is null
       and m.status = 'active'
       and m.email <> ''
     order by v.owner_claimed_at asc nulls last

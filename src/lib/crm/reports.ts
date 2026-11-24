@@ -1,4 +1,4 @@
-import { and, desc, eq, isNotNull, sql } from "drizzle-orm";
+import { and, desc, eq, isNotNull, isNull, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { crmNotes, crmReminders, crmVisitors, members } from "@/db/schema";
 import { CRM_STAGES, type CrmStage } from "@/lib/crm/visitors";
@@ -72,6 +72,18 @@ function fullName(first: string | null, last: string | null): string | null {
   return first ? `${first} ${last ?? ""}`.trim() : null;
 }
 
+/**
+ * Every figure in this report is about live pipeline work, so archived rows
+ * are excluded from all three queries. Written once rather than repeated, so
+ * a fourth query cannot quietly forget it.
+ */
+function archivedExcluded(chapterId: string) {
+  return and(
+    eq(crmVisitors.chapterId, chapterId),
+    isNull(crmVisitors.archivedAt),
+  );
+}
+
 export async function getChapterReport(chapterId: string): Promise<ChapterReport> {
   const stageCount = (stage: CrmStage) =>
     sql<number>`count(*) filter (where ${crmVisitors.stage} = ${stage})::int`;
@@ -88,7 +100,7 @@ export async function getChapterReport(chapterId: string): Promise<ChapterReport
       not_now: stageCount("not_now"),
     })
     .from(crmVisitors)
-    .where(eq(crmVisitors.chapterId, chapterId));
+    .where(archivedExcluded(chapterId));
 
   const memberRows = await db
     .select({
@@ -108,7 +120,7 @@ export async function getChapterReport(chapterId: string): Promise<ChapterReport
     })
     .from(crmVisitors)
     .innerJoin(members, eq(members.id, crmVisitors.ownerMemberId))
-    .where(eq(crmVisitors.chapterId, chapterId))
+    .where(archivedExcluded(chapterId))
     .groupBy(members.id, members.firstName, members.lastName)
     .orderBy(desc(sql`count(*)`));
 
@@ -127,7 +139,7 @@ export async function getChapterReport(chapterId: string): Promise<ChapterReport
     })
     .from(crmVisitors)
     .innerJoin(members, eq(members.id, crmVisitors.ownerMemberId))
-    .where(eq(crmVisitors.chapterId, chapterId))
+    .where(archivedExcluded(chapterId))
     .orderBy(members.firstName, crmVisitors.name);
 
   const toVisitor = (row: (typeof claimedRows)[number]): ReportVisitor => ({

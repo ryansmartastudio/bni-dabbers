@@ -51,6 +51,34 @@ export function isCrmReminderPath(pathname: string): boolean {
 }
 
 /**
+ * Paths that must reach their real route on the CRM host, neither rewritten
+ * under /crm nor protected.
+ *
+ * Without this the host eats its own sign-in page: /sign-in is rewritten to
+ * /crm/sign-in, which needs a member, so auth.protect() sends the browser to
+ * /sign-in, which is rewritten again. That is an infinite redirect, and it
+ * only shows up in a browser -- Clerk answers a request that does not accept
+ * HTML with a 404, so a plain curl check reports the host as healthy.
+ *
+ * /__clerk/ is the frontend-API proxy. The workshop branch has always let it
+ * through; the CRM branch did not, which stopped Clerk establishing a session
+ * on this host at all.
+ */
+export function isCrmAuthPassthroughPath(pathname: string): boolean {
+  return (
+    pathname === "/__clerk" ||
+    pathname.startsWith("/__clerk/") ||
+    isUnder(pathname, "/sign-in") ||
+    isUnder(pathname, "/sign-up")
+  );
+}
+
+/** Exact match or a child path, never a lookalike like /sign-in-now. */
+function isUnder(pathname: string, prefix: string): boolean {
+  return pathname === prefix || pathname.startsWith(`${prefix}/`);
+}
+
+/**
  * CRM routes that need the admin role on top of membership.
  *
  * Matched on the path after rewriting so one rule covers both hosts. Without

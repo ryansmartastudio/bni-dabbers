@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useState, useTransition } from "react";
 import { addNote, claimForMe, moveVisitor, releaseMine } from "@/actions/crm";
 import { MessagePicker } from "@/components/crm/message-picker";
+import { VisitorArchivePanel } from "@/components/crm/visitor-archive-panel";
 import { VisitorDetailsPanel } from "@/components/crm/visitor-details-panel";
 import {
   CRM_STAGES,
@@ -29,6 +30,7 @@ type Visitor = {
   ownerClaimedAt: string | null;
   invitedAt: string | null;
   visitBookedFor: string | null;
+  archivedAt: string | null;
   createdAt: string;
 };
 
@@ -47,6 +49,7 @@ type Props = {
   meId: string;
   meName: string;
   facts: ChapterMessageFacts;
+  isAdmin: boolean;
 };
 
 const KIND_LABELS: Record<string, string> = {
@@ -84,6 +87,7 @@ export function VisitorDetail({
   meId,
   meName,
   facts,
+  isAdmin,
 }: Props) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -128,6 +132,13 @@ export function VisitorDetail({
           </span>
         </header>
 
+        {visitor.archivedAt ? (
+          <p className="mt-4 rounded-2xl border border-border bg-surface-muted px-3 py-2 text-sm font-semibold text-foreground">
+            Archived. They are off the board and out of the reminders until
+            somebody puts them back.
+          </p>
+        ) : null}
+
         {duplicates.length > 0 ? (
           <aside className="mt-4 rounded-2xl border border-border bg-surface-muted p-3">
             <p className="text-sm font-bold text-foreground">
@@ -146,7 +157,7 @@ export function VisitorDetail({
                   </Link>
                   <span className="text-muted">
                     {dupe.company ? ` · ${dupe.company}` : ""} ·{" "}
-                    {STAGE_LABELS[dupe.stage]}
+                    {dupe.archived ? "archived" : STAGE_LABELS[dupe.stage]}
                     {dupe.sourceLabel ? ` · from ${dupe.sourceLabel}` : ""}
                   </span>
                 </li>
@@ -299,6 +310,13 @@ export function VisitorDetail({
                 visitBookedFor: visitor.visitBookedFor,
                 createdAt: visitor.createdAt,
               }}
+            />
+
+            <VisitorArchivePanel
+              visitorId={visitor.id}
+              visitorName={visitor.name}
+              archivedAt={visitor.archivedAt}
+              isAdmin={isAdmin}
             />
 
             <MessagePicker

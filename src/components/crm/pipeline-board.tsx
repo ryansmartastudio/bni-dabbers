@@ -205,7 +205,8 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
   function setView(next: "board" | "map") {
     const params = new URLSearchParams();
     if (scope !== "all") params.set("scope", scope);
-    if (next !== "board") params.set("view", next);
+    // Map is the default, so the board is what needs saying in the URL.
+    if (next !== "map") params.set("view", next);
     const query = params.toString();
     router.push(query ? `/crm?${query}` : "/crm");
   }
@@ -237,8 +238,8 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
           <div className="flex rounded-xl border border-border bg-surface p-0.5">
             {(
               [
-                ["board", "Board"],
                 ["map", "Map"],
+                ["board", "Board"],
               ] as const
             ).map(([value, label]) => (
               <button
@@ -250,7 +251,7 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
                   view === value
                     ? "bg-white text-foreground shadow-sm"
                     : "text-muted hover:text-foreground"
-                } ${value === "map" ? "hidden lg:block" : ""}`}
+                }`}
               >
                 {label}
               </button>
