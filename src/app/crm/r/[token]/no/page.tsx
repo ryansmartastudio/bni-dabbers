@@ -2,8 +2,9 @@ import type { Metadata } from "next";
 import { MessagePicker } from "@/components/crm/message-picker";
 import { ReminderAction } from "@/components/crm/reminder-actions";
 import { ReminderShell } from "@/components/crm/reminder-shell";
+import { getChapterMessageFacts } from "@/lib/crm/message-facts";
 import { answerNo, resolveReminderToken } from "@/lib/crm/reminders";
-import { formatNextMeetingDate } from "@/lib/meeting-date";
+import { getVisitor } from "@/lib/crm/visitors";
 import { INVITE_TIPS } from "@/lib/workshop/toolkit";
 
 export const dynamic = "force-dynamic";
@@ -46,6 +47,13 @@ export default async function ReminderNoPage({
 
   await answerNo(reminder);
 
+  // Reached from an email without signing in, so the chapter comes off the
+  // token's own reminder row rather than from a session.
+  const [visitor, facts] = await Promise.all([
+    getVisitor(reminder.chapterId, reminder.visitorId),
+    getChapterMessageFacts(reminder.chapterId),
+  ]);
+
   return (
     <ReminderShell
       title="No rush at all"
@@ -69,7 +77,8 @@ export default async function ReminderNoPage({
         <MessagePicker
           person={{ name: reminder.visitorName, company: reminder.visitorCompany }}
           me={reminder.memberName}
-          meetingLabel={formatNextMeetingDate("Thursday") ?? "the next Thursday"}
+          facts={facts}
+          category={visitor?.category}
         />
       </div>
 

@@ -23,7 +23,9 @@
     "test:crm-reports": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-reports.ts",
     "test:crm-host": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-host.ts",
     "test:crm-edit": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-crm-edit.ts",
-    "test:workshop-edit": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-workshop-edit.ts"
+    "test:workshop-edit": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-workshop-edit.ts",
+    "test:toolkit": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-toolkit.ts",
+    "test:member-link": "node --env-file=.env.local node_modules/tsx/dist/cli.mjs scripts/test-member-link.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^4.0.37",

@@ -21,6 +21,7 @@ import type {
 } from "@/lib/workshop/portal";
 import type { RosterMember } from "@/lib/workshop/roster";
 import type { WorkshopConstants } from "@/lib/workshop/config";
+import type { ChapterMessageFacts } from "@/lib/workshop/toolkit";
 
 const REFRESH_MS = 6000;
 
@@ -57,11 +58,11 @@ function formatSessionLabel(iso: string): string {
 
 export function PortalApp({
   constants,
-  meetingLabel,
+  facts,
   requestedSessionId,
 }: {
   constants: WorkshopConstants;
-  meetingLabel: string;
+  facts: ChapterMessageFacts;
   requestedSessionId: string | null;
 }) {
   const reduced = useReducedMotion() ?? false;
@@ -507,7 +508,7 @@ export function PortalApp({
             password={password}
             sessionId={wanted}
             constants={constants}
-            meetingLabel={meetingLabel}
+            facts={facts}
             reduced={reduced}
             onClose={() => setOpenId(null)}
             onChanged={(updated) => {

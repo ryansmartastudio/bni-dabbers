@@ -41,7 +41,12 @@ export default async function CrmLayout({ children }: LayoutProps<"/crm">) {
         counts={counts}
         isAdmin={role === "admin"}
       />
-      <div className="flex min-w-0 flex-1 flex-col">{children}</div>
+      {/* min-h-0 is load-bearing below `lg`, where #crm-root is a COLUMN:
+          a flex child defaults to min-height:auto, so without it this wrapper
+          grows to fit the page and every inner overflow-y-auto has nothing to
+          scroll within. Above `lg` the row's stretch alignment hides the
+          mistake, which is how it survived a desktop-only check. */}
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">{children}</div>
     </div>
   );
 }

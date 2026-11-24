@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { VisitorDetail } from "@/components/crm/visitor-detail";
-import { formatNextMeetingDate } from "@/lib/meeting-date";
+import { getChapterMessageFacts } from "@/lib/crm/message-facts";
 import { findPossibleDuplicates, getVisitor, listTimeline } from "@/lib/crm/visitors";
 import { requireChapterMember } from "@/lib/member-access";
 
@@ -24,6 +24,12 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
   if (!visitor) notFound();
 
   const timeline = await listTimeline(member.chapterId, id);
+
+  // The templates name the venue, the timings and the number of members, and
+  // one of them claims nobody in the room does what this visitor does. The
+  // facts carry both, so the words a member copies are true at the moment
+  // they copy them.
+  const facts = await getChapterMessageFacts(member.chapterId);
 
   // Three people were suggested twice at the November workshop alone. Records
   // are deliberately never merged, so the warning is how two members avoid
@@ -57,7 +63,7 @@ export default async function VisitorPage({ params }: VisitorPageProps) {
       duplicates={duplicates}
       meId={member.id}
       meName={`${member.firstName} ${member.lastName}`.trim()}
-      meetingLabel={formatNextMeetingDate("Thursday") ?? "the next Thursday"}
+      facts={facts}
     />
   );
 }

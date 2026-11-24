@@ -14,10 +14,12 @@ import {
 } from "@/lib/workshop/projections";
 import {
   INVITE_TIPS,
-  MESSAGE_TEMPLATES,
   PODCASTS,
+  PODCAST_HOME,
+  type ChapterMessageFacts,
   type MessageTemplate,
   fillTemplate,
+  listTemplates,
 } from "@/lib/workshop/toolkit";
 
 type Tab = "details" | "messages" | "tips";
@@ -28,7 +30,7 @@ export function ContactSheet({
   password,
   sessionId,
   constants,
-  meetingLabel,
+  facts,
   reduced,
   onClose,
   onChanged,
@@ -38,7 +40,7 @@ export function ContactSheet({
   password: string;
   sessionId: string | null;
   constants: WorkshopConstants;
-  meetingLabel: string;
+  facts: ChapterMessageFacts;
   reduced: boolean;
   onClose: () => void;
   onChanged: (contact: PortalContact) => void;
@@ -117,7 +119,7 @@ export function ContactSheet({
             />
           ) : null}
           {tab === "messages" ? (
-            <Messages contact={contact} me={me} meetingLabel={meetingLabel} />
+            <Messages contact={contact} me={me} facts={facts} />
           ) : null}
           {tab === "tips" ? <Tips constants={constants} /> : null}
         </div>
@@ -277,23 +279,29 @@ function Field({
 function Messages({
   contact,
   me,
-  meetingLabel,
+  facts,
 }: {
   contact: PortalContact;
   me: string;
-  meetingLabel: string;
+  facts: ChapterMessageFacts;
 }) {
   const [copied, setCopied] = useState<string | null>(null);
+  // The contact's trade decides whether the empty-seat email is honest, so
+  // the list is per contact rather than fixed.
+  const templates = listTemplates(facts, { category: contact.category });
 
-  async function copy(template: MessageTemplate) {
-    const text = fillTemplate(
+  function text(template: MessageTemplate) {
+    return fillTemplate(
       template,
       { name: contact.contactName, company: contact.company },
       me,
-      meetingLabel,
+      facts,
     );
+  }
+
+  async function copy(template: MessageTemplate) {
     try {
-      await navigator.clipboard.writeText(text);
+      await navigator.clipboard.writeText(text(template));
       setCopied(template.id);
       setTimeout(() => setCopied(null), 2000);
     } catch {
@@ -307,7 +315,7 @@ function Messages({
         Already filled in with {contact.contactName.split(" ")[0]}&rsquo;s details and
         your name. Copy, read it back, send.
       </p>
-      {MESSAGE_TEMPLATES.map((template) => (
+      {templates.map((template) => (
         <div key={template.id} className="rounded-2xl border border-border bg-white p-4">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
@@ -326,12 +334,7 @@ function Messages({
             </button>
           </div>
           <pre className="mt-3 whitespace-pre-wrap break-words rounded-xl bg-surface-muted px-3 py-3 font-sans text-[13px] leading-relaxed text-foreground">
-            {fillTemplate(
-      template,
-      { name: contact.contactName, company: contact.company },
-      me,
-      meetingLabel,
-    )}
+            {text(template)}
           </pre>
         </div>
       ))}
@@ -369,7 +372,16 @@ function Tips({ constants }: { constants: WorkshopConstants }) {
         </h3>
         <p className="mt-1 text-sm text-muted">
           From the official BNI podcast, all on inviting visitors. Most are under
-          fifteen minutes.
+          fifteen minutes.{" "}
+          <a
+            href={PODCAST_HOME}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="font-semibold text-foreground underline underline-offset-2"
+          >
+            The rest of the category
+          </a>
+          .
         </p>
         <div className="mt-2 space-y-2">
           {PODCASTS.map((cast) => (

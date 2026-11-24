@@ -11,7 +11,10 @@ import {
   type CrmStage,
   type DuplicateMatch,
 } from "@/lib/crm/visitors";
-import { INVITE_TIPS } from "@/lib/workshop/toolkit";
+import {
+  INVITE_TIPS,
+  type ChapterMessageFacts,
+} from "@/lib/workshop/toolkit";
 
 type Visitor = {
   id: string;
@@ -43,7 +46,7 @@ type Props = {
   duplicates: DuplicateMatch[];
   meId: string;
   meName: string;
-  meetingLabel: string;
+  facts: ChapterMessageFacts;
 };
 
 const KIND_LABELS: Record<string, string> = {
@@ -80,7 +83,7 @@ export function VisitorDetail({
   duplicates,
   meId,
   meName,
-  meetingLabel,
+  facts,
 }: Props) {
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -301,7 +304,8 @@ export function VisitorDetail({
             <MessagePicker
               person={{ name: visitor.name, company: visitor.company }}
               me={meName}
-              meetingLabel={meetingLabel}
+              facts={facts}
+              category={visitor.category}
             />
 
             <section className="rounded-2xl border border-border bg-white p-4">
@@ -320,6 +324,12 @@ export function VisitorDetail({
                   </li>
                 ))}
               </ul>
+              <Link
+                href="/crm/toolkit"
+                className="mt-3 block text-xs font-bold text-foreground underline underline-offset-2"
+              >
+                All six messages, the rules and the podcasts &rarr;
+              </Link>
             </section>
           </aside>
         </div>

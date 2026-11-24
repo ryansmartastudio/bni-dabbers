@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
-  MESSAGE_TEMPLATES,
   fillTemplate,
+  listTemplates,
+  type ChapterMessageFacts,
   type MessageTemplate,
 } from "@/lib/workshop/toolkit";
 
 type Props = {
   person: { name: string; company?: string | null };
   me: string;
-  meetingLabel: string;
+  facts: ChapterMessageFacts;
+  /** Their trade, which decides whether the empty-seat email is honest. */
+  category?: string | null;
   className?: string;
 };
 
@@ -21,12 +24,33 @@ type Props = {
  * because the moment someone admits they haven't invited anybody is exactly
  * the moment to hand them the words.
  */
-export function MessagePicker({ person, me, meetingLabel, className }: Props) {
-  const [template, setTemplate] = useState<MessageTemplate>(MESSAGE_TEMPLATES[0]!);
+export function MessagePicker({
+  person,
+  me,
+  facts,
+  category,
+  className,
+}: Props) {
+  const templates = useMemo(
+    () => listTemplates(facts, { category }),
+    [facts, category],
+  );
+  const [chosenId, setChosenId] = useState<string>(templates[0]?.id ?? "");
   const [copied, setCopied] = useState(false);
   const [failed, setFailed] = useState(false);
 
-  const message = fillTemplate(template, person, me, meetingLabel);
+  // Resolved from the id rather than held as an object, so a template that
+  // drops off the list -- the trade got filled, the referral total went away
+  // -- falls back instead of rendering a message that is no longer offered.
+  const template: MessageTemplate | undefined =
+    templates.find((item) => item.id === chosenId) ?? templates[0];
+
+  if (!template) return null;
+
+  const message = fillTemplate(template, person, me, facts);
+  const overLimit = template.maxLength
+    ? message.length > template.maxLength
+    : false;
 
   async function copy() {
     try {
@@ -46,16 +70,11 @@ export function MessagePicker({ person, me, meetingLabel, className }: Props) {
       </h2>
       <select
         value={template.id}
-        onChange={(event) =>
-          setTemplate(
-            MESSAGE_TEMPLATES.find((item) => item.id === event.target.value) ??
-              MESSAGE_TEMPLATES[0]!,
-          )
-        }
+        onChange={(event) => setChosenId(event.target.value)}
         aria-label="Which message"
         className="mt-2 w-full rounded-xl border border-border bg-white px-3 py-2 text-sm font-semibold text-foreground"
       >
-        {MESSAGE_TEMPLATES.map((item) => (
+        {templates.map((item) => (
           <option key={item.id} value={item.id}>
             {item.channel} · {item.label}
           </option>
@@ -64,6 +83,16 @@ export function MessagePicker({ person, me, meetingLabel, className }: Props) {
       <p className="mt-2 whitespace-pre-wrap rounded-xl bg-surface-muted p-2.5 text-xs leading-relaxed text-foreground">
         {message}
       </p>
+      {template.maxLength ? (
+        <p
+          className={`mt-1.5 text-[11px] font-semibold ${
+            overLimit ? "text-bni" : "text-ink-muted"
+          }`}
+        >
+          {message.length} of {template.maxLength} characters
+          {overLimit ? " · too long, trim it before you send" : ""}
+        </p>
+      ) : null}
       <button
         type="button"
         onClick={copy}
