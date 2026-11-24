@@ -14,6 +14,10 @@ import { eq, sql } from "drizzle-orm";
 import { db } from "../src/db";
 import { chapters, members } from "../src/db/schema";
 import { buildCrmWelcomeEmail } from "../src/lib/email/crm-welcome-email";
+import {
+  listWelcomeRecipients,
+  sendWelcomeEmails as sendWelcomeEmailsReal,
+} from "../src/lib/crm/welcome";
 import { getChapterSettings } from "../src/lib/settings";
 
 let pass = 0, fail = 0;
@@ -28,26 +32,22 @@ const outbox: Sent[] = [];
 let nextFailures: { index: number; message: string }[] = [];
 
 /**
- * Replaces the real sender, then loads the module that calls it.
+ * Stands in for Resend.
  *
- * Order matters and so does the direction: welcome.ts must be imported
- * AFTER the stub is in place, or it closes over the real function and the
- * first test emails five people for real.
+ * Passed in rather than patched over the module: an ES module namespace is
+ * sealed, and more to the point a test that reaches into another module's
+ * internals is testing the wiring instead of the behaviour.
  */
-async function loadWithStubbedResend() {
-  const resendModule = await import("../src/lib/email/resend");
-  Object.defineProperty(resendModule, "sendEmailBatch", {
-    value: async (emails: Sent[]) => {
-      outbox.push(...emails);
-      const failures = nextFailures;
-      nextFailures = [];
-      return { failures, sent: emails.length - failures.length };
-    },
-    writable: true,
-    configurable: true,
-  });
-  return import("../src/lib/crm/welcome");
-}
+const recordingSender = async (emails: Sent[]) => {
+  outbox.push(...emails);
+  const failures = nextFailures;
+  nextFailures = [];
+  return { failures, sent: emails.length - failures.length };
+};
+
+/** Every send in this file goes through the recorder, never Resend. */
+const sendWelcome = (chapterId: string, ids: string[]) =>
+  sendWelcomeEmailsReal(chapterId, ids, recordingSender);
 
 async function realCounts() {
   const [row] = await db.execute(sql`
@@ -59,9 +59,6 @@ async function realCounts() {
 }
 
 async function main() {
-  const { listWelcomeRecipients, sendWelcomeEmails } =
-    await loadWithStubbedResend();
-
   const before = await realCounts();
   console.log("BEFORE", JSON.stringify(before));
 
@@ -105,13 +102,13 @@ async function main() {
     });
     const dot = await addMember("Dot", "not-an-email");
     const eve = await addMember("Eve", "eve@example.test", {
-      status: "inactive",
+      status: "former",
     });
 
     console.log("\nWho the page offers");
     const listed = await listWelcomeRecipients(chapterId);
     check("only active members are listed", listed.length === 4, String(listed.length));
-    check("the inactive one is left out", listed.every((r) => r.id !== eve.id));
+    check("a former member is left out", listed.every((r) => r.id !== eve.id));
     check("somebody signed in is marked so",
       listed.find((r) => r.id === ben.id)?.signedIn === true);
     check("somebody already emailed shows the date",
@@ -122,7 +119,7 @@ async function main() {
 
     console.log("\nSending to one person");
     outbox.length = 0;
-    const one = await sendWelcomeEmails(chapterId, [amy.id]);
+    const one = await sendWelcome(chapterId, [amy.id]);
     check("it succeeds", one.ok);
     check("exactly one email", outbox.length === 1, String(outbox.length));
     check("to the right address", outbox[0]?.to === "amy@example.test");
@@ -148,14 +145,14 @@ async function main() {
 
     console.log("\nAddresses that cannot be used");
     outbox.length = 0;
-    const bad = await sendWelcomeEmails(chapterId, [dot.id]);
+    const bad = await sendWelcome(chapterId, [dot.id]);
     // The email says "sign in with the address this arrived at", so sending
     // it to a broken address would be an instruction nobody can follow.
     check("a malformed address is refused, not sent", !bad.ok, JSON.stringify(bad));
     check("and nothing went out", outbox.length === 0);
 
     outbox.length = 0;
-    const mixed = await sendWelcomeEmails(chapterId, [ben.id, dot.id]);
+    const mixed = await sendWelcome(chapterId, [ben.id, dot.id]);
     check("a mixed batch still sends the good one", mixed.ok);
     check("one email, not two", outbox.length === 1, String(outbox.length));
     check("it went to the valid address", outbox[0]?.to === "ben@example.test");
@@ -168,7 +165,7 @@ async function main() {
     // Only the ones that actually went should be stamped, or a retry would
     // skip exactly the people who missed out.
     nextFailures = [{ index: 0, message: "Invalid recipient" }];
-    const partial = await sendWelcomeEmails(chapterId, [cal.id]);
+    const partial = await sendWelcome(chapterId, [cal.id]);
     check("the call still succeeds", partial.ok);
     check("but nothing counts as sent",
       partial.ok && partial.data.sent === 0, partial.ok ? String(partial.data.sent) : "");
@@ -190,12 +187,12 @@ async function main() {
       }).returning();
 
       outbox.length = 0;
-      const across = await sendWelcomeEmails(chapterId, [outsider!.id]);
+      const across = await sendWelcome(chapterId, [outsider!.id]);
       check("an id from another chapter finds nobody", !across.ok);
       check("and emails nobody", outbox.length === 0);
 
       outbox.length = 0;
-      const mixedChapters = await sendWelcomeEmails(chapterId, [amy.id, outsider!.id]);
+      const mixedChapters = await sendWelcome(chapterId, [amy.id, outsider!.id]);
       check("a mixed-chapter list only emails our own", mixedChapters.ok && outbox.length === 1);
       check("and it is the right person", outbox[0]?.to === "amy@example.test");
     } finally {
@@ -205,11 +202,11 @@ async function main() {
     console.log("\nGuards on the batch itself");
     outbox.length = 0;
     check("an empty list is refused",
-      !(await sendWelcomeEmails(chapterId, [])).ok);
+      !(await sendWelcome(chapterId, [])).ok);
     check("over a hundred is refused",
-      !(await sendWelcomeEmails(chapterId, Array.from({ length: 101 }, (_, i) => `id-${i}`))).ok);
+      !(await sendWelcome(chapterId, Array.from({ length: 101 }, (_, i) => `id-${i}`))).ok);
     check("a repeated id is only emailed once",
-      (await sendWelcomeEmails(chapterId, [amy.id, amy.id, amy.id])).ok &&
+      (await sendWelcome(chapterId, [amy.id, amy.id, amy.id])).ok &&
       outbox.length === 1, String(outbox.length));
 
     console.log("\nThe copy obeys the house rules");

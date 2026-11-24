@@ -75,6 +75,13 @@ export type WelcomeSendResult = {
 export async function sendWelcomeEmails(
   chapterId: string,
   memberIds: string[],
+  /**
+   * How the emails actually go out. Injected rather than imported so the
+   * tests can assert the exact recipients and bodies without reaching
+   * anybody's inbox -- the failure this guards against is emailing the
+   * wrong people, which you cannot discover by sending and looking.
+   */
+  send: typeof sendEmailBatch = sendEmailBatch,
 ): Promise<CrmResult<WelcomeSendResult>> {
   const wanted = [...new Set(memberIds)];
   if (wanted.length === 0) return { ok: false, error: "Nobody was selected." };
@@ -148,7 +155,7 @@ export async function sendWelcomeEmails(
     return { ok: false, error: "Nobody selected has a usable email address." };
   }
 
-  const result = await sendEmailBatch(
+  const result = await send(
     sendable.map((entry) => ({
       to: entry.email,
       subject: entry.built.subject,
