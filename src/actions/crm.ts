@@ -27,6 +27,10 @@ import {
   type ImportOutcome,
   type ImportPlan,
 } from "@/lib/crm/import";
+import {
+  sendWelcomeEmails,
+  type WelcomeSendResult,
+} from "@/lib/crm/welcome";
 import { requireChapterAdmin, requireChapterMember } from "@/lib/member-access";
 import { emailKey, normaliseText, phoneKey } from "@/lib/workshop/normalise";
 
@@ -374,6 +378,28 @@ export async function confirmImport(
     if (!result.ok) return result;
 
     revalidatePath("/crm");
+    return { ok: true, data: result.data };
+  } catch (error) {
+    return fail(error);
+  }
+}
+
+/**
+ * Email members to tell them the CRM is open.
+ *
+ * Admin only and outward-facing: this puts a message in other people's
+ * inboxes under the chapter's name. The ids come from the screen the admin
+ * was looking at, so the number they confirmed is the number that is sent.
+ */
+export async function sendWelcomeTo(
+  memberIds: string[],
+): Promise<Result<WelcomeSendResult>> {
+  try {
+    const { member } = await requireChapterAdmin();
+    const result = await sendWelcomeEmails(member.chapterId, memberIds);
+    if (!result.ok) return result;
+
+    revalidatePath("/crm/members");
     return { ok: true, data: result.data };
   } catch (error) {
     return fail(error);

@@ -92,5 +92,22 @@ check("without the exemption, sign-in needs a sign-in",
   toCrmPath("/sign-in") === "/crm/sign-in" && !isCrmReminderPath(toCrmPath("/sign-in")));
 check("with it, sign-in is never rewritten", isCrmAuthPassthroughPath("/sign-in"));
 
+console.log("\nMember access is admin-only on both hosts");
+// This page can email the whole chapter, so it gets the same gate as the
+// reports rather than relying on the page guard alone.
+check("member access needs admin", isCrmAdminPath("/crm/members"));
+check("and anything under it", isCrmAdminPath("/crm/members/anything"));
+check("reports still need admin", isCrmAdminPath("/crm/reports"));
+check("the board does not", !isCrmAdminPath("/crm"));
+check("the toolkit does not", !isCrmAdminPath("/crm/toolkit"));
+check("import does not", !isCrmAdminPath("/crm/import"));
+check("the archive does not", !isCrmAdminPath("/crm/archive"));
+check("a visitor page does not", !isCrmAdminPath("/crm/visitor/abc"));
+// The subdomain rewrites first, so the check must see the rewritten path.
+check("the subdomain path maps onto the admin rule",
+  isCrmAdminPath(toCrmPath("/members")) && isCrmAdminPath(toCrmPath("/reports")));
+check("a lookalike is not admin-gated into existence",
+  !isCrmAdminPath("/crm/membership"));
+
 console.log(`\n${pass} passed, ${fail} failed`);
 if (fail > 0) process.exit(1);

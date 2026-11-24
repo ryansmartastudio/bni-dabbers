@@ -87,8 +87,10 @@ function isUnder(pathname: string, prefix: string): boolean {
  */
 export function isCrmAdminPath(pathname: string): boolean {
   return (
-    pathname === `${CRM_PATH_PREFIX}/reports` ||
-    pathname.startsWith(`${CRM_PATH_PREFIX}/reports/`)
+    isUnder(pathname, `${CRM_PATH_PREFIX}/reports`) ||
+    // Member access can email the whole chapter, so it is gated the same way
+    // as the reports rather than left to the page guard alone.
+    isUnder(pathname, `${CRM_PATH_PREFIX}/members`)
   );
 }
 

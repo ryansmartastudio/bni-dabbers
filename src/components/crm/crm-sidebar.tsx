@@ -182,6 +182,18 @@ export function CrmSidebar({ meName, chapterName, counts, isAdmin }: Props) {
           >
             Reports
           </Link>
+          <Link
+            href="/crm/members"
+            onClick={close}
+            aria-current={pathname === "/crm/members" ? "page" : undefined}
+            className={`rounded-xl px-3 py-2 text-sm font-semibold transition ${
+              pathname === "/crm/members"
+                ? "bg-bni text-white"
+                : "text-foreground hover:bg-surface-muted"
+            }`}
+          >
+            Member access
+          </Link>
         </>
       ) : null}
 

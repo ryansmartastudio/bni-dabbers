@@ -91,6 +91,8 @@ export const members = pgTable("members", {
     .$type<ProfileVisibility>()
     .default({})
     .notNull(),
+  /** When this member was emailed to say the CRM is open. */
+  crmWelcomeSentAt: timestamp("crm_welcome_sent_at", { withTimezone: true }),
   clerkUserId: text("clerk_user_id").unique(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
