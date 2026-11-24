@@ -20,7 +20,11 @@ import { crmVisitors, members } from "../src/db/schema";
 import { getDefaultChapterId } from "../src/lib/chapters";
 import { getCrmUrl } from "../src/lib/crm-host";
 import { buildCrmWelcomeEmail } from "../src/lib/email/crm-welcome-email";
-import { sendEmail } from "../src/lib/email/resend";
+import {
+  getResendFromEmail,
+  getResendReplyTo,
+  sendEmail,
+} from "../src/lib/email/resend";
 import { getChapterSettings } from "../src/lib/settings";
 
 const argv = process.argv.slice(2);
@@ -93,6 +97,12 @@ async function main() {
   console.log(`Active:      ${recipients.length}`);
   console.log(`Already in:  ${recipients.filter((m) => m.clerkUserId).length}`);
   console.log(`Recipients:  ${chosen.length}`);
+  // Printed because these are what the recipient sees in their inbox, and a
+  // wrong From on a chapter-wide send is worth catching in the dry run. The
+  // API key is never printed; only whether one is configured at all.
+  console.log(`From:        ${getResendFromEmail()}`);
+  console.log(`Reply-to:    ${getResendReplyTo()}`);
+  console.log(`API key:     ${process.env.RESEND_API_KEY ? "configured" : "MISSING"}`);
   console.log(`Mode:        ${SEND ? "SENDING FOR REAL" : "dry run (add --send to send)"}`);
   console.log("");
 
