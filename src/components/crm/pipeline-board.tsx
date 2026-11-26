@@ -303,8 +303,12 @@ export function PipelineBoard({ visitors, meId, meName, scope, view }: Props) {
           </div>
         </div>
       ) : view === "map" ? (
-        <div className="min-h-0 flex-1 overflow-auto p-4 sm:p-6">
+        // The map fills this panel rather than holding a square, so the
+        // whole of the space sets how big it is drawn. overflow-auto is the
+        // escape hatch for a panel too short for its own minimum.
+        <div className="min-h-0 flex-1 overflow-auto p-3 sm:p-4">
           <ContactMap
+            fill
             contacts={toMapContacts(filtered)}
             me={meName}
             activeSeat={activeSeat}

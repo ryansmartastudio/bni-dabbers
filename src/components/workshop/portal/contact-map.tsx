@@ -330,15 +330,42 @@ const MIN_ZOOM = 1;
 const MAX_ZOOM = 6;
 const IDENTITY: View = { s: 1, x: 0, y: 0 };
 
+/**
+ * The slice of the plane the panel shows, in drawing units.
+ *
+ * The drawing is a SIZE x SIZE square. The frame is that square grown along
+ * whichever axis the panel has to spare, so the short side sets the scale and
+ * the slack becomes room for the labels instead of letterboxing.
+ */
+type Frame = { x: number; y: number; w: number; h: number };
+
+const SQUARE_FRAME: Frame = { x: 0, y: 0, w: SIZE, h: SIZE };
+
+function frameFor(width: number, height: number): Frame {
+  if (!(width > 0) || !(height > 0)) return SQUARE_FRAME;
+  const ratio = width / height;
+  const w = ratio >= 1 ? SIZE * ratio : SIZE;
+  const h = ratio >= 1 ? SIZE : SIZE / ratio;
+  return { x: C - w / 2, y: C - h / 2, w, h };
+}
+
 /** Keeps the content from being dragged out of the frame entirely. */
-function clampView(view: View): View {
+function clampView(view: View, frame: Frame): View {
   const s = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, view.s));
-  const limit = -(s - 1) * SIZE;
   return {
     s,
-    x: Math.min(0, Math.max(limit, view.x)),
-    y: Math.min(0, Math.max(limit, view.y)),
+    x: clampAxis(view.x, frame.x, frame.w, s),
+    y: clampAxis(view.y, frame.y, frame.h, s),
   };
+}
+
+function clampAxis(value: number, start: number, extent: number, s: number): number {
+  const min = start + extent - SIZE * s;
+  const max = start;
+  // There is more frame than content on this axis, so there is nothing to
+  // drag into view: leave it where it sits, centred.
+  if (min > max) return 0;
+  return Math.min(max, Math.max(min, value));
 }
 
 export function ContactMap({
@@ -357,6 +384,7 @@ export function ContactMap({
   // different thing -- and "No seat yet" there reads as a fault in the map
   // rather than as a fact about the room.
   unseatedLabel = "No seat yet",
+  fill = false,
 }: {
   contacts: PortalContact[];
   me: string;
@@ -370,6 +398,15 @@ export function ContactMap({
   pending: boolean;
   reduced: boolean;
   unseatedLabel?: string;
+  /**
+   * Fill the space it is given rather than holding a square.
+   *
+   * The workshop board sits in a scrolling page, where a square the width of
+   * the column is right. The CRM gives it a panel of its own, and a square
+   * capped at the viewport height left the panel scrolling with the map
+   * larger than the hole it was looking through.
+   */
+  fill?: boolean;
 }) {
   const [hover, setHover] = useState<HoverTarget>(null);
   // The hover card carries a claim button, so leaving a name has to give the
@@ -379,6 +416,8 @@ export function ContactMap({
   const [dragging, setDragging] = useState(false);
 
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const frameRef = useRef<HTMLDivElement | null>(null);
+  const [box, setBox] = useState<{ w: number; h: number } | null>(null);
   const dragFrom = useRef<{ x: number; y: number; view: View } | null>(null);
   // A drag that ends over a name must not also open that name.
   const movedRef = useRef(false);
@@ -390,6 +429,26 @@ export function ContactMap({
     midpoint: { x: number; y: number };
     view: View;
   } | null>(null);
+
+  // Measured rather than assumed: the view box has to match the shape of the
+  // panel exactly, or the pointer maths and the hover card drift.
+  useEffect(() => {
+    const node = frameRef.current;
+    if (!node || !fill) return;
+    const observer = new ResizeObserver((entries) => {
+      const rect = entries[0]?.contentRect;
+      if (rect && rect.width > 0 && rect.height > 0) {
+        setBox({ w: rect.width, h: rect.height });
+      }
+    });
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [fill]);
+
+  const frame = useMemo(
+    () => (fill && box ? frameFor(box.w, box.h) : SQUARE_FRAME),
+    [fill, box],
+  );
 
   const tree = useMemo(
     () => buildTree(contacts, unseatedLabel),
@@ -425,14 +484,17 @@ export function ContactMap({
   }, [contacts, activeSeat, memberFocus]);
 
   /** Pointer position in viewBox units, before the pan/zoom transform. */
-  const toViewBox = useCallback((clientX: number, clientY: number) => {
-    const rect = svgRef.current?.getBoundingClientRect();
-    if (!rect || rect.width === 0) return { x: C, y: C };
-    return {
-      x: ((clientX - rect.left) / rect.width) * SIZE,
-      y: ((clientY - rect.top) / rect.height) * SIZE,
-    };
-  }, []);
+  const toViewBox = useCallback(
+    (clientX: number, clientY: number) => {
+      const rect = svgRef.current?.getBoundingClientRect();
+      if (!rect || rect.width === 0) return { x: C, y: C };
+      return {
+        x: frame.x + ((clientX - rect.left) / rect.width) * frame.w,
+        y: frame.y + ((clientY - rect.top) / rect.height) * frame.h,
+      };
+    },
+    [frame],
+  );
 
   const zoomAt = useCallback(
     (factor: number, clientX?: number, clientY?: number) => {
@@ -444,14 +506,17 @@ export function ContactMap({
             ? { x: C, y: C }
             : toViewBox(clientX, clientY);
         const ratio = next / current.s;
-        return clampView({
-          s: next,
-          x: anchor.x - (anchor.x - current.x) * ratio,
-          y: anchor.y - (anchor.y - current.y) * ratio,
-        });
+        return clampView(
+          {
+            s: next,
+            x: anchor.x - (anchor.x - current.x) * ratio,
+            y: anchor.y - (anchor.y - current.y) * ratio,
+          },
+          frame,
+        );
       });
     },
-    [toViewBox],
+    [toViewBox, frame],
   );
 
   /** Seats holding at least one of the focused member's names. */
@@ -566,11 +631,14 @@ export function ContactMap({
       const driftX = now.midpoint.x - pinch.midpoint.x;
       const driftY = now.midpoint.y - pinch.midpoint.y;
       setView(
-        clampView({
-          s: next,
-          x: pinch.midpoint.x - (pinch.midpoint.x - pinch.view.x) * ratio + driftX,
-          y: pinch.midpoint.y - (pinch.midpoint.y - pinch.view.y) * ratio + driftY,
-        }),
+        clampView(
+          {
+            s: next,
+            x: pinch.midpoint.x - (pinch.midpoint.x - pinch.view.x) * ratio + driftX,
+            y: pinch.midpoint.y - (pinch.midpoint.y - pinch.view.y) * ratio + driftY,
+          },
+          frame,
+        ),
       );
       return;
     }
@@ -590,9 +658,14 @@ export function ContactMap({
     }
     if (!movedRef.current) return;
 
-    const dx = ((event.clientX - from.x) / rect.width) * SIZE;
-    const dy = ((event.clientY - from.y) / rect.height) * SIZE;
-    setView(clampView({ s: from.view.s, x: from.view.x + dx, y: from.view.y + dy }));
+    const dx = ((event.clientX - from.x) / rect.width) * frame.w;
+    const dy = ((event.clientY - from.y) / rect.height) * frame.h;
+    setView(
+      clampView(
+        { s: from.view.s, x: from.view.x + dx, y: from.view.y + dy },
+        frame,
+      ),
+    );
   };
 
   const endDrag = (event: React.PointerEvent<SVGSVGElement>) => {
@@ -608,10 +681,22 @@ export function ContactMap({
   const zoomed = view.s > 1.001;
 
   return (
-    <div className="workshop-map relative mx-auto aspect-square w-[min(100%,92vh)] select-none">
+    <div
+      ref={frameRef}
+      className={`workshop-map relative select-none ${
+        fill
+          ? // Panel-sized when the panel is wider than tall, and a square of
+            // the width when it is taller -- width:100% with aspect-ratio:1
+            // and max-height:100% gives both without measuring anything, so
+            // there is no resize loop. The minimum is the point at which a
+            // short panel should scroll rather than squash the map.
+            "aspect-square max-h-full min-h-[20rem] w-full"
+          : "mx-auto aspect-square w-[min(100%,92vh)]"
+      }`}
+    >
       <svg
         ref={svgRef}
-        viewBox={`0 0 ${SIZE} ${SIZE}`}
+        viewBox={`${frame.x} ${frame.y} ${frame.w} ${frame.h}`}
         className="h-full w-full overflow-hidden"
         style={{
           cursor: dragging ? "grabbing" : zoomed ? "grab" : "default",
@@ -971,6 +1056,7 @@ export function ContactMap({
             key={hover.kind === "team" ? `team-${hover.team.key}` : hover.key}
             target={hover}
             view={view}
+            frame={frame}
             mineKey={mineKey}
             pending={pending}
             reduced={reduced}
@@ -1021,6 +1107,7 @@ function ZoomButton({
 function MapTooltip({
   target,
   view,
+  frame,
   mineKey,
   pending,
   reduced,
@@ -1032,6 +1119,7 @@ function MapTooltip({
 }: {
   target: NonNullable<HoverTarget>;
   view: View;
+  frame: Frame;
   mineKey: string;
   pending: boolean;
   reduced: boolean;
@@ -1045,8 +1133,8 @@ function MapTooltip({
   // applied by hand to put the card next to what the eye is looking at.
   const vx = px(target.angle, target.radius) * view.s + view.x;
   const vy = py(target.angle, target.radius) * view.s + view.y;
-  const left = (vx / SIZE) * 100;
-  const top = (vy / SIZE) * 100;
+  const left = ((vx - frame.x) / frame.w) * 100;
+  const top = ((vy - frame.y) / frame.h) * 100;
   const flip = left > 55;
 
   const body =
